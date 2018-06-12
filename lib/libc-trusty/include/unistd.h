@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2015 The Android Open Source Project
+ * Copyright (C) 2018 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,9 +14,14 @@
  * limitations under the License.
  */
 
-#include <stdlib.h>
+#pragma once
 
-void abort(void)
-{
-	exit(1);
-}
+#include <lk/compiler.h>
+
+__BEGIN_CDECLS
+
+/* TODO(ncbray): match POSIX signatures. */
+long brk(uint32_t brk);
+long write(uint32_t fd, void *msg, uint32_t size);
+
+__END_CDECLS

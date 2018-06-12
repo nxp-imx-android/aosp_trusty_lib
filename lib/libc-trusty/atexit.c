@@ -32,7 +32,6 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <trusty_std.h>
 
 #include "atexit.h"
 

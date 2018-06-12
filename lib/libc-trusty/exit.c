@@ -15,13 +15,13 @@
  */
 
 #include <lk/compiler.h>
-#include <trusty_std.h>
+#include <stdlib.h>
 
 #include "atexit.h"
 
 /* HACK: needed temporarily until the syscalls file gets the
  * __NO_RETURN annotation */
-__NO_RETURN long exit_etc (int32_t status, uint32_t flags);
+__NO_RETURN long exit_etc(int32_t status, uint32_t flags);
 
 __NO_RETURN void exit(int status)
 {

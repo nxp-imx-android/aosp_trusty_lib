@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2015 The Android Open Source Project
+ * Copyright (C) 2018 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,9 +14,16 @@
  * limitations under the License.
  */
 
-#include <stdlib.h>
+#pragma once
 
-void abort(void)
-{
-	exit(1);
-}
+#include <lk/compiler.h>
+#include <malloc.h>
+
+/* TODO(ncbray): remove layering on top of kernel libc. */
+#include_next <stdlib.h>
+
+__BEGIN_CDECLS
+
+__NO_RETURN void exit(int status);
+
+__END_CDECLS

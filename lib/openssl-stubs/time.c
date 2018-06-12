@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2015 The Android Open Source Project
+ * Copyright (C) 2018 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,9 +14,15 @@
  * limitations under the License.
  */
 
-#include <stdlib.h>
+#include <time.h>
 
-void abort(void)
-{
-	exit(1);
+#include <string.h>
+
+struct tm *OPENSSL_gmtime(const time_t *timer, struct tm *result) {
+        memset(result, 0, sizeof(*result));
+        return result;
+}
+
+int OPENSSL_gmtime_adj(struct tm *tm, int offset_day, long offset_sec) {
+        return 0;
 }

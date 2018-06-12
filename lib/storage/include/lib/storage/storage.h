@@ -19,8 +19,10 @@
 #include <lk/compiler.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <interface/storage/storage.h>
+#include <sys/types.h>
 #include <trusty_ipc.h>
+
+#include <interface/storage/storage.h>
 
 #define STORAGE_MAX_NAME_LENGTH_BYTES 159
 

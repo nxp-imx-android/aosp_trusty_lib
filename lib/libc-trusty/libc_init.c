@@ -28,7 +28,7 @@
 
 #include <lk/compiler.h>
 #include <stddef.h>
-#include <trusty_std.h>
+#include <stdlib.h>
 
 #include "libc_fatal.h"
 #include "libc_init.h"

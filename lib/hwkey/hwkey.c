@@ -15,12 +15,11 @@
  */
 
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <trusty_ipc.h>
 #include <uapi/err.h>
-#include <trusty_std.h>
-#include <stdio.h>
 
 #include <lib/hwkey/hwkey.h>
 

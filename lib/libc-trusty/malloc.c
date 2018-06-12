@@ -34,9 +34,9 @@
 #define ENOMEM ERR_NO_MEMORY
 #define EINVAL ERR_INVALID_ARGS
 
-#include <uapi/err.h>
 #include <stdlib.h>
-#include <trusty_std.h>
+#include <uapi/err.h>
+#include <unistd.h>
 
 static char *__libc_brk;
 

@@ -17,8 +17,8 @@
 #include <printf.h>
 #include <stdio.h>
 #include <string.h>
-#include <trusty_std.h>
 #include <uapi/err.h>
+#include <unistd.h>
 
 #define LINE_BUFFER_SIZE 128
 

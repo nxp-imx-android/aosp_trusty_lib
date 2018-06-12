@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-#include <uapi/err.h>
-#include <trusty_std.h>
-
 #include <stdio.h>
 #include <stdlib.h>
+#include <trusty_ipc.h>
+#include <uapi/err.h>
 
 #include <lib/keymaster/keymaster.h>
 #include <interface/keymaster/keymaster.h>

@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-#include <uapi/err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <trusty_ipc.h>
+#include <uapi/err.h>
 
 #include <lib/storage/storage.h>
-#include <trusty_std.h>
 
 #define LOCAL_TRACE 0
 

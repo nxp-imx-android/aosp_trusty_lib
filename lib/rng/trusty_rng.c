@@ -19,16 +19,16 @@
  * in this library are currently not threadsafe. It is designed to be used
  * from a single-threaded Trusty application.
  */
-#include <openssl/aes.h>
 
-#include <uapi/err.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <trusty_ipc.h>
+#include <uapi/err.h>
 
 #include <lib/rng/trusty_rng.h>
 #include <interface/hwrng/hwrng.h>
-#include <trusty_std.h>
+#include <openssl/aes.h>
 
 /*
  *	This is the generic part of the trusty app rng service.
