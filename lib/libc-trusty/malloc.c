@@ -35,8 +35,14 @@
 #define EINVAL ERR_INVALID_ARGS
 
 #include <stdlib.h>
+#include <trusty_syscalls.h>
 #include <uapi/err.h>
 #include <unistd.h>
+
+long brk(uint32_t brk)
+{
+    return _trusty_brk(brk);
+}
 
 static char *__libc_brk;
 

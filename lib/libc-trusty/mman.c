@@ -14,21 +14,28 @@
  * limitations under the License.
  */
 
-#pragma once
+#include <sys/mman.h>
 
-#include <lk/compiler.h>
 #include <stdint.h>
-#include <uapi/mm.h>
+#include <trusty_syscalls.h>
 
-__BEGIN_CDECLS
+long mmap(void *uaddr, uint32_t size, uint32_t flags, uint32_t handle)
+{
+    return _trusty_mmap(uaddr, size, flags, handle);
+}
 
-/* TODO(ncbray): match POSIX signatures. */
-long mmap(void *uaddr, uint32_t size, uint32_t flags, uint32_t handle);
-long munmap(void *uaddr, uint32_t size);
+long munmap(void *uaddr, uint32_t size)
+{
+    return _trusty_munmap(uaddr, size);
+}
 
-/* Trusty specific. */
 long prepare_dma(void *uaddr, uint32_t size, uint32_t flags,
-                 struct dma_pmem *pmem);
-long finish_dma(void *uaddr, uint32_t size, uint32_t flags);
+                 struct dma_pmem *pmem)
+{
+    return _trusty_prepare_dma(uaddr, size, flags, pmem);
+}
 
-__END_CDECLS
+long finish_dma(void *uaddr, uint32_t size, uint32_t flags)
+{
+    return _trusty_finish_dma(uaddr, size, flags);
+}

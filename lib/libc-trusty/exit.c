@@ -16,15 +16,16 @@
 
 #include <lk/compiler.h>
 #include <stdlib.h>
+#include <trusty_syscalls.h>
 
 #include "atexit.h"
 
 /* HACK: needed temporarily until the syscalls file gets the
  * __NO_RETURN annotation */
-__NO_RETURN long exit_etc(int32_t status, uint32_t flags);
+__NO_RETURN long _trusty_exit_etc(int32_t status, uint32_t flags);
 
 __NO_RETURN void exit(int status)
 {
-	__cxa_finalize();
-	exit_etc(status, 0);
+    __cxa_finalize();
+    _trusty_exit_etc(status, 0);
 }

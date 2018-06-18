@@ -17,6 +17,7 @@
 #include <printf.h>
 #include <stdio.h>
 #include <string.h>
+#include <trusty_syscalls.h>
 #include <uapi/err.h>
 #include <unistd.h>
 
@@ -39,7 +40,7 @@ static int buffered_put(struct file_buffer *buffer, int fd, char c)
 
 	buffer->data[buffer->pos++] = c;
 	if (buffer->pos == sizeof(buffer->data) || c == '\n') {
-		result = write(fd, buffer->data, buffer->pos);
+		result = _trusty_write(fd, buffer->data, buffer->pos);
 		buffer->pos = 0;
 	}
 	return result;

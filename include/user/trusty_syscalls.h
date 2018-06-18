@@ -50,32 +50,40 @@
 
 #ifndef ASSEMBLY
 
+#include <stdint.h>
+
 __BEGIN_CDECLS
 
-long write (uint32_t fd, void *msg, uint32_t size);
-long brk (uint32_t brk);
-long exit_etc (int32_t status, uint32_t flags);
-long read (uint32_t fd, void *msg, uint32_t size);
-long ioctl (uint32_t fd, uint32_t req, void *buf);
-long nanosleep (uint32_t clock_id, uint32_t flags, uint64_t sleep_time);
-long gettime (uint32_t clock_id, uint32_t flags, int64_t *time);
-long mmap (void *uaddr, uint32_t size, uint32_t flags, uint32_t handle);
-long munmap (void *uaddr, uint32_t size);
-long prepare_dma (void *uaddr, uint32_t size, uint32_t flags, struct dma_pmem *pmem);
-long finish_dma (void *uaddr, uint32_t size, uint32_t flags);
-long port_create (const char *path, uint32_t num_recv_bufs, uint32_t recv_buf_size, uint32_t flags);
-long connect (const char *path, uint32_t flags);
-long accept (uint32_t handle_id, uuid_t *peer_uuid);
-long close (uint32_t handle_id);
-long set_cookie (uint32_t handle, void *cookie);
-long handle_set_create (void);
-long handle_set_ctrl (uint32_t handle, uint32_t cmd, struct uevent *evt);
-long wait (uint32_t handle_id, uevent_t *event, uint32_t timeout_msecs);
-long wait_any (uevent_t *event, uint32_t timeout_msecs);
-long get_msg (uint32_t handle, ipc_msg_info_t *msg_info);
-long read_msg (uint32_t handle, uint32_t msg_id, uint32_t offset, ipc_msg_t *msg);
-long put_msg (uint32_t handle, uint32_t msg_id);
-long send_msg (uint32_t handle, ipc_msg_t *msg);
+struct dma_pmem;
+struct ipc_msg;
+struct ipc_msg_info;
+struct uevent;
+struct uuid;
+
+long _trusty_write(uint32_t fd, void *msg, uint32_t size);
+long _trusty_brk(uint32_t brk);
+long _trusty_exit_etc(int32_t status, uint32_t flags);
+long _trusty_read(uint32_t fd, void *msg, uint32_t size);
+long _trusty_ioctl(uint32_t fd, uint32_t req, void *buf);
+long _trusty_nanosleep(uint32_t clock_id, uint32_t flags, uint64_t sleep_time);
+long _trusty_gettime(uint32_t clock_id, uint32_t flags, int64_t *time);
+long _trusty_mmap(void *uaddr, uint32_t size, uint32_t flags, uint32_t handle);
+long _trusty_munmap(void *uaddr, uint32_t size);
+long _trusty_prepare_dma(void *uaddr, uint32_t size, uint32_t flags, struct dma_pmem *pmem);
+long _trusty_finish_dma(void *uaddr, uint32_t size, uint32_t flags);
+long _trusty_port_create(const char *path, uint32_t num_recv_bufs, uint32_t recv_buf_size, uint32_t flags);
+long _trusty_connect(const char *path, uint32_t flags);
+long _trusty_accept(uint32_t handle_id, struct uuid *peer_uuid);
+long _trusty_close(uint32_t handle_id);
+long _trusty_set_cookie(uint32_t handle, void *cookie);
+long _trusty_handle_set_create(void);
+long _trusty_handle_set_ctrl(uint32_t handle, uint32_t cmd, struct uevent *evt);
+long _trusty_wait(uint32_t handle_id, struct uevent *event, uint32_t timeout_msecs);
+long _trusty_wait_any(struct uevent *event, uint32_t timeout_msecs);
+long _trusty_get_msg(uint32_t handle, struct ipc_msg_info *msg_info);
+long _trusty_read_msg(uint32_t handle, uint32_t msg_id, uint32_t offset, struct ipc_msg *msg);
+long _trusty_put_msg(uint32_t handle, uint32_t msg_id);
+long _trusty_send_msg(uint32_t handle, struct ipc_msg *msg);
 
 __END_CDECLS
 

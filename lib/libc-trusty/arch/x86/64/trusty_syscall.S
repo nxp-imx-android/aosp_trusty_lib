@@ -26,7 +26,7 @@
 #include <asm.h>
 #include <trusty_syscalls.h>
 
-FUNCTION(write)
+FUNCTION(_trusty_write)
     pushfq
     pushq %rbp
     pushq %rbx
@@ -42,7 +42,7 @@ FUNCTION(write)
     popfq
     ret
 
-FUNCTION(brk)
+FUNCTION(_trusty_brk)
     pushfq
     pushq %rbp
     pushq %rbx
@@ -58,7 +58,7 @@ FUNCTION(brk)
     popfq
     ret
 
-FUNCTION(exit_etc)
+FUNCTION(_trusty_exit_etc)
     pushfq
     pushq %rbp
     pushq %rbx
@@ -74,7 +74,7 @@ FUNCTION(exit_etc)
     popfq
     ret
 
-FUNCTION(read)
+FUNCTION(_trusty_read)
     pushfq
     pushq %rbp
     pushq %rbx
@@ -90,7 +90,7 @@ FUNCTION(read)
     popfq
     ret
 
-FUNCTION(ioctl)
+FUNCTION(_trusty_ioctl)
     pushfq
     pushq %rbp
     pushq %rbx
@@ -106,7 +106,7 @@ FUNCTION(ioctl)
     popfq
     ret
 
-FUNCTION(nanosleep)
+FUNCTION(_trusty_nanosleep)
     pushfq
     pushq %rbp
     pushq %rbx
@@ -122,7 +122,7 @@ FUNCTION(nanosleep)
     popfq
     ret
 
-FUNCTION(gettime)
+FUNCTION(_trusty_gettime)
     pushfq
     pushq %rbp
     pushq %rbx
@@ -138,7 +138,7 @@ FUNCTION(gettime)
     popfq
     ret
 
-FUNCTION(mmap)
+FUNCTION(_trusty_mmap)
     pushfq
     pushq %rbp
     pushq %rbx
@@ -154,7 +154,7 @@ FUNCTION(mmap)
     popfq
     ret
 
-FUNCTION(munmap)
+FUNCTION(_trusty_munmap)
     pushfq
     pushq %rbp
     pushq %rbx
@@ -170,7 +170,7 @@ FUNCTION(munmap)
     popfq
     ret
 
-FUNCTION(prepare_dma)
+FUNCTION(_trusty_prepare_dma)
     pushfq
     pushq %rbp
     pushq %rbx
@@ -186,7 +186,7 @@ FUNCTION(prepare_dma)
     popfq
     ret
 
-FUNCTION(finish_dma)
+FUNCTION(_trusty_finish_dma)
     pushfq
     pushq %rbp
     pushq %rbx
@@ -202,7 +202,7 @@ FUNCTION(finish_dma)
     popfq
     ret
 
-FUNCTION(port_create)
+FUNCTION(_trusty_port_create)
     pushfq
     pushq %rbp
     pushq %rbx
@@ -218,7 +218,7 @@ FUNCTION(port_create)
     popfq
     ret
 
-FUNCTION(connect)
+FUNCTION(_trusty_connect)
     pushfq
     pushq %rbp
     pushq %rbx
@@ -234,7 +234,7 @@ FUNCTION(connect)
     popfq
     ret
 
-FUNCTION(accept)
+FUNCTION(_trusty_accept)
     pushfq
     pushq %rbp
     pushq %rbx
@@ -250,7 +250,7 @@ FUNCTION(accept)
     popfq
     ret
 
-FUNCTION(close)
+FUNCTION(_trusty_close)
     pushfq
     pushq %rbp
     pushq %rbx
@@ -266,7 +266,7 @@ FUNCTION(close)
     popfq
     ret
 
-FUNCTION(set_cookie)
+FUNCTION(_trusty_set_cookie)
     pushfq
     pushq %rbp
     pushq %rbx
@@ -282,7 +282,7 @@ FUNCTION(set_cookie)
     popfq
     ret
 
-FUNCTION(handle_set_create)
+FUNCTION(_trusty_handle_set_create)
     pushfq
     pushq %rbp
     pushq %rbx
@@ -298,7 +298,7 @@ FUNCTION(handle_set_create)
     popfq
     ret
 
-FUNCTION(handle_set_ctrl)
+FUNCTION(_trusty_handle_set_ctrl)
     pushfq
     pushq %rbp
     pushq %rbx
@@ -314,7 +314,7 @@ FUNCTION(handle_set_ctrl)
     popfq
     ret
 
-FUNCTION(wait)
+FUNCTION(_trusty_wait)
     pushfq
     pushq %rbp
     pushq %rbx
@@ -330,7 +330,7 @@ FUNCTION(wait)
     popfq
     ret
 
-FUNCTION(wait_any)
+FUNCTION(_trusty_wait_any)
     pushfq
     pushq %rbp
     pushq %rbx
@@ -346,7 +346,7 @@ FUNCTION(wait_any)
     popfq
     ret
 
-FUNCTION(get_msg)
+FUNCTION(_trusty_get_msg)
     pushfq
     pushq %rbp
     pushq %rbx
@@ -362,7 +362,7 @@ FUNCTION(get_msg)
     popfq
     ret
 
-FUNCTION(read_msg)
+FUNCTION(_trusty_read_msg)
     pushfq
     pushq %rbp
     pushq %rbx
@@ -378,7 +378,7 @@ FUNCTION(read_msg)
     popfq
     ret
 
-FUNCTION(put_msg)
+FUNCTION(_trusty_put_msg)
     pushfq
     pushq %rbp
     pushq %rbx
@@ -394,7 +394,7 @@ FUNCTION(put_msg)
     popfq
     ret
 
-FUNCTION(send_msg)
+FUNCTION(_trusty_send_msg)
     pushfq
     pushq %rbp
     pushq %rbx

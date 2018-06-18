@@ -14,21 +14,16 @@
  * limitations under the License.
  */
 
-#pragma once
+#include <time.h>
 
-#include <lk/compiler.h>
-#include <stdint.h>
-#include <uapi/mm.h>
+#include <trusty_syscalls.h>
 
-__BEGIN_CDECLS
+long nanosleep(uint32_t clock_id, uint32_t flags, uint64_t sleep_time)
+{
+    return _trusty_nanosleep(clock_id, flags, sleep_time);
+}
 
-/* TODO(ncbray): match POSIX signatures. */
-long mmap(void *uaddr, uint32_t size, uint32_t flags, uint32_t handle);
-long munmap(void *uaddr, uint32_t size);
-
-/* Trusty specific. */
-long prepare_dma(void *uaddr, uint32_t size, uint32_t flags,
-                 struct dma_pmem *pmem);
-long finish_dma(void *uaddr, uint32_t size, uint32_t flags);
-
-__END_CDECLS
+long gettime(uint32_t clock_id, uint32_t flags, int64_t *time)
+{
+    return _trusty_gettime(clock_id, flags, time);
+}
