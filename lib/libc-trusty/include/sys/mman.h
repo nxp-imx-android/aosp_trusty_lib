@@ -23,7 +23,7 @@
 __BEGIN_CDECLS
 
 /* TODO(ncbray): match POSIX signatures. */
-long mmap(void *uaddr, uint32_t size, uint32_t flags, uint32_t handle);
+void *mmap(void *uaddr, uint32_t size, uint32_t flags, uint32_t handle);
 long munmap(void *uaddr, uint32_t size);
 
 /* Trusty specific. */

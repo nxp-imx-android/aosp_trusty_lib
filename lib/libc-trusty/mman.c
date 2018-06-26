@@ -19,9 +19,9 @@
 #include <stdint.h>
 #include <trusty_syscalls.h>
 
-long mmap(void *uaddr, uint32_t size, uint32_t flags, uint32_t handle)
+void *mmap(void *uaddr, uint32_t size, uint32_t flags, uint32_t handle)
 {
-    return _trusty_mmap(uaddr, size, flags, handle);
+    return (void *)_trusty_mmap(uaddr, size, flags, handle);
 }
 
 long munmap(void *uaddr, uint32_t size)
