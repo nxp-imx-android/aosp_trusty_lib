@@ -23,6 +23,8 @@
 
 /* This file is auto-generated. !!! DO NOT EDIT !!! */
 
+/* clang-format off */
+
 #define __NR_write		0x1
 #define __NR_brk		0x2
 #define __NR_exit_etc		0x3
