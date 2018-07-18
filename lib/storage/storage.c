@@ -423,9 +423,9 @@ int storage_read_dir(storage_session_t session,
 static ssize_t _read_chunk(file_handle_t fh, storage_off_t off, void *buf, size_t size)
 {
     struct storage_msg msg = { .cmd = STORAGE_FILE_READ };
-    struct storage_file_read_req req = { .handle = _to_handle(fh), .size = size, .offset = off };
-    struct iovec tx[2] = {{&msg, sizeof(msg)}, {&req, sizeof(req)}};
-    struct iovec rx[2] = {{&msg, sizeof(msg)}, {buf, size}};
+    struct storage_file_read_req req = { .handle = _to_handle(fh), .size = size, .offset = off, };
+    struct iovec tx[2] = {{&msg, sizeof(msg)}, {&req, sizeof(req)},};
+    struct iovec rx[2] = {{&msg, sizeof(msg)}, {buf, size},};
 
     ssize_t rc = send_reqv(_to_session(fh), tx, 2, rx, 2);
     return check_response(&msg, rc);

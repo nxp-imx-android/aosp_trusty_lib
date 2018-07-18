@@ -87,7 +87,7 @@ static long read_response(keymaster_session_t session, uint32_t msg_id,
 		{
 			.base = buf,
 			.len = size
-		}
+		},
 	};
 	struct ipc_msg rx_msg = {
 		.iov = rx_iov,

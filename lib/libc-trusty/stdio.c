@@ -87,7 +87,7 @@ struct file_context fctx[3] = {
 		.io_handle = IO_HANDLE_INITIAL_VALUE(&__stdio_io_handle_hooks),
 		.fd = 2,
 		.buffer = &stderr_buffer,
-	}
+	},
 };
 
 #define DEFINE_STDIO_DESC(fctx)					\
