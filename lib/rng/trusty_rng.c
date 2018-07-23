@@ -125,7 +125,6 @@ int trusty_rng_add_entropy(const uint8_t *data, size_t len)
 {
 	/* Re-initialize the entropy pool, seeding from CSPRNG (based on current pool) */
 	uint8_t new_pool[sizeof(entropy_pool)];
-	u_int i;
 	int err;
 
 	err = trusty_rng_secure_rand(new_pool, sizeof(new_pool));
@@ -135,7 +134,7 @@ int trusty_rng_add_entropy(const uint8_t *data, size_t len)
 	memcpy(entropy_pool, new_pool, sizeof(new_pool));
 
 	/* XOR new entropy bytes into the pool */
-	for (i = 0; (i < sizeof(entropy_pool)) && (i < len); ++i)
+	for (size_t i = 0; (i < sizeof(entropy_pool)) && (i < len); ++i)
 		entropy_pool[i] ^= data[i];
 done:
 	return err;

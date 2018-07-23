@@ -34,6 +34,8 @@
 #define ENOMEM ERR_NO_MEMORY
 #define EINVAL ERR_INVALID_ARGS
 
+#include <lk/macros.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include <trusty_syscalls.h>
 #include <uapi/err.h>

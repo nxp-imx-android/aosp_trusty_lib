@@ -16,6 +16,8 @@
 
 #pragma once
 
+#include <stdint.h>
+
 #define HWKEY_PORT "com.android.trusty.hwkey"
 
 #define HWKEY_GET_KEYSLOT_PROTOCOL_VERSION 0

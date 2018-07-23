@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include <sys/types.h>
+#include <stdint.h>
 
 typedef struct uuid
 {

@@ -52,6 +52,7 @@
 
 #ifndef ASSEMBLY
 
+#include <lk/compiler.h>
 #include <stdint.h>
 
 __BEGIN_CDECLS

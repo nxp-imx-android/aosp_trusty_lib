@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
+#include "libc_fatal.h"
+
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-#include "libc_fatal.h"
 
 static void __libc_log_fatal(const char* format, va_list args)
 {

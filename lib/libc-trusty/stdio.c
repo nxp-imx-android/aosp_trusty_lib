@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
-#include <printf.h>
 #include <stdio.h>
+
+#include <lib/io.h>
+#include <printf.h>
 #include <string.h>
 #include <trusty_syscalls.h>
 #include <uapi/err.h>

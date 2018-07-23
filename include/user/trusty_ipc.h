@@ -24,7 +24,8 @@
 #pragma once
 
 #include <lk/compiler.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <trusty_uuid.h>
 
 __BEGIN_CDECLS
