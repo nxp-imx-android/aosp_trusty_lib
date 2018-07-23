@@ -16,15 +16,36 @@
 
 #include <sys/mman.h>
 
+#include <stddef.h>
 #include <stdint.h>
+#include <lk/err_ptr.h>
 #include <trusty_syscalls.h>
 
-void *mmap(void *uaddr, uint32_t size, uint32_t flags, uint32_t handle)
+void *mmap(void *uaddr, size_t size, int prot, int flags, int handle,
+           off_t offset)
 {
-    return (void *)_trusty_mmap(uaddr, size, flags, handle);
+    void *result;
+
+    /*
+     * These parameters exist for POSIX compatibility, but are unused.
+     * Require fixed values.
+     */
+    if (prot != (PROT_READ | PROT_WRITE)) {
+        return MAP_FAILED;
+    }
+    if (offset != 0) {
+        return MAP_FAILED;
+    }
+
+    result = (void *)_trusty_mmap(uaddr, size, (uint32_t)flags,
+                                  (uint32_t)handle);
+    if (IS_ERR(result)) {
+        return MAP_FAILED;
+    }
+    return result;
 }
 
-long munmap(void *uaddr, uint32_t size)
+int munmap(void *uaddr, size_t size)
 {
     return _trusty_munmap(uaddr, size);
 }
