@@ -21,44 +21,47 @@
 #define HWKEY_PORT "com.android.trusty.hwkey"
 
 #define HWKEY_GET_KEYSLOT_PROTOCOL_VERSION 0
-#define HWKEY_DERIVE_PROTOCOL_VERSION      0
+#define HWKEY_DERIVE_PROTOCOL_VERSION 0
 
 #define HWKEY_KDF_VERSION_BEST 0
-#define HWKEY_KDF_VERSION_1    1
+#define HWKEY_KDF_VERSION_1 1
 
 /**
  * enum hwkey_cmd - command identifiers for hwkey functions
  */
 enum hwkey_cmd {
-	HWKEY_RESP_BIT     = 1,
-	HWKEY_REQ_SHIFT    = 1,
+    HWKEY_RESP_BIT = 1,
+    HWKEY_REQ_SHIFT = 1,
 
-	HWKEY_GET_KEYSLOT  = (0 << HWKEY_REQ_SHIFT),
-	HWKEY_DERIVE       = (1 << HWKEY_REQ_SHIFT),
+    HWKEY_GET_KEYSLOT = (0 << HWKEY_REQ_SHIFT),
+    HWKEY_DERIVE = (1 << HWKEY_REQ_SHIFT),
 };
 
 /**
  * enum hwkey_err - error codes for hwkey protocol
  * @HWKEY_NO_ERROR:             all OK
- * @HWKEY_ERR_GENERIC:          unknown error. Can occur when there's an internal server
- *                              error, e.g. the server runs out of memory or is in a bad state.
- * @HWKEY_ERR_NOT_VALID:        input not valid. May occur if the non-buffer arguments passed
- *                              into the command are not valid, for example if the KDF
- *                              version passed to derive is not any supported version.
+ * @HWKEY_ERR_GENERIC:          unknown error. Can occur when there's an
+ *                              internal server error, e.g. the server runs out
+ *                              of memory or is in a bad state.
+ * @HWKEY_ERR_NOT_VALID:        input not valid. May occur if the non-buffer
+ *                              arguments passed into the command are not valid,
+ *                              for example if the KDF version passed to derive
+ *                              is not any supported version.
  * @HWKEY_ERR_BAD_LEN:          buffer is unexpected or unaccepted length.
  *                              May occur if received message is not at least
- *                              the length of the header, or if the payload length
- *                              does not meet constraints for the function.
+ *                              the length of the header, or if the payload
+ *                              length does not meet constraints for the
+ *                              function.
  * @HWKEY_ERR_NOT_IMPLEMENTED:  requested command not implemented
  * @HWKEY_ERR_NOT_FOUND:        requested keyslot not found
  */
 enum hwkey_err {
-	HWKEY_NO_ERROR            = 0,
-	HWKEY_ERR_GENERIC         = 1,
-	HWKEY_ERR_NOT_VALID       = 2,
-	HWKEY_ERR_BAD_LEN         = 3,
-	HWKEY_ERR_NOT_IMPLEMENTED = 4,
-	HWKEY_ERR_NOT_FOUND       = 5,
+    HWKEY_NO_ERROR = 0,
+    HWKEY_ERR_GENERIC = 1,
+    HWKEY_ERR_NOT_VALID = 2,
+    HWKEY_ERR_BAD_LEN = 3,
+    HWKEY_ERR_NOT_IMPLEMENTED = 4,
+    HWKEY_ERR_NOT_FOUND = 5,
 };
 
 /**
@@ -136,11 +139,10 @@ enum hwkey_err {
  * @payload: payload buffer, meaning determined by command issued
  */
 struct hwkey_msg {
-	uint32_t cmd;
-	uint32_t op_id;
-	uint32_t status;
-	uint32_t arg1;
-	uint32_t arg2;
-	uint8_t payload[0];
+    uint32_t cmd;
+    uint32_t op_id;
+    uint32_t status;
+    uint32_t arg1;
+    uint32_t arg2;
+    uint8_t payload[0];
 };
-

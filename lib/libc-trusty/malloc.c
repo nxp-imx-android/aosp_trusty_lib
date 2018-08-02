@@ -26,7 +26,9 @@
 #define LACKS_SYS_PARAM_H
 #define LACKS_ERRNO_H
 
-#define MALLOC_FAILURE_ACTION do {} while(0)
+#define MALLOC_FAILURE_ACTION \
+    do {                      \
+    } while (0)
 #define ABORT exit(-1)
 #define HAVE_MMAP 0
 #define MORECORE sbrk
@@ -41,32 +43,30 @@
 #include <uapi/err.h>
 #include <unistd.h>
 
-long brk(uint32_t brk)
-{
+long brk(uint32_t brk) {
     return _trusty_brk(brk);
 }
 
-static char *__libc_brk;
+static char* __libc_brk;
 
-#define SBRK_ALIGN	32
-static void *sbrk(ptrdiff_t increment)
-{
-	char *new_brk;
-	char *start;
-	char *end;
+#define SBRK_ALIGN 32
+static void* sbrk(ptrdiff_t increment) {
+    char* new_brk;
+    char* start;
+    char* end;
 
-	if (!__libc_brk)
-		__libc_brk = (char *)brk(0);
+    if (!__libc_brk)
+        __libc_brk = (char*)brk(0);
 
-	start = (char *)ROUNDUP((long)__libc_brk, SBRK_ALIGN);
-	end   = start + ROUNDUP((long)increment, SBRK_ALIGN);
+    start = (char*)ROUNDUP((long)__libc_brk, SBRK_ALIGN);
+    end = start + ROUNDUP((long)increment, SBRK_ALIGN);
 
-	new_brk = (char *)brk((uint32_t)end);
-	if (new_brk < end)
-		return (void *)-1;
+    new_brk = (char*)brk((uint32_t)end);
+    if (new_brk < end)
+        return (void*)-1;
 
-	__libc_brk = new_brk;
-	return start;
+    __libc_brk = new_brk;
+    return start;
 }
 
 #include "dlmalloc.c"

@@ -22,6 +22,6 @@ __BEGIN_CDECLS
 
 /* TODO(ncbray): match POSIX signatures. */
 long brk(uint32_t brk);
-long write(uint32_t fd, void *msg, uint32_t size);
+long write(uint32_t fd, void* msg, uint32_t size);
 
 __END_CDECLS

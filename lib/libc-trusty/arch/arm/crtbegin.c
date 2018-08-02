@@ -28,25 +28,23 @@
 
 #include "../../libc_init.h"
 
-__attribute__ ((section (".preinit_array")))
-void (*__PREINIT_ARRAY__)(void) = (void (*)(void)) -1;
+__attribute__((section(".preinit_array"))) void (*__PREINIT_ARRAY__)(void) =
+        (void (*)(void))(-1);
 
-__attribute__ ((section (".init_array")))
-void (*__INIT_ARRAY__)(void) = (void (*)(void)) -1;
+__attribute__((section(".init_array"))) void (*__INIT_ARRAY__)(void) =
+        (void (*)(void))(-1);
 
-__attribute__ ((section (".fini_array")))
-void (*__FINI_ARRAY__)(void) = (void (*)(void)) -1;
+__attribute__((section(".fini_array"))) void (*__FINI_ARRAY__)(void) =
+        (void (*)(void))(-1);
 
-__attribute__ ((section (".bss")))
-__WEAK void *__dso_handle = (void *) 0;
+__attribute__((section(".bss"))) __WEAK void* __dso_handle = (void*)0;
 
 /* Arguments are supplied in memory pointed by r0 */
-void _start(void *args) {
-  structors_array_t array;
-  array.preinit_array = &__PREINIT_ARRAY__;
-  array.init_array = &__INIT_ARRAY__;
-  array.fini_array = (&__FINI_ARRAY__)[0] ? &__FINI_ARRAY__ : 0;
+void _start(void* args) {
+    structors_array_t array;
+    array.preinit_array = &__PREINIT_ARRAY__;
+    array.init_array = &__INIT_ARRAY__;
+    array.fini_array = (&__FINI_ARRAY__)[0] ? &__FINI_ARRAY__ : 0;
 
-  __libc_init(args, &main, &array);
+    __libc_init(args, &main, &array);
 }
-

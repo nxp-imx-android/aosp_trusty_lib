@@ -20,95 +20,98 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-static unsigned int _tests_total  = 0; /* Number of conditions checked */
+static unsigned int _tests_total = 0;  /* Number of conditions checked */
 static unsigned int _tests_failed = 0; /* Number of conditions failed  */
 
 #define TLOGI(fmt, ...) \
-    fprintf(stderr, "%s: %d: " fmt, LOG_TAG, __LINE__,  ## __VA_ARGS__)
+    fprintf(stderr, "%s: %d: " fmt, LOG_TAG, __LINE__, ##__VA_ARGS__)
 
 /*
  *   Begin and end test macro
  */
-#define TEST_BEGIN(name)                                        \
-	bool _all_ok = true;                                    \
-	const char *_test = name;                               \
-	TLOGI("%s:\n", _test);
+#define TEST_BEGIN(name)      \
+    bool _all_ok = true;      \
+    const char* _test = name; \
+    TLOGI("%s:\n", _test);
 
-
-#define TEST_END                                                \
-{                                                               \
-	if (_all_ok)                                            \
-		TLOGI("%s: PASSED\n", _test);                   \
-	else                                                    \
-		TLOGI("%s: FAILED\n", _test);                   \
-}
+#define TEST_END                          \
+    {                                     \
+        if (_all_ok)                      \
+            TLOGI("%s: PASSED\n", _test); \
+        else                              \
+            TLOGI("%s: FAILED\n", _test); \
+    }
 
 /*
  * EXPECT_* macros to check test results.
  */
-#define EXPECT_EQ(expected, actual, msg)                        \
-{                                                               \
-	__typeof__(actual) _e = expected;                       \
-	__typeof__(actual) _a = actual;                         \
-	_tests_total++;                                         \
-	if (_e != _a) {                                         \
-		TLOGI("%s: expected " #expected " (%d), "      \
-		    "actual " #actual " (%d)\n",               \
-		    msg, (int)_e, (int)_a);                     \
-		_tests_failed++;                                \
-		_all_ok = false;                                \
-	}                                                       \
-}
+#define EXPECT_EQ(expected, actual, msg)       \
+    {                                          \
+        __typeof__(actual) _e = expected;      \
+        __typeof__(actual) _a = actual;        \
+        _tests_total++;                        \
+        if (_e != _a) {                        \
+            TLOGI("%s: expected " #expected    \
+                  " (%d), "                    \
+                  "actual " #actual " (%d)\n", \
+                  msg, (int)_e, (int)_a);      \
+            _tests_failed++;                   \
+            _all_ok = false;                   \
+        }                                      \
+    }
 
-#define EXPECT_NE(expected, actual, msg)                        \
-{                                                               \
-	__typeof__(actual) _e = expected;                       \
-	__typeof__(actual) _a = actual;                         \
-	_tests_total++;                                         \
-	if (_e == _a) {                                         \
-		TLOGI("%s: expected not " #expected " (%d), "      \
-		    "actual " #actual " (%d)\n",               \
-		    msg, (int)_e, (int)_a);                     \
-		_tests_failed++;                                \
-		_all_ok = false;                                \
-	}                                                       \
-}
+#define EXPECT_NE(expected, actual, msg)        \
+    {                                           \
+        __typeof__(actual) _e = expected;       \
+        __typeof__(actual) _a = actual;         \
+        _tests_total++;                         \
+        if (_e == _a) {                         \
+            TLOGI("%s: expected not " #expected \
+                  " (%d), "                     \
+                  "actual " #actual " (%d)\n",  \
+                  msg, (int)_e, (int)_a);       \
+            _tests_failed++;                    \
+            _all_ok = false;                    \
+        }                                       \
+    }
 
-#define EXPECT_GT(expected, actual, msg)                        \
-{                                                               \
-	__typeof__(actual) _e = expected;                       \
-	__typeof__(actual) _a = actual;                         \
-	_tests_total++;                                         \
-	if (_e <= _a) {                                         \
-		TLOGI("%s: expected " #expected " (%d), "      \
-		    "actual " #actual " (%d)\n",                \
-		    msg, (int)_e, (int)_a);                     \
-		_tests_failed++;                                \
-		_all_ok = false;                                \
-	}                                                       \
-}
+#define EXPECT_GT(expected, actual, msg)       \
+    {                                          \
+        __typeof__(actual) _e = expected;      \
+        __typeof__(actual) _a = actual;        \
+        _tests_total++;                        \
+        if (_e <= _a) {                        \
+            TLOGI("%s: expected " #expected    \
+                  " (%d), "                    \
+                  "actual " #actual " (%d)\n", \
+                  msg, (int)_e, (int)_a);      \
+            _tests_failed++;                   \
+            _all_ok = false;                   \
+        }                                      \
+    }
 
-#define EXPECT_GE_ZERO(actual, msg)                             \
-{                                                               \
-	__typeof__(actual) _a = actual;                         \
-	_tests_total++;                                         \
-	if (_a < 0) {                                           \
-		TLOGI("%s: expected >= 0 "                     \
-		    "actual " #actual " (%d)\n", msg, (int)_a); \
-		_tests_failed++;                                \
-		_all_ok = false;                                \
-	}                                                       \
-}
+#define EXPECT_GE_ZERO(actual, msg)            \
+    {                                          \
+        __typeof__(actual) _a = actual;        \
+        _tests_total++;                        \
+        if (_a < 0) {                          \
+            TLOGI("%s: expected >= 0 "         \
+                  "actual " #actual " (%d)\n", \
+                  msg, (int)_a);               \
+            _tests_failed++;                   \
+            _all_ok = false;                   \
+        }                                      \
+    }
 
-
-#define EXPECT_GT_ZERO(actual, msg)                             \
-{                                                               \
-	__typeof__(actual) _a = actual;                         \
-	_tests_total++;                                         \
-	if (_a <= 0) {                                          \
-		TLOGI("%s: expected > 0 "                      \
-		    "actual " #actual " (%d)\n", msg, (int)_a); \
-		_tests_failed++;                                \
-		_all_ok = false;                                \
-	}                                                       \
-}
+#define EXPECT_GT_ZERO(actual, msg)            \
+    {                                          \
+        __typeof__(actual) _a = actual;        \
+        _tests_total++;                        \
+        if (_a <= 0) {                         \
+            TLOGI("%s: expected > 0 "          \
+                  "actual " #actual " (%d)\n", \
+                  msg, (int)_a);               \
+            _tests_failed++;                   \
+            _all_ok = false;                   \
+        }                                      \
+    }

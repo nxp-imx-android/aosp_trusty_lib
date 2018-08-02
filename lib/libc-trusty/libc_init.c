@@ -30,32 +30,31 @@
 #include <stddef.h>
 #include <stdlib.h>
 
+#include "atexit.h"
 #include "libc_fatal.h"
 #include "libc_init.h"
-#include "atexit.h"
 
-static void call_array(void(**list)(void)) {
-  // First element is -1, list is null-terminated
-  while (*++list) {
-    (*list)();
-  }
+static void call_array(void (**list)(void)) {
+    // First element is -1, list is null-terminated
+    while (*++list) {
+        (*list)();
+    }
 }
 
-__NO_RETURN void __libc_init(void *args,
-			int (*slingshot)(int, char**, char**),
-			structors_array_t const * const structors)
-{
-	int ret;
-	call_array(structors->preinit_array);
-	call_array(structors->init_array);
+__NO_RETURN void __libc_init(void* args,
+                             int (*slingshot)(int, char**, char**),
+                             structors_array_t const* const structors) {
+    int ret;
+    call_array(structors->preinit_array);
+    call_array(structors->init_array);
 
-	if (structors->fini_array != NULL) {
-		ret = __cxa_atexit(__libc_fini, structors->fini_array);
-		if (ret)
-			__libc_fatal("__cxa_atexit failed\n");
-	}
+    if (structors->fini_array != NULL) {
+        ret = __cxa_atexit(__libc_fini, structors->fini_array);
+        if (ret)
+            __libc_fatal("__cxa_atexit failed\n");
+    }
 
-	exit(slingshot(0, NULL, NULL));
+    exit(slingshot(0, NULL, NULL));
 }
 
 /* This function will be called during normal program termination
@@ -66,32 +65,32 @@ __NO_RETURN void __libc_init(void *args,
  * entry in the list has value -1, the last one has value 0.
  */
 void __libc_fini(void* array) {
-  void** fini_array = (void **)array;
-  const size_t minus1 = ~(size_t)0; /* ensure proper sign extension */
+    void** fini_array = (void**)array;
+    const size_t minus1 = ~(size_t)0; /* ensure proper sign extension */
 
-  /* Sanity check - first entry must be -1 */
-  if (array == NULL || (size_t)fini_array[0] != minus1) {
-    return;
-  }
-
-  /* skip over it */
-  fini_array += 1;
-
-  /* Count the number of destructors. */
-  int count = 0;
-  while (fini_array[count] != NULL) {
-    ++count;
-  }
-
-  /* Now call each destructor in reverse order. */
-  while (count > 0) {
-    void (*func)(void) = (void (*)(void)) fini_array[--count];
-
-    /* Sanity check, any -1 in the list is ignored */
-    if ((size_t)func == minus1) {
-      continue;
+    /* Sanity check - first entry must be -1 */
+    if (array == NULL || (size_t)fini_array[0] != minus1) {
+        return;
     }
 
-    func();
-  }
+    /* skip over it */
+    fini_array += 1;
+
+    /* Count the number of destructors. */
+    int count = 0;
+    while (fini_array[count] != NULL) {
+        ++count;
+    }
+
+    /* Now call each destructor in reverse order. */
+    while (count > 0) {
+        void (*func)(void) = (void (*)(void))fini_array[--count];
+
+        /* Sanity check, any -1 in the list is ignored */
+        if ((size_t)func == minus1) {
+            continue;
+        }
+
+        func();
+    }
 }

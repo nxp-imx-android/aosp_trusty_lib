@@ -24,19 +24,26 @@
 
 __BEGIN_CDECLS
 
-#define MAP_FAILED ((void *) -1)
+#define MAP_FAILED ((void*)-1)
 
-#define PROT_NONE      0
-#define PROT_READ      1
-#define PROT_WRITE     2
-#define PROT_EXEC      4
+#define PROT_NONE 0
+#define PROT_READ 1
+#define PROT_WRITE 2
+#define PROT_EXEC 4
 
-void *mmap(void *uaddr, size_t size, int prot, int flags, int handle, off_t offset);
-int munmap(void *uaddr, size_t size);
+void* mmap(void* uaddr,
+           size_t size,
+           int prot,
+           int flags,
+           int handle,
+           off_t offset);
+int munmap(void* uaddr, size_t size);
 
 /* Trusty specific. */
-long prepare_dma(void *uaddr, uint32_t size, uint32_t flags,
-                 struct dma_pmem *pmem);
-long finish_dma(void *uaddr, uint32_t size, uint32_t flags);
+long prepare_dma(void* uaddr,
+                 uint32_t size,
+                 uint32_t flags,
+                 struct dma_pmem* pmem);
+long finish_dma(void* uaddr, uint32_t size, uint32_t flags);
 
 __END_CDECLS

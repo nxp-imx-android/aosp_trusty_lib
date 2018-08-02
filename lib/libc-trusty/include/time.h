@@ -25,26 +25,26 @@ typedef long time_t;
 
 /* For BoringSSL compatibility. */
 struct tm {
-        int tm_sec;         /* seconds */
-        int tm_min;         /* minutes */
-        int tm_hour;        /* hours */
-        int tm_mday;        /* day of the month */
-        int tm_mon;         /* month */
-        int tm_year;        /* year */
-        int tm_wday;        /* day of the week */
-        int tm_yday;        /* day in the year */
-        int tm_isdst;       /* daylight saving time */
+    int tm_sec;   /* seconds */
+    int tm_min;   /* minutes */
+    int tm_hour;  /* hours */
+    int tm_mday;  /* day of the month */
+    int tm_mon;   /* month */
+    int tm_year;  /* year */
+    int tm_wday;  /* day of the week */
+    int tm_yday;  /* day in the year */
+    int tm_isdst; /* daylight saving time */
 
-        long int tm_gmtoff;     /* Seconds east of UTC.  */
-        const char *tm_zone;    /* Timezone abbreviation.  */
+    long int tm_gmtoff;  /* Seconds east of UTC.  */
+    const char* tm_zone; /* Timezone abbreviation.  */
 };
 
-static inline time_t time(time_t *t) {
+static inline time_t time(time_t* t) {
     return 0;
 }
 
 /* Note: not POSIX signatures. */
-long gettime(uint32_t clock_id, uint32_t flags, int64_t *time);
+long gettime(uint32_t clock_id, uint32_t flags, int64_t* time);
 long nanosleep(uint32_t clock_id, uint32_t flags, uint64_t sleep_time);
 
 __END_CDECLS

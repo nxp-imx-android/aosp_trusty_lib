@@ -16,15 +16,18 @@
 
 #include <sys/mman.h>
 
+#include <lk/err_ptr.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <lk/err_ptr.h>
 #include <trusty_syscalls.h>
 
-void *mmap(void *uaddr, size_t size, int prot, int flags, int handle,
-           off_t offset)
-{
-    void *result;
+void* mmap(void* uaddr,
+           size_t size,
+           int prot,
+           int flags,
+           int handle,
+           off_t offset) {
+    void* result;
 
     /*
      * These parameters exist for POSIX compatibility, but are unused.
@@ -37,26 +40,25 @@ void *mmap(void *uaddr, size_t size, int prot, int flags, int handle,
         return MAP_FAILED;
     }
 
-    result = (void *)_trusty_mmap(uaddr, size, (uint32_t)flags,
-                                  (uint32_t)handle);
+    result =
+            (void*)_trusty_mmap(uaddr, size, (uint32_t)flags, (uint32_t)handle);
     if (IS_ERR(result)) {
         return MAP_FAILED;
     }
     return result;
 }
 
-int munmap(void *uaddr, size_t size)
-{
+int munmap(void* uaddr, size_t size) {
     return _trusty_munmap(uaddr, size);
 }
 
-long prepare_dma(void *uaddr, uint32_t size, uint32_t flags,
-                 struct dma_pmem *pmem)
-{
+long prepare_dma(void* uaddr,
+                 uint32_t size,
+                 uint32_t flags,
+                 struct dma_pmem* pmem) {
     return _trusty_prepare_dma(uaddr, size, flags, pmem);
 }
 
-long finish_dma(void *uaddr, uint32_t size, uint32_t flags)
-{
+long finish_dma(void* uaddr, uint32_t size, uint32_t flags) {
     return _trusty_finish_dma(uaddr, size, flags);
 }

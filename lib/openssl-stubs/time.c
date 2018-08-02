@@ -18,11 +18,11 @@
 
 #include <string.h>
 
-struct tm *OPENSSL_gmtime(const time_t *timer, struct tm *result) {
-        memset(result, 0, sizeof(*result));
-        return result;
+struct tm* OPENSSL_gmtime(const time_t* timer, struct tm* result) {
+    memset(result, 0, sizeof(*result));
+    return result;
 }
 
-int OPENSSL_gmtime_adj(struct tm *tm, int offset_day, long offset_sec) {
-        return 0;
+int OPENSSL_gmtime_adj(struct tm* tm, int offset_day, long offset_sec) {
+    return 0;
 }

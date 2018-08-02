@@ -25,12 +25,14 @@
 
 #include <stdint.h>
 
-typedef struct uuid
-{
-	uint32_t time_low;
-	uint16_t time_mid;
-	uint16_t time_hi_and_version;
-	uint8_t clock_seq_and_node[8];
+typedef struct uuid {
+    uint32_t time_low;
+    uint16_t time_mid;
+    uint16_t time_hi_and_version;
+    uint8_t clock_seq_and_node[8];
 } uuid_t;
 
-#define UUID_INITIAL_VALUE(uuid) {0, 0, 0, {0}}
+#define UUID_INITIAL_VALUE(uuid) \
+    {                            \
+        0, 0, 0, { 0 }           \
+    }

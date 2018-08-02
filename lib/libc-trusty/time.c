@@ -18,12 +18,10 @@
 
 #include <trusty_syscalls.h>
 
-long nanosleep(uint32_t clock_id, uint32_t flags, uint64_t sleep_time)
-{
+long nanosleep(uint32_t clock_id, uint32_t flags, uint64_t sleep_time) {
     return _trusty_nanosleep(clock_id, flags, sleep_time);
 }
 
-long gettime(uint32_t clock_id, uint32_t flags, int64_t *time)
-{
+long gettime(uint32_t clock_id, uint32_t flags, int64_t* time) {
     return _trusty_gettime(clock_id, flags, time);
 }

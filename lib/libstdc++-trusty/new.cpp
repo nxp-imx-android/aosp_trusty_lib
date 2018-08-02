@@ -15,6 +15,7 @@
  */
 
 #include <new>
+
 #include <stdlib.h>
 
 const std::nothrow_t std::nothrow = {};
@@ -29,11 +30,11 @@ void* operator new[](size_t size) {
     return p;
 }
 
-void  operator delete(void* ptr) {
+void operator delete(void* ptr) {
     free(ptr);
 }
 
-void  operator delete[](void* ptr) {
+void operator delete[](void* ptr) {
     free(ptr);
 }
 
@@ -45,10 +46,10 @@ void* operator new[](size_t size, const std::nothrow_t&) {
     return malloc(size);
 }
 
-void  operator delete(void* ptr, const std::nothrow_t&) {
+void operator delete(void* ptr, const std::nothrow_t&) {
     free(ptr);
 }
 
-void  operator delete[](void* ptr, const std::nothrow_t&) {
+void operator delete[](void* ptr, const std::nothrow_t&) {
     free(ptr);
 }

@@ -20,21 +20,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static void __libc_log_fatal(const char* format, va_list args)
-{
+static void __libc_log_fatal(const char* format, va_list args) {
     vfprintf(stderr, format, args);
 }
 
-void __libc_fatal_no_abort(const char* format, ...)
-{
+void __libc_fatal_no_abort(const char* format, ...) {
     va_list args;
     va_start(args, format);
     __libc_log_fatal(format, args);
     va_end(args);
 }
 
-void __libc_fatal(const char* format, ...)
-{
+void __libc_fatal(const char* format, ...) {
     va_list args;
     va_start(args, format);
     __libc_log_fatal(format, args);

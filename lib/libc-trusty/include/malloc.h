@@ -20,10 +20,9 @@
 #include <stddef.h>
 
 __BEGIN_CDECLS
-void *malloc(size_t n) __MALLOC __WARN_UNUSED_RESULT;
-void *calloc(size_t n_elements, size_t element_size) __WARN_UNUSED_RESULT;
-void *realloc(void *p, size_t n) __WARN_UNUSED_RESULT;
-void free(void *p);
-void *memalign(size_t alignment, size_t n) __MALLOC __WARN_UNUSED_RESULT;
+void* malloc(size_t n) __MALLOC __WARN_UNUSED_RESULT;
+void* calloc(size_t n_elements, size_t element_size) __WARN_UNUSED_RESULT;
+void* realloc(void* p, size_t n) __WARN_UNUSED_RESULT;
+void free(void* p);
+void* memalign(size_t alignment, size_t n) __MALLOC __WARN_UNUSED_RESULT;
 __END_CDECLS
-

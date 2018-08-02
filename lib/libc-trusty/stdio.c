@@ -26,80 +26,78 @@
 #define LINE_BUFFER_SIZE 128
 
 struct file_buffer {
-	char data[LINE_BUFFER_SIZE];
-	size_t pos;
+    char data[LINE_BUFFER_SIZE];
+    size_t pos;
 };
 
 struct file_context {
-	io_handle_t io_handle;
-	int fd;
-	struct file_buffer *buffer;
+    io_handle_t io_handle;
+    int fd;
+    struct file_buffer* buffer;
 };
 
-static int buffered_put(struct file_buffer *buffer, int fd, char c)
-{
-	int result = 0;
+static int buffered_put(struct file_buffer* buffer, int fd, char c) {
+    int result = 0;
 
-	buffer->data[buffer->pos++] = c;
-	if (buffer->pos == sizeof(buffer->data) || c == '\n') {
-		result = _trusty_write(fd, buffer->data, buffer->pos);
-		buffer->pos = 0;
-	}
-	return result;
+    buffer->data[buffer->pos++] = c;
+    if (buffer->pos == sizeof(buffer->data) || c == '\n') {
+        result = _trusty_write(fd, buffer->data, buffer->pos);
+        buffer->pos = 0;
+    }
+    return result;
 }
 
-static ssize_t buffered_write(struct io_handle *handle, const char *str, size_t sz)
-{
-	unsigned i;
-	struct file_context *ctx = containerof(handle, struct file_context,
-	                                       io_handle);
+static ssize_t buffered_write(struct io_handle* handle,
+                              const char* str,
+                              size_t sz) {
+    unsigned i;
+    struct file_context* ctx =
+            containerof(handle, struct file_context, io_handle);
 
-	if (!ctx->buffer) {
-		return ERR_INVALID_ARGS;
-	}
+    if (!ctx->buffer) {
+        return ERR_INVALID_ARGS;
+    }
 
-	for (i = 0; i < sz; i++) {
-		int result = buffered_put(ctx->buffer, ctx->fd, str[i]);
-		if (result < 0) {
-			return result;
-		}
-	}
+    for (i = 0; i < sz; i++) {
+        int result = buffered_put(ctx->buffer, ctx->fd, str[i]);
+        if (result < 0) {
+            return result;
+        }
+    }
 
-	return sz;
+    return sz;
 }
 
 static io_handle_hooks_t __stdio_io_handle_hooks = {
-	.write = buffered_write,
+        .write = buffered_write,
 };
 
 struct file_buffer stdout_buffer = {.pos = 0};
 struct file_buffer stderr_buffer = {.pos = 0};
 struct file_context fctx[3] = {
-	{
-		.io_handle = IO_HANDLE_INITIAL_VALUE(&__stdio_io_handle_hooks),
-		.fd = 0,
-		.buffer = NULL,
-	},
-	{
-		.io_handle = IO_HANDLE_INITIAL_VALUE(&__stdio_io_handle_hooks),
-		.fd = 1,
-		.buffer = &stdout_buffer,
-	},
-	{
-		.io_handle = IO_HANDLE_INITIAL_VALUE(&__stdio_io_handle_hooks),
-		.fd = 2,
-		.buffer = &stderr_buffer,
-	},
+        {
+                .io_handle = IO_HANDLE_INITIAL_VALUE(&__stdio_io_handle_hooks),
+                .fd = 0,
+                .buffer = NULL,
+        },
+        {
+                .io_handle = IO_HANDLE_INITIAL_VALUE(&__stdio_io_handle_hooks),
+                .fd = 1,
+                .buffer = &stdout_buffer,
+        },
+        {
+                .io_handle = IO_HANDLE_INITIAL_VALUE(&__stdio_io_handle_hooks),
+                .fd = 2,
+                .buffer = &stderr_buffer,
+        },
 };
 
-#define DEFINE_STDIO_DESC(fctx)					\
-	{							\
-		.io		= &((fctx)->io_handle),		\
-	}
+#define DEFINE_STDIO_DESC(fctx) \
+    { .io = &((fctx)->io_handle), }
 
 FILE __stdio_FILEs[3] = {
-	DEFINE_STDIO_DESC(&fctx[0]), /* stdin */
-	DEFINE_STDIO_DESC(&fctx[1]), /* stdout */
-	DEFINE_STDIO_DESC(&fctx[2]), /* stderr */
+        DEFINE_STDIO_DESC(&fctx[0]), /* stdin */
+        DEFINE_STDIO_DESC(&fctx[1]), /* stdout */
+        DEFINE_STDIO_DESC(&fctx[2]), /* stderr */
 };
 #undef DEFINE_STDIO_DESC

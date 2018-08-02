@@ -25,7 +25,6 @@
  * SUCH DAMAGE.
  */
 
-int sscanf(const char *str, const char *fmt, ...)
-{
-	return 0;
+int sscanf(const char* str, const char* fmt, ...) {
+    return 0;
 }

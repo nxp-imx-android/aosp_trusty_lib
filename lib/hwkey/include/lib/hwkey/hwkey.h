@@ -19,8 +19,8 @@
 #include <lk/compiler.h>
 #include <sys/types.h>
 
-#include <trusty_ipc.h>
 #include <interface/hwkey/hwkey.h>
+#include <trusty_ipc.h>
 
 __BEGIN_CDECLS
 
@@ -39,20 +39,23 @@ long hwkey_open(void);
  * @session:    session handle retrieved from hwkey_open
  * @slot_id:    string identifier for the requested keyslot
  * @data:       buffer for retrieved data
- * @data_size:  pointer to allocated size of data buffer. Updated to actual retrieved size if
- *              different from allocated size.
+ * @data_size:  pointer to allocated size of data buffer. Updated to actual
+ *              retrieved size if different from allocated size.
  *
- * Fills *data with result if size is sufficient. If actual size is less than data_size,
- * data_size is updated with the * actual returned size.
+ * Fills *data with result if size is sufficient. If actual size is less than
+ * data_size, data_size is updated with the * actual returned size.
  *
- * Return: NO_ERROR on success, error code less than 0 on error. Possible error codes include:
+ * Return: NO_ERROR on success, error code less than 0 on error. Possible error
+ * codes include:
  * - ERR_NOT_VALID: if input is NULL
  * - ERR_IO: if there's an issue communicating with the server
  * - ERR_TOO_BIG: if keyslot does not fit in data buffer
  * - ERR_NOT_FOUND: if keyslot is not found
  */
-long hwkey_get_keyslot_data(hwkey_session_t session, const char *slot_id, uint8_t *data,
-                            uint32_t *data_size);
+long hwkey_get_keyslot_data(hwkey_session_t session,
+                            const char* slot_id,
+                            uint8_t* data,
+                            uint32_t* data_size);
 
 /**
  * hwkey_derive() - Derives a cryptographic key based on input values.
@@ -65,14 +68,18 @@ long hwkey_get_keyslot_data(hwkey_session_t session, const char *slot_id, uint8_
  *                  Must be at least *src_buf_len bytes.
  * @buf_size:       The size of src and dest.
  *
- * Return: NO_ERROR on success, error code less than 0 on error. Possible error codes include:
+ * Return: NO_ERROR on success, error code less than 0 on error. Possible error
+ * codes include:
  * - ERR_NOT_VALID: if input is NULL or if kdf_version is not supported
  * - ERR_IO: if there's an issue communicating with the server
  * - ERR_BAD_LEN: if buf_size is not valid
  *
  */
-long hwkey_derive(hwkey_session_t session, uint32_t *kdf_version, const uint8_t *src,
-                  uint8_t *dest, uint32_t buf_size);
+long hwkey_derive(hwkey_session_t session,
+                  uint32_t* kdf_version,
+                  const uint8_t* src,
+                  uint8_t* dest,
+                  uint32_t buf_size);
 
 /**
  * hwkey_close() - Closes the session.
@@ -80,4 +87,3 @@ long hwkey_derive(hwkey_session_t session, uint32_t *kdf_version, const uint8_t 
 void hwkey_close(hwkey_session_t session);
 
 __END_CDECLS
-

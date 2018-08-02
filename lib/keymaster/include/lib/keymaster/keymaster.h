@@ -40,13 +40,14 @@ void keymaster_close(keymaster_session_t session);
 /**
  * keymaster_get_auth_token_key() - Retrieves the auth token signature key
  * @session: the keymaster_session_t to close.
- * @key_buf_p: pointer to buffer pointer to be allocated and filled with auth token key.
- *             Ownership of this pointer is transferred to the caller and must be deallocated
- *             with a call to free().
+ * @key_buf_p: pointer to buffer pointer to be allocated and filled with auth
+ *             token key. Ownership of this pointer is transferred to the caller
+ *             and must be deallocated with a call to free().
  * @size_p: set to the allocated size of key_buf
  *
  */
-int keymaster_get_auth_token_key(keymaster_session_t session, uint8_t** key_buf_p, size_t* size_p);
+int keymaster_get_auth_token_key(keymaster_session_t session,
+                                 uint8_t** key_buf_p,
+                                 size_t* size_p);
 
 __END_CDECLS
-

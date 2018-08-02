@@ -24,8 +24,7 @@
  * __NO_RETURN annotation */
 __NO_RETURN long _trusty_exit_etc(int32_t status, uint32_t flags);
 
-__NO_RETURN void exit(int status)
-{
+__NO_RETURN void exit(int status) {
     __cxa_finalize();
     _trusty_exit_etc(status, 0);
 }

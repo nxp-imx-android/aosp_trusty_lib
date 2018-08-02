@@ -18,69 +18,60 @@
 
 #include <trusty_syscalls.h>
 
-long port_create(const char *path, uint32_t num_recv_bufs,
-                 uint32_t recv_buf_size, uint32_t flags)
-{
+long port_create(const char* path,
+                 uint32_t num_recv_bufs,
+                 uint32_t recv_buf_size,
+                 uint32_t flags) {
     return _trusty_port_create(path, num_recv_bufs, recv_buf_size, flags);
 }
 
-long connect(const char *path, uint32_t flags)
-{
+long connect(const char* path, uint32_t flags) {
     return _trusty_connect(path, flags);
 }
 
-long accept(uint32_t handle_id, struct uuid *peer_uuid)
-{
+long accept(uint32_t handle_id, struct uuid* peer_uuid) {
     return _trusty_accept(handle_id, peer_uuid);
 }
 
-long close(uint32_t handle_id)
-{
+long close(uint32_t handle_id) {
     return _trusty_close(handle_id);
 }
 
-long set_cookie(uint32_t handle, void *cookie)
-{
+long set_cookie(uint32_t handle, void* cookie) {
     return _trusty_set_cookie(handle, cookie);
 }
 
-long handle_set_create(void)
-{
+long handle_set_create(void) {
     return _trusty_handle_set_create();
 }
 
-long handle_set_ctrl(uint32_t handle, uint32_t cmd, struct uevent *evt)
-{
+long handle_set_ctrl(uint32_t handle, uint32_t cmd, struct uevent* evt) {
     return _trusty_handle_set_ctrl(handle, cmd, evt);
 }
 
-long wait(uint32_t handle_id, struct uevent *event, uint32_t timeout_msecs)
-{
+long wait(uint32_t handle_id, struct uevent* event, uint32_t timeout_msecs) {
     return _trusty_wait(handle_id, event, timeout_msecs);
 }
 
-long wait_any(struct uevent *event, uint32_t timeout_msecs)
-{
+long wait_any(struct uevent* event, uint32_t timeout_msecs) {
     return _trusty_wait_any(event, timeout_msecs);
 }
 
-long get_msg(uint32_t handle, struct ipc_msg_info *msg_info)
-{
+long get_msg(uint32_t handle, struct ipc_msg_info* msg_info) {
     return _trusty_get_msg(handle, msg_info);
 }
 
-long read_msg(uint32_t handle, uint32_t msg_id, uint32_t offset,
-              struct ipc_msg *msg)
-{
+long read_msg(uint32_t handle,
+              uint32_t msg_id,
+              uint32_t offset,
+              struct ipc_msg* msg) {
     return _trusty_read_msg(handle, msg_id, offset, msg);
 }
 
-long put_msg(uint32_t handle, uint32_t msg_id)
-{
+long put_msg(uint32_t handle, uint32_t msg_id) {
     return _trusty_put_msg(handle, msg_id);
 }
 
-long send_msg(uint32_t handle, struct ipc_msg *msg)
-{
+long send_msg(uint32_t handle, struct ipc_msg* msg) {
     return _trusty_send_msg(handle, msg);
 }

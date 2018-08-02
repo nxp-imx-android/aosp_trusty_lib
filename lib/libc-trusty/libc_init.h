@@ -31,16 +31,16 @@
 #include <lk/compiler.h>
 
 typedef struct {
-  void (**preinit_array)(void);
-  void (**init_array)(void);
-  void (**fini_array)(void);
+    void (**preinit_array)(void);
+    void (**init_array)(void);
+    void (**fini_array)(void);
 } structors_array_t;
 
 extern int main(int argc, char** argv, char** env);
 
 __NO_RETURN void __libc_init(void* args,
-                            int (*slingshot)(int, char**, char**),
-                            structors_array_t const * const structors);
+                             int (*slingshot)(int, char**, char**),
+                             structors_array_t const* const structors);
 void __libc_fini(void* finit_array);
 
 #endif
