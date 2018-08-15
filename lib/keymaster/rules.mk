@@ -23,6 +23,6 @@ GLOBAL_INCLUDES += $(LOCAL_DIR)/include/
 
 MODULE_DEPS := \
 	trusty/user/base/interface/keymaster \
-	lib/libc-trusty
+	trusty/user/base/lib/libc-trusty \
 
 include make/module.mk
