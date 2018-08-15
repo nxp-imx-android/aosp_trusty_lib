@@ -23,7 +23,7 @@ MODULE_SRCS := \
 GLOBAL_INCLUDES += $(LOCAL_DIR)/include/
 
 MODULE_DEPS += \
-	interface/storage
+	trusty/user/base/interface/storage
 
 include make/module.mk
 

@@ -22,7 +22,7 @@ MODULE_SRCS := $(LOCAL_DIR)/keymaster.c
 GLOBAL_INCLUDES += $(LOCAL_DIR)/include/
 
 MODULE_DEPS := \
-	interface/keymaster \
+	trusty/user/base/interface/keymaster \
 	lib/libc-trusty
 
 include make/module.mk

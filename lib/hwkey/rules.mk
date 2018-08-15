@@ -22,7 +22,7 @@ MODULE_SRCS := $(LOCAL_DIR)/hwkey.c
 GLOBAL_INCLUDES += $(LOCAL_DIR)/include/
 
 MODULE_DEPS := \
-	interface/hwkey \
+	trusty/user/base/interface/hwkey \
 
 include make/module.mk
 

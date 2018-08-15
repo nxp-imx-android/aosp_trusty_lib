@@ -22,7 +22,7 @@ MODULE_SRCS := $(LOCAL_DIR)/trusty_rng.c
 GLOBAL_INCLUDES += $(LOCAL_DIR)/include/
 
 MODULE_DEPS := \
-	interface/hwrng \
+	trusty/user/base/interface/hwrng \
 	external/boringssl \
 
 include make/module.mk

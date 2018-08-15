@@ -10,6 +10,6 @@ MODULE_SRCS := \
 	$(LOCAL_DIR)/time.c \
 
 MODULE_DEPS := \
-	lib/rng
+	trusty/user/base/lib/rng
 
 include make/module.mk
