@@ -23,8 +23,19 @@
 static unsigned int _tests_total = 0;  /* Number of conditions checked */
 static unsigned int _tests_failed = 0; /* Number of conditions failed  */
 
-#define TLOGI(fmt, ...) \
-    fprintf(stderr, "%s: %d: " fmt, LOG_TAG, __LINE__, ##__VA_ARGS__)
+#ifdef USER_TASK_WITH_TRUSTY_USER_BASE_LIB_UNITTEST
+#include <lib/unittest/unittest.h>
+#else
+static inline int unittest_printf(const char* fmt, ...) {
+    return 0;
+}
+#endif
+
+#define TLOGI(fmt, ...)                                                    \
+    do {                                                                   \
+        fprintf(stderr, "%s: %d: " fmt, LOG_TAG, __LINE__, ##__VA_ARGS__); \
+        unittest_printf("%s: %d: " fmt, LOG_TAG, __LINE__, ##__VA_ARGS__); \
+    } while (0)
 
 /*
  *   Begin and end test macro
