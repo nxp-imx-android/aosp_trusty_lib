@@ -20,6 +20,8 @@
 
 struct tm* OPENSSL_gmtime(const time_t* timer, struct tm* result) {
     memset(result, 0, sizeof(*result));
+    /* the tm_mday valid range is [1,31], cannot return a zero */
+    result->tm_mday = 1;
     return result;
 }
 
