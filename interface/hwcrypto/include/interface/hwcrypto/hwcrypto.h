@@ -29,6 +29,7 @@ enum hwcrypto_cmd {
     HWCRYPTO_REQ_SHIFT = 1,
 
     HWCRYPTO_HASH = (1 << HWCRYPTO_REQ_SHIFT),
+    HWCRYPTO_ENCAP_BLOB = (2 << HWCRYPTO_REQ_SHIFT),
 };
 
 /**
