@@ -16,6 +16,8 @@
 
 #include <lib/unittest/unittest.h>
 
+#include <lk/macros.h>
+#include <stdarg.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
