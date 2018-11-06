@@ -23,10 +23,11 @@
 
 /* This file is auto-generated. !!! DO NOT EDIT !!! */
 
-#include <asm.h>
 #include <trusty_syscalls.h>
 
-FUNCTION(_trusty_write)
+.global _trusty_write
+.type _trusty_write,STT_FUNC
+_trusty_write:
     pushfq
     pushq %rbp
     pushq %rbx
@@ -42,7 +43,9 @@ FUNCTION(_trusty_write)
     popfq
     ret
 
-FUNCTION(_trusty_brk)
+.global _trusty_brk
+.type _trusty_brk,STT_FUNC
+_trusty_brk:
     pushfq
     pushq %rbp
     pushq %rbx
@@ -58,7 +61,9 @@ FUNCTION(_trusty_brk)
     popfq
     ret
 
-FUNCTION(_trusty_exit_etc)
+.global _trusty_exit_etc
+.type _trusty_exit_etc,STT_FUNC
+_trusty_exit_etc:
     pushfq
     pushq %rbp
     pushq %rbx
@@ -74,7 +79,9 @@ FUNCTION(_trusty_exit_etc)
     popfq
     ret
 
-FUNCTION(_trusty_read)
+.global _trusty_read
+.type _trusty_read,STT_FUNC
+_trusty_read:
     pushfq
     pushq %rbp
     pushq %rbx
@@ -90,7 +97,9 @@ FUNCTION(_trusty_read)
     popfq
     ret
 
-FUNCTION(_trusty_ioctl)
+.global _trusty_ioctl
+.type _trusty_ioctl,STT_FUNC
+_trusty_ioctl:
     pushfq
     pushq %rbp
     pushq %rbx
@@ -106,7 +115,9 @@ FUNCTION(_trusty_ioctl)
     popfq
     ret
 
-FUNCTION(_trusty_nanosleep)
+.global _trusty_nanosleep
+.type _trusty_nanosleep,STT_FUNC
+_trusty_nanosleep:
     pushfq
     pushq %rbp
     pushq %rbx
@@ -122,7 +133,9 @@ FUNCTION(_trusty_nanosleep)
     popfq
     ret
 
-FUNCTION(_trusty_gettime)
+.global _trusty_gettime
+.type _trusty_gettime,STT_FUNC
+_trusty_gettime:
     pushfq
     pushq %rbp
     pushq %rbx
@@ -138,7 +151,9 @@ FUNCTION(_trusty_gettime)
     popfq
     ret
 
-FUNCTION(_trusty_mmap)
+.global _trusty_mmap
+.type _trusty_mmap,STT_FUNC
+_trusty_mmap:
     pushfq
     pushq %rbp
     pushq %rbx
@@ -154,7 +169,9 @@ FUNCTION(_trusty_mmap)
     popfq
     ret
 
-FUNCTION(_trusty_munmap)
+.global _trusty_munmap
+.type _trusty_munmap,STT_FUNC
+_trusty_munmap:
     pushfq
     pushq %rbp
     pushq %rbx
@@ -170,7 +187,9 @@ FUNCTION(_trusty_munmap)
     popfq
     ret
 
-FUNCTION(_trusty_prepare_dma)
+.global _trusty_prepare_dma
+.type _trusty_prepare_dma,STT_FUNC
+_trusty_prepare_dma:
     pushfq
     pushq %rbp
     pushq %rbx
@@ -186,7 +205,9 @@ FUNCTION(_trusty_prepare_dma)
     popfq
     ret
 
-FUNCTION(_trusty_finish_dma)
+.global _trusty_finish_dma
+.type _trusty_finish_dma,STT_FUNC
+_trusty_finish_dma:
     pushfq
     pushq %rbp
     pushq %rbx
@@ -202,7 +223,9 @@ FUNCTION(_trusty_finish_dma)
     popfq
     ret
 
-FUNCTION(_trusty_port_create)
+.global _trusty_port_create
+.type _trusty_port_create,STT_FUNC
+_trusty_port_create:
     pushfq
     pushq %rbp
     pushq %rbx
@@ -218,7 +241,9 @@ FUNCTION(_trusty_port_create)
     popfq
     ret
 
-FUNCTION(_trusty_connect)
+.global _trusty_connect
+.type _trusty_connect,STT_FUNC
+_trusty_connect:
     pushfq
     pushq %rbp
     pushq %rbx
@@ -234,7 +259,9 @@ FUNCTION(_trusty_connect)
     popfq
     ret
 
-FUNCTION(_trusty_accept)
+.global _trusty_accept
+.type _trusty_accept,STT_FUNC
+_trusty_accept:
     pushfq
     pushq %rbp
     pushq %rbx
@@ -250,7 +277,9 @@ FUNCTION(_trusty_accept)
     popfq
     ret
 
-FUNCTION(_trusty_close)
+.global _trusty_close
+.type _trusty_close,STT_FUNC
+_trusty_close:
     pushfq
     pushq %rbp
     pushq %rbx
@@ -266,7 +295,9 @@ FUNCTION(_trusty_close)
     popfq
     ret
 
-FUNCTION(_trusty_set_cookie)
+.global _trusty_set_cookie
+.type _trusty_set_cookie,STT_FUNC
+_trusty_set_cookie:
     pushfq
     pushq %rbp
     pushq %rbx
@@ -282,7 +313,9 @@ FUNCTION(_trusty_set_cookie)
     popfq
     ret
 
-FUNCTION(_trusty_handle_set_create)
+.global _trusty_handle_set_create
+.type _trusty_handle_set_create,STT_FUNC
+_trusty_handle_set_create:
     pushfq
     pushq %rbp
     pushq %rbx
@@ -298,7 +331,9 @@ FUNCTION(_trusty_handle_set_create)
     popfq
     ret
 
-FUNCTION(_trusty_handle_set_ctrl)
+.global _trusty_handle_set_ctrl
+.type _trusty_handle_set_ctrl,STT_FUNC
+_trusty_handle_set_ctrl:
     pushfq
     pushq %rbp
     pushq %rbx
@@ -314,7 +349,9 @@ FUNCTION(_trusty_handle_set_ctrl)
     popfq
     ret
 
-FUNCTION(_trusty_wait)
+.global _trusty_wait
+.type _trusty_wait,STT_FUNC
+_trusty_wait:
     pushfq
     pushq %rbp
     pushq %rbx
@@ -330,7 +367,9 @@ FUNCTION(_trusty_wait)
     popfq
     ret
 
-FUNCTION(_trusty_wait_any)
+.global _trusty_wait_any
+.type _trusty_wait_any,STT_FUNC
+_trusty_wait_any:
     pushfq
     pushq %rbp
     pushq %rbx
@@ -346,7 +385,9 @@ FUNCTION(_trusty_wait_any)
     popfq
     ret
 
-FUNCTION(_trusty_get_msg)
+.global _trusty_get_msg
+.type _trusty_get_msg,STT_FUNC
+_trusty_get_msg:
     pushfq
     pushq %rbp
     pushq %rbx
@@ -362,7 +403,9 @@ FUNCTION(_trusty_get_msg)
     popfq
     ret
 
-FUNCTION(_trusty_read_msg)
+.global _trusty_read_msg
+.type _trusty_read_msg,STT_FUNC
+_trusty_read_msg:
     pushfq
     pushq %rbp
     pushq %rbx
@@ -378,7 +421,9 @@ FUNCTION(_trusty_read_msg)
     popfq
     ret
 
-FUNCTION(_trusty_put_msg)
+.global _trusty_put_msg
+.type _trusty_put_msg,STT_FUNC
+_trusty_put_msg:
     pushfq
     pushq %rbp
     pushq %rbx
@@ -394,7 +439,9 @@ FUNCTION(_trusty_put_msg)
     popfq
     ret
 
-FUNCTION(_trusty_send_msg)
+.global _trusty_send_msg
+.type _trusty_send_msg,STT_FUNC
+_trusty_send_msg:
     pushfq
     pushq %rbp
     pushq %rbx
