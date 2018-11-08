@@ -21,6 +21,7 @@
 
 __BEGIN_CDECLS
 
+typedef int clockid_t;
 typedef long time_t;
 
 /* For BoringSSL compatibility. */
@@ -43,8 +44,8 @@ static inline time_t time(time_t* t) {
     return 0;
 }
 
-/* Note: not POSIX signatures. */
-long gettime(uint32_t clock_id, uint32_t flags, int64_t* time);
-long nanosleep(uint32_t clock_id, uint32_t flags, uint64_t sleep_time);
+/* Prefixed with trusty_ because the signatures do not match POSIX. */
+int trusty_gettime(clockid_t clock_id, int64_t* time);
+int trusty_nanosleep(clockid_t clock_id, uint32_t flags, uint64_t sleep_time);
 
 __END_CDECLS
