@@ -16,27 +16,16 @@
 
 #pragma once
 
+/* Augment time.h with trusty-specific functions. */
+#include_next <time.h>
+
 #include <lk/compiler.h>
-#include <stddef.h>
 #include <stdint.h>
-#include <sys/types.h>
-#include <uapi/mm.h>
 
 __BEGIN_CDECLS
 
-#define MAP_FAILED ((void*)-1)
-
-#define PROT_NONE 0
-#define PROT_READ 1
-#define PROT_WRITE 2
-#define PROT_EXEC 4
-
-void* mmap(void* uaddr,
-           size_t size,
-           int prot,
-           int flags,
-           int handle,
-           off_t offset);
-int munmap(void* uaddr, size_t size);
+/* Prefixed with trusty_ because the signatures do not match POSIX. */
+int trusty_gettime(clockid_t clock_id, int64_t* time);
+int trusty_nanosleep(clockid_t clock_id, uint32_t flags, uint64_t sleep_time);
 
 __END_CDECLS

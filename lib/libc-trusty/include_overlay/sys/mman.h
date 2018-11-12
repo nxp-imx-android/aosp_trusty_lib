@@ -16,27 +16,20 @@
 
 #pragma once
 
+/* Augment sys/mman.h with trusty-specific functions. */
+#include_next <sys/mman.h>
+
 #include <lk/compiler.h>
-#include <stddef.h>
 #include <stdint.h>
-#include <sys/types.h>
 #include <uapi/mm.h>
 
 __BEGIN_CDECLS
 
-#define MAP_FAILED ((void*)-1)
-
-#define PROT_NONE 0
-#define PROT_READ 1
-#define PROT_WRITE 2
-#define PROT_EXEC 4
-
-void* mmap(void* uaddr,
-           size_t size,
-           int prot,
-           int flags,
-           int handle,
-           off_t offset);
-int munmap(void* uaddr, size_t size);
+/* Trusty specific. */
+long prepare_dma(void* uaddr,
+                 uint32_t size,
+                 uint32_t flags,
+                 struct dma_pmem* pmem);
+long finish_dma(void* uaddr, uint32_t size, uint32_t flags);
 
 __END_CDECLS

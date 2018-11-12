@@ -5,7 +5,7 @@ MODULE := $(LOCAL_DIR)
 WITH_CUSTOM_MALLOC := true
 WITHOUT_CONSOLE := true
 
-GLOBAL_INCLUDES := $(LOCAL_DIR)/include $(LKROOT)/include $(GLOBAL_INCLUDES)
+GLOBAL_INCLUDES := $(LOCAL_DIR)/include_overlay $(LOCAL_DIR)/include $(LKROOT)/include $(GLOBAL_INCLUDES)
 
 MODULE_SRCS := \
 	$(LOCAL_DIR)/abort.c \

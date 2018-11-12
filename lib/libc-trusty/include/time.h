@@ -44,8 +44,4 @@ static inline time_t time(time_t* t) {
     return 0;
 }
 
-/* Prefixed with trusty_ because the signatures do not match POSIX. */
-int trusty_gettime(clockid_t clock_id, int64_t* time);
-int trusty_nanosleep(clockid_t clock_id, uint32_t flags, uint64_t sleep_time);
-
 __END_CDECLS
