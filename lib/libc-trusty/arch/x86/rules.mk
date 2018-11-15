@@ -4,9 +4,6 @@ ifeq ($(SUBARCH),x86-64)
 SUBARCH_DIR := $(LOCAL_DIR)/64
 endif
 
-MODULE_SRCS += \
-	$(SUBARCH_DIR)/trusty_syscall.S
-
 FIRST_OBJ := $(BUILDDIR)/crtbegin.o
 LAST_OBJ  := $(BUILDDIR)/crtend.o
 

@@ -1,7 +1,5 @@
 LOCAL_DIR := $(GET_LOCAL_DIR)
 
-MODULE_SRCS += \
-	$(LOCAL_DIR)/trusty_syscall.S
 
 FIRST_OBJ := $(BUILDDIR)/crtbegin.o
 LAST_OBJ  := $(BUILDDIR)/crtend.o

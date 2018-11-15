@@ -28,6 +28,9 @@ MODULE_COMPILEFLAGS += -Wno-null-pointer-arithmetic
 MODULE_DEPS := \
 	lib/libc \
 
+# Add dependency on syscall-stubs
+include  trusty/user/base/lib/syscall-stubs/add-dependency-inc.mk
+
 ifeq ($(call TOBOOL,$(CLANGBUILD)), true)
 MODULE_DEPS += lib/rt
 endif
