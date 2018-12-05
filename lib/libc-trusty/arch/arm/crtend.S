@@ -26,12 +26,18 @@
  * SUCH DAMAGE.
  */
 
-	.section .preinit_array, "aw"
-	.long 0
+#if IS_64BIT
+#define DATA_PTR .8byte
+#else
+#define DATA_PTR .4byte
+#endif
 
-	.section .init_array, "aw"
-	.long 0
+.section .preinit_array, "aw"
+DATA_PTR 0
 
-	.section .fini_array, "aw"
-	.long 0
+.section .init_array, "aw"
+DATA_PTR 0
+
+.section .fini_array, "aw"
+DATA_PTR 0
 
