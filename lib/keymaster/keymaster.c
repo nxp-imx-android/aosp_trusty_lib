@@ -111,7 +111,7 @@ void keymaster_close(keymaster_session_t session) {
 
 int keymaster_get_auth_token_key(keymaster_session_t session,
                                  uint8_t** key_buf_p,
-                                 size_t* size_p) {
+                                 uint32_t* size_p) {
     if (size_p == NULL || key_buf_p == NULL) {
         return ERR_NOT_VALID;
     }
@@ -157,7 +157,7 @@ int keymaster_get_auth_token_key(keymaster_session_t session,
         goto err_bad_read;
     }
 
-    *size_p = size;
+    *size_p = (uint32_t)size;
     *key_buf_p = key_buf;
     return NO_ERROR;
 

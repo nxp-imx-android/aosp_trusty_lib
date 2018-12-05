@@ -48,6 +48,6 @@ void keymaster_close(keymaster_session_t session);
  */
 int keymaster_get_auth_token_key(keymaster_session_t session,
                                  uint8_t** key_buf_p,
-                                 size_t* size_p);
+                                 uint32_t* size_p);
 
 __END_CDECLS
