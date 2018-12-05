@@ -103,9 +103,9 @@ static long send_req(hwkey_session_t session,
         goto err_send_fail;
     }
 
-    if (inf.len > sizeof(*msg) + *rsp_buf_len) {
+    if (inf.len > sizeof(*msg) + (size_t)*rsp_buf_len) {
         TLOGE("%s: insufficient output buffer size (%zu > %zu)\n", __func__,
-              inf.len - sizeof(*msg), *rsp_buf_len);
+              inf.len - sizeof(*msg), (size_t)*rsp_buf_len);
         rc = ERR_TOO_BIG;
         goto err_get_fail;
     }
