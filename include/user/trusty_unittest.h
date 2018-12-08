@@ -113,3 +113,20 @@ static unsigned int _tests_failed = 0; /* Number of conditions failed  */
             _all_ok = false;                    \
         }                                       \
     }
+
+#define ASSERT_ALL_OK()  \
+    if (!_all_ok) {      \
+        goto test_abort; \
+    }
+
+#define ASSERT_EQ(e, a)      \
+    do {                     \
+        EXPECT_EQ(e, a, ""); \
+        ASSERT_ALL_OK();     \
+    } while (0)
+
+#define ASSERT_NE(e, a)      \
+    do {                     \
+        EXPECT_NE(e, a, ""); \
+        ASSERT_ALL_OK();     \
+    } while (0)
