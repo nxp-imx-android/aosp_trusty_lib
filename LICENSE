@@ -1,0 +1,12 @@
+This module contains different components with different licenses.
+All lists as below:
+    ./NOTICE (BSD-2-clause, Apache-2.0, MIT)
+    ./lib/libc-trusty/ (BSD-2-clause)
+    ./lib/storage/ (Apache-2.0)
+    ./lib/unittest/ (Apache-2.0)
+    ./lib/hwkey/ (Apache-2.0)
+    ./lib/rng/ (Apache-2.0)
+    ./lib/openssl-stubs/ (BSD-2-clause)
+    ./lib/libstdc++-trusty/ (BSD-2-clause)
+    ./include/user/ (MIT)
+    ./interface/storage/ (Apache-2.0)
