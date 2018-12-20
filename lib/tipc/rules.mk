@@ -30,5 +30,6 @@ GLOBAL_INCLUDES += \
 
 MODULE_SRCS += \
 	$(LOCAL_DIR)/tipc.c \
+	$(LOCAL_DIR)/tipc_srv.c \
 
 include make/module.mk
