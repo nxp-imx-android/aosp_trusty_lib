@@ -97,7 +97,7 @@ int tipc_send2(handle_t chan,
  * @chan: handle of the channel to receive message from
  * @min_sz: minimum size of the message expected
  * @buf1: pointer to buffer to store first segment of the message
- * @buf1_sz size of the buffer pointed by @buf1 parameter
+ * @buf1_sz: size of the buffer pointed by @buf1 parameter
  * @buf2: pointer to buffer to store second segment of the message
  * @buf2_sz: size of the buffer pointed by @buf2 parameter
  *
@@ -163,7 +163,7 @@ void tipc_handle_port_errors(const struct uevent* ev);
 void tipc_handle_chan_errors(const struct uevent* ev);
 
 /**
- * event_handler_proc_t - pointer to event handler routine
+ * typedef event_handler_proc_t - pointer to event handler routine
  * @ev: pointer to event to handle
  * @priv: handle/context specific argument
  *
@@ -172,13 +172,95 @@ void tipc_handle_chan_errors(const struct uevent* ev);
 typedef void (*event_handler_proc_t)(const struct uevent* ev, void* priv);
 
 /**
- * struct tipc_event_handler: defines event handler for particular handle
+ * struct tipc_event_handler - defines event handler for particular handle
  * @proc: pointer to @event_handler_proc_t function to call to handle event
- * @priv: value to pass as @priv parameter of @event_handler_proc_t function
+ * @priv: value to pass as @priv parameter for event_handler_proc_t function
+ *        pointed by @proc parameters
  */
 struct tipc_event_handler {
     event_handler_proc_t proc;
     void* priv;
 };
+
+/*
+ * struct tipc_hset - opaque structure representing handle set
+ */
+struct tipc_hset;
+
+/**
+ *  tipc_hset_create() - allocate and initialize new handle set
+ *
+ *  Return: a pointer to &struct tipc_hset on success, PTR_ERR otherwise.
+ */
+struct tipc_hset* tipc_hset_create(void);
+
+/**
+ * tipc_hset_add_entry() - add new existing handle to handle set
+ * @hset:        pointer to valid &struct tipc_hset
+ * @handle:      handle to add to handle set specified by @hset parameter
+ * @evt_mask:    set of events allowed to be handled for @handle
+ * @evt_handler: pointer to initialized &struct tipc_event_handler (must not
+ *               be NULL) that will be used to handle events associated with
+ *               handle specified by @handle parameter and allowed by
+ *               @evt_mask parameter.
+ *
+ * Return: 0 on success, a negative error code otherwise
+ */
+int tipc_hset_add_entry(struct tipc_hset* hset,
+                        handle_t handle,
+                        uint32_t evt_mask,
+                        struct tipc_event_handler* evt_handler);
+
+/**
+ * tipc_hset_mod_entry() - modify parameters of an existing entry in handle set
+ * @hset:        pointer to valid &struct tipc_hset
+ * @handle:      handle to modify an entry for. It must be previously added by
+ *               calling tipc_hset_add_handle() function.
+ * @evt_mask:    set of events allowed to be handled for @handle
+ * @evt_handler: pointer to initialized &struct tipc_event_handler (must not
+ *               be NULL) that will be used to handle events associated with
+ *               handle specified by @handle parameter and allowed by
+ *               @evt_mask parameter.
+ *
+ * Return: 0 on success, a negative error code otherwise
+ */
+int tipc_hset_mod_entry(struct tipc_hset* hset,
+                        handle_t handle,
+                        uint32_t evt_mask,
+                        struct tipc_event_handler* evt_handler);
+
+/**
+ * tipc_hset_remove_entry() - remove specified handle from handle set
+ * @hset: pointer to &struct tipc_hset to remove handle from
+ * @handle: handle to remove from handle set specified by @hset parameter
+ *
+ * Return: 0 on success, a negative error code otherwise
+ */
+int tipc_hset_remove_entry(struct tipc_hset* hset, handle_t handle);
+
+/**
+ * tipc_handle_event() - wait on handle set and handle single event
+ * @hset: pointer to valid &struct tipc_hset set to get events from
+ * @timeout: a max amount of time to wait for event before returning to caller
+ *
+ * Note: It is expected that this routine is called repeatedly from event loop
+ * to handle events. The handle set specified as @hset parameter has to be
+ * populated with tipc_hset_add_handle() function.
+ *
+ * Return: 0 if an event has been retrieved and handled, ERR_TIMED_OUT if
+ * specified by @timeout parameter time has elapsed without getting new event,
+ * negative error code otherwise.
+ */
+int tipc_handle_event(struct tipc_hset* hset, uint32_t timeout);
+
+/**
+ * tipc_run_event_loop() - run standard event loop
+ * @hset: handle set to retrieve and handle events from
+ *
+ * This routine does not return under normal conditions.
+ *
+ * Return: negative error code if an error is encountered.
+ */
+int tipc_run_event_loop(struct tipc_hset* hset);
 
 __END_CDECLS

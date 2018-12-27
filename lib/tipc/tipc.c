@@ -23,6 +23,8 @@
 
 #include <lib/tipc/tipc.h>
 
+#include "tipc_priv.h"
+
 int tipc_connect(handle_t* handle_p, const char* port) {
     int rc;
 
@@ -179,4 +181,133 @@ void tipc_handle_chan_errors(const struct uevent* ev) {
         TLOGE("error event (0x%x) for chan (%d)\n", ev->event, ev->handle);
         abort();
     }
+}
+
+/*
+ * Initialize an existing tipc_hset
+ */
+int tipc_hset_init(struct tipc_hset* hset) {
+    int rc;
+
+    assert(hset);
+
+    hset->handle = INVALID_IPC_HANDLE;
+
+    rc = handle_set_create();
+    if (rc < 0)
+        return rc;
+
+    hset->handle = (handle_t)rc;
+    return 0;
+}
+
+/*
+ * Allocate and initialize new handle set structure
+ */
+struct tipc_hset* tipc_hset_create(void) {
+    struct tipc_hset* hset;
+
+    hset = malloc(sizeof(struct tipc_hset));
+    if (!hset)
+        return (void*)(uintptr_t)(ERR_NO_MEMORY);
+
+    int rc = tipc_hset_init(hset);
+    if (rc < 0) {
+        free(hset);
+        return (void*)(uintptr_t)(rc);
+    }
+
+    return hset;
+}
+
+/*
+ * Add handle to handle set
+ */
+int tipc_hset_add_entry(struct tipc_hset* hset,
+                        handle_t handle,
+                        uint32_t evt_mask,
+                        struct tipc_event_handler* evt_handler) {
+    struct uevent uevt = {
+            .handle = handle,
+            .event = evt_mask,
+            .cookie = (void*)evt_handler,
+    };
+
+    if (!hset || !evt_handler)
+        return ERR_INVALID_ARGS;
+
+    assert(evt_handler->proc);
+
+    /* attach new entry */
+    return handle_set_ctrl(hset->handle, HSET_ADD, &uevt);
+}
+
+/*
+ * Modify handle set entry
+ */
+int tipc_hset_mod_entry(struct tipc_hset* hset,
+                        handle_t handle,
+                        uint32_t evt_mask,
+                        struct tipc_event_handler* evt_handler) {
+    struct uevent uevt = {
+            .handle = handle,
+            .event = evt_mask,
+            .cookie = (void*)evt_handler,
+    };
+
+    if (!hset || !evt_handler)
+        return ERR_INVALID_ARGS;
+
+    assert(evt_handler->proc);
+
+    /* modify entry */
+    return handle_set_ctrl(hset->handle, HSET_MOD, &uevt);
+}
+
+/*
+ * Remove handle from handle set
+ */
+int tipc_hset_remove_entry(struct tipc_hset* hset, handle_t h) {
+    struct uevent uevt = {
+            .handle = h,
+            .event = 0,
+            .cookie = NULL,
+    };
+
+    if (!hset)
+        return ERR_INVALID_ARGS;
+
+    /* detach entry */
+    return handle_set_ctrl(hset->handle, HSET_DEL, &uevt);
+}
+
+int tipc_handle_event(struct tipc_hset* hset, uint32_t timeout) {
+    int rc;
+    struct uevent evt = UEVENT_INITIAL_VALUE(evt);
+
+    if (!hset)
+        return ERR_INVALID_ARGS;
+
+    /* wait for next event up to specified time */
+    rc = wait(hset->handle, &evt, timeout);
+    if (rc < 0)
+        return rc;
+
+    /* get handler */
+    struct tipc_event_handler* handler = evt.cookie;
+
+    /* invoke it */
+    handler->proc(&evt, handler->priv);
+
+    return 0;
+}
+
+int tipc_run_event_loop(struct tipc_hset* hset) {
+    int rc;
+
+    do {
+        rc = tipc_handle_event(hset, INFINITE_TIME);
+    } while (rc == 0);
+
+    return rc;
 }
