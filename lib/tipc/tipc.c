@@ -40,9 +40,9 @@ int tipc_connect(handle_t* handle_p, const char* port) {
  *  Send single buf message
  */
 int tipc_send1(handle_t chan, const void* buf, size_t len) {
-    iovec_t iov = {
-            .base = (void*)buf,
-            .len = len,
+    struct iovec iov = {
+            .iov_base = (void*)buf,
+            .iov_len = len,
     };
     ipc_msg_t msg = {
             .iov = &iov,
@@ -68,9 +68,9 @@ int tipc_recv1(handle_t chan, size_t min_sz, void* buf, size_t buf_sz) {
         /* unexpected msg size: buffer too small or too big */
         rc = ERR_BAD_LEN;
     } else {
-        iovec_t iov = {
-                .base = buf,
-                .len = buf_sz,
+        struct iovec iov = {
+                .iov_base = buf,
+                .iov_len = buf_sz,
         };
         ipc_msg_t msg = {
                 .iov = &iov,
@@ -93,14 +93,14 @@ int tipc_send2(handle_t chan,
                size_t hdr_len,
                const void* payload,
                size_t payload_len) {
-    iovec_t iovs[2] = {
+    struct iovec iovs[2] = {
             {
-                    .base = (void*)hdr,
-                    .len = hdr_len,
+                    .iov_base = (void*)hdr,
+                    .iov_len = hdr_len,
             },
             {
-                    .base = (void*)payload,
-                    .len = payload_len,
+                    .iov_base = (void*)payload,
+                    .iov_len = payload_len,
             },
     };
     ipc_msg_t msg = {
@@ -132,14 +132,14 @@ int tipc_recv2(handle_t chan,
         /* unexpected msg size: buffer too small or too big */
         rc = ERR_BAD_LEN;
     } else {
-        iovec_t iovs[2] = {
+        struct iovec iovs[2] = {
                 {
-                        .base = buf1,
-                        .len = buf1_sz,
+                        .iov_base = buf1,
+                        .iov_len = buf1_sz,
                 },
                 {
-                        .base = buf2,
-                        .len = buf2_sz,
+                        .iov_base = buf2,
+                        .iov_len = buf2_sz,
                 },
         };
         ipc_msg_t msg = {

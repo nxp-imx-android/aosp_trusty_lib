@@ -143,9 +143,9 @@ done:
 __WEAK int trusty_rng_hw_rand(uint8_t* data, size_t len) {
     struct hwrng_req req_hdr = {.len = len};
 
-    iovec_t tx_iov = {
-            .base = &req_hdr,
-            .len = sizeof(req_hdr),
+    struct iovec tx_iov = {
+            .iov_base = &req_hdr,
+            .iov_len = sizeof(req_hdr),
     };
 
     ipc_msg_t tx_msg = {
@@ -153,9 +153,9 @@ __WEAK int trusty_rng_hw_rand(uint8_t* data, size_t len) {
             .num_iov = 1,
     };
 
-    iovec_t rx_iov = {
-            .base = data,
-            .len = len,
+    struct iovec rx_iov = {
+            .iov_base = data,
+            .iov_len = len,
     };
     ipc_msg_t rx_msg = {
             .iov = &rx_iov,
@@ -179,7 +179,7 @@ __WEAK int trusty_rng_hw_rand(uint8_t* data, size_t len) {
         goto err;
     }
 
-    while (rx_msg.iov[0].len > 0) {
+    while (rx_msg.iov[0].iov_len > 0) {
         uevent_t uevt;
         rc = wait(chan, &uevt, -1);
         if (rc != NO_ERROR) {
@@ -192,7 +192,7 @@ __WEAK int trusty_rng_hw_rand(uint8_t* data, size_t len) {
             goto err;
         }
 
-        if (inf.len > rx_msg.iov[0].len) {
+        if (inf.len > rx_msg.iov[0].iov_len) {
             // received too much data
             rc = ERR_BAD_LEN;
             goto err;
@@ -204,8 +204,8 @@ __WEAK int trusty_rng_hw_rand(uint8_t* data, size_t len) {
         }
 
         size_t rx_size = (size_t)rc;
-        rx_msg.iov[0].base += rx_size;
-        rx_msg.iov[0].len -= rx_size;
+        rx_msg.iov[0].iov_base += rx_size;
+        rx_msg.iov[0].iov_len -= rx_size;
         put_msg(chan, inf.id);
     }
 

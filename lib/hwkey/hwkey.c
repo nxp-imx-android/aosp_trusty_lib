@@ -71,9 +71,9 @@ static long send_req(hwkey_session_t session,
                      uint32_t* rsp_buf_len) {
     long rc;
 
-    iovec_t tx_iov[2] = {
-            {.base = msg, .len = sizeof(*msg)},
-            {.base = req_buf, .len = req_buf_len},
+    struct iovec tx_iov[2] = {
+            {.iov_base = msg, .iov_len = sizeof(*msg)},
+            {.iov_base = req_buf, .iov_len = req_buf_len},
     };
     ipc_msg_t tx_msg = {
             .iov = tx_iov,
@@ -118,9 +118,9 @@ static long send_req(hwkey_session_t session,
 
     uint32_t cmd_sent = msg->cmd;
 
-    iovec_t rx_iov[2] = {
-            {.base = msg, .len = sizeof(*msg)},
-            {.base = rsp_buf, .len = *rsp_buf_len},
+    struct iovec rx_iov[2] = {
+            {.iov_base = msg, .iov_len = sizeof(*msg)},
+            {.iov_base = rsp_buf, .iov_len = *rsp_buf_len},
     };
     ipc_msg_t rx_msg = {
             .iov = rx_iov,

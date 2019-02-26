@@ -356,8 +356,8 @@ static int storage_read_dir_send_message(storage_session_t session,
     ssize_t rc;
 
     if (last_item->flags != STORAGE_FILE_LIST_START) {
-        tx[2].base = last_item->name;
-        tx[2].len = strlen(last_item->name);
+        tx[2].iov_base = last_item->name;
+        tx[2].iov_len = strlen(last_item->name);
         tx_count = 3;
     }
 

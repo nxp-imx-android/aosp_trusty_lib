@@ -32,9 +32,9 @@ static long send_req(keymaster_session_t session,
             .cmd = cmd,
     };
 
-    iovec_t tx_iov = {
-            .base = &msg,
-            .len = sizeof(msg),
+    struct iovec tx_iov = {
+            .iov_base = &msg,
+            .iov_len = sizeof(msg),
     };
     ipc_msg_t tx_msg = {
             .iov = &tx_iov,
@@ -80,9 +80,9 @@ static long read_response(keymaster_session_t session,
                           uint32_t size) {
     struct keymaster_message msg;
 
-    iovec_t rx_iov[2] = {
-            {.base = &msg, .len = sizeof(msg)},
-            {.base = buf, .len = size},
+    struct iovec rx_iov[2] = {
+            {.iov_base = &msg, .iov_len = sizeof(msg)},
+            {.iov_base = buf, .iov_len = size},
     };
     struct ipc_msg rx_msg = {
             .iov = rx_iov,

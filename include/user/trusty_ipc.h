@@ -26,6 +26,7 @@
 #include <lk/compiler.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <sys/uio.h>
 #include <trusty_uuid.h>
 
 __BEGIN_CDECLS
@@ -68,14 +69,9 @@ enum {
 /*
  *  IPC message
  */
-typedef struct iovec {
-    void* base;
-    size_t len;
-} iovec_t;
-
 typedef struct ipc_msg {
     uint32_t num_iov;
-    iovec_t* iov;
+    struct iovec* iov;
 
     uint32_t num_handles;
     handle_t* handles;

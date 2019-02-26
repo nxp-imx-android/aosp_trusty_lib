@@ -77,7 +77,7 @@ enum test_message_header {
 
 int unittest_printf(const char* fmt, ...) {
     char buf[256];
-    iovec_t tx_iov = {buf, 1};
+    struct iovec tx_iov = {buf, 1};
     ipc_msg_t tx_msg = {1, &tx_iov, 0, NULL};
     va_list ap;
     int ret;
@@ -97,7 +97,7 @@ int unittest_printf(const char* fmt, ...) {
     slen = MIN(ret, (int)sizeof(buf) - 1 - 1);
 
     buf[0] = TEST_MESSAGE;
-    tx_iov.len = 1 + ret;
+    tx_iov.iov_len = 1 + ret;
     ret = send_msg_wait(ipc_printf_handle, &tx_msg);
     if (ret < 0) {
         return ret;
@@ -160,7 +160,7 @@ int unittest_main(struct unittest** tests, size_t test_count) {
                 TLOGI("accept returned %d\n", ret);
                 if (ret >= 0) {
                     char tx_buffer[1];
-                    iovec_t tx_iov = {
+                    struct iovec tx_iov = {
                             tx_buffer,
                             sizeof(tx_buffer),
                     };
