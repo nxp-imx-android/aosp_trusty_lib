@@ -42,6 +42,11 @@ typedef uint32_t handle_t;
 #define INVALID_IPC_HANDLE (0xFFFFFFFFu)
 
 /*
+ *  Specify this timeout value to wait forever.
+ */
+#define INFINITE_TIME UINT32_MAX
+
+/*
  * Combination of these flags sets additional options
  * for port_create syscall.
  */
