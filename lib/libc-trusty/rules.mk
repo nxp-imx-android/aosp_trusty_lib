@@ -24,6 +24,8 @@ include $(LOCAL_DIR)/arch/$(ARCH)/rules.mk
 
 # dlmalloc does arithmatic on null pointers to calculate padding.
 MODULE_COMPILEFLAGS += -Wno-null-pointer-arithmetic
+# Since we redefine dlmalloc to malloc and such, we need to be freestanding to avoid Clang making to many assumptions inside the library.
+MODULE_COMPILEFLAGS += -ffreestanding
 
 MODULE_DEPS := \
 	lib/libc \
