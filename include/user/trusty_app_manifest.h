@@ -21,47 +21,17 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-#ifndef __LIB_TRUSTY_APP_MANIFEST_H
-#define __LIB_TRUSTY_APP_MANIFEST_H
+#pragma once
 
 #include <sys/types.h>
-
-#include "trusty_uuid.h"
+#include <uapi/trusty_app_manifest_types.h>
 
 /*
  * Layout of .trusty_app.manifest section in the trusted application is the
  * required UUID followed by an abitrary number of configuration options.
  */
-typedef struct trusty_app_manifest {
-    uuid_t uuid;
-    uint32_t config_options[];
-} trusty_app_manifest_t;
-
-struct trusty_app_manifest_entry_port {
-    uint32_t config_key;
-    uint32_t port_flags;
-    uint32_t port_name_size;
-    char port_name[];
-};
-
 #define CONCAT(x, y) x##y
 #define XCONCAT(x, y) CONCAT(x, y)
-
-enum {
-    TRUSTY_APP_CONFIG_KEY_MIN_STACK_SIZE = 1,
-    TRUSTY_APP_CONFIG_KEY_MIN_HEAP_SIZE = 2,
-    TRUSTY_APP_CONFIG_KEY_MAP_MEM = 3,
-    TRUSTY_APP_CONFIG_KEY_MGMT_FLAGS = 4,
-    TRUSTY_APP_CONFIG_KEY_START_PORT = 5,
-};
-
-enum trusty_app_mgmt_flags {
-    TRUSTY_APP_MGMT_FLAGS_NONE = 0x0,
-    /* Restart the application on exit */
-    TRUSTY_APP_MGMT_FLAGS_RESTART_ON_EXIT = 0x1,
-    /* Don't start the application at boot */
-    TRUSTY_APP_MGMT_FLAGS_DEFERRED_START = 0x2,
-};
 
 #define TRUSTY_APP_CONFIG_MIN_STACK_SIZE(sz) \
     TRUSTY_APP_CONFIG_KEY_MIN_STACK_SIZE, sz
@@ -90,5 +60,3 @@ enum trusty_app_mgmt_flags {
 #define TRUSTY_APP_MANIFEST_ATTRS   \
     const __attribute((aligned(4))) \
             __attribute((section(".trusty_app.manifest")))
-
-#endif

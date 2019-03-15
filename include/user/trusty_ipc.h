@@ -27,7 +27,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <sys/uio.h>
-#include <trusty_uuid.h>
+#include <uapi/trusty_uuid.h>
 
 __BEGIN_CDECLS
 
