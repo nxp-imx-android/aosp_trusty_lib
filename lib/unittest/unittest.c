@@ -153,34 +153,31 @@ int unittest_main(struct unittest** tests, size_t test_count) {
         test = evt.cookie;
         TLOGI("got event (ret=%d): ev=%x handle=%d port=%s\n", ret, evt.event,
               evt.handle, test->port_name);
-        if (ret == NO_ERROR) {
-            if (evt.event & IPC_HANDLE_POLL_READY) {
-                /* get connection request */
-                ret = accept(evt.handle, &dummy_uuid);
-                TLOGI("accept returned %d\n", ret);
-                if (ret >= 0) {
-                    char tx_buffer[1];
-                    struct iovec tx_iov = {
-                            tx_buffer,
-                            sizeof(tx_buffer),
-                    };
-                    ipc_msg_t tx_msg = {1, &tx_iov, 0, NULL};
-
-                    /* then run unittest test */
-                    ipc_printf_handle = ret;
-                    tx_buffer[0] =
-                            test->run_test(test) ? TEST_PASSED : TEST_FAILED;
-                    ipc_printf_handle = INVALID_IPC_HANDLE;
-
-                    send_msg_wait(ret, &tx_msg);
-
-                    /* and close it */
-                    close(ret);
-                }
-            }
-        }
         if (ret < 0)
             break;
+        if (evt.event & IPC_HANDLE_POLL_READY) {
+            /* get connection request */
+            ret = accept(evt.handle, &dummy_uuid);
+            TLOGI("accept returned %d\n", ret);
+            if (ret >= 0) {
+                char tx_buffer[1];
+                struct iovec tx_iov = {
+                        tx_buffer,
+                        sizeof(tx_buffer),
+                };
+                ipc_msg_t tx_msg = {1, &tx_iov, 0, NULL};
+
+                /* then run unittest test */
+                ipc_printf_handle = ret;
+                tx_buffer[0] = test->run_test(test) ? TEST_PASSED : TEST_FAILED;
+                ipc_printf_handle = INVALID_IPC_HANDLE;
+
+                send_msg_wait(ret, &tx_msg);
+
+                /* and close it */
+                close(ret);
+            }
+        }
     }
 
     return ret;
