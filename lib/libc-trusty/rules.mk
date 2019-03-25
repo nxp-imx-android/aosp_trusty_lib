@@ -17,6 +17,7 @@ MODULE_SRCS := \
 	$(LOCAL_DIR)/mman.c \
 	$(LOCAL_DIR)/stdio.c \
 	$(LOCAL_DIR)/time.c \
+	$(LOCAL_DIR)/trusty_app_mgmt.c \
 	$(LOCAL_DIR)/libc_init.c \
 	$(LOCAL_DIR)/libc_fatal.c \
 
