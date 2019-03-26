@@ -28,3 +28,17 @@
     } while (0)
 
 #include <lk/trusty_unittest.h>
+
+#define PORT_TEST(suite_name, port_name_string)           \
+    static bool run_##suite_name(struct unittest* test) { \
+        return RUN_ALL_TESTS();                           \
+    }                                                     \
+                                                          \
+    int main(void) {                                      \
+        static struct unittest test = {                   \
+                .port_name = port_name_string,            \
+                .run_test = run_##suite_name,             \
+        };                                                \
+        struct unittest* tests = &test;                   \
+        return unittest_main(&tests, 1);                  \
+    }
