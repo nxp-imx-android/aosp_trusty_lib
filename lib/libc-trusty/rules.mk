@@ -31,6 +31,11 @@ MODULE_COMPILEFLAGS += -ffreestanding
 MODULE_DEPS := \
 	lib/libc \
 
+# Defined by kernel/lib/ubsan/enable.mk if in use for the build
+ifeq ($(UBSAN_ENABLED), true)
+MODULE_DEPS += trusty/kernel/lib/ubsan
+endif
+
 # Add dependency on syscall-stubs
 include  trusty/user/base/lib/syscall-stubs/add-dependency-inc.mk
 
