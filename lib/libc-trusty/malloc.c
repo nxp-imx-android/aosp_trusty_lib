@@ -58,8 +58,8 @@ static void* sbrk(ptrdiff_t increment) {
     if (!__libc_brk)
         __libc_brk = (char*)brk(0);
 
-    start = (char*)ROUNDUP((long)__libc_brk, SBRK_ALIGN);
-    end = start + ROUNDUP((long)increment, SBRK_ALIGN);
+    start = (char*)round_up((long)__libc_brk, SBRK_ALIGN);
+    end = start + round_up((long)increment, SBRK_ALIGN);
 
     new_brk = (char*)brk((uint32_t)(uintptr_t)end);
     if (new_brk < end)
