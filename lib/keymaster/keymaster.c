@@ -26,8 +26,7 @@
 #define TLOGE(fmt, ...) \
     fprintf(stderr, "%s: %d: " fmt, LOG_TAG, __LINE__, ##__VA_ARGS__)
 
-static long send_req(keymaster_session_t session,
-                     enum secure_keymaster_command cmd) {
+static long send_req(keymaster_session_t session, uint32_t cmd) {
     struct keymaster_message msg = {
             .cmd = cmd,
     };

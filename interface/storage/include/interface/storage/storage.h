@@ -92,9 +92,7 @@ enum storage_err {
 /**
  * storage_delete_flag - flags for controlling delete semantics
  */
-enum storage_file_delete_flag {
-    STORAGE_FILE_DELETE_MASK = 0,
-};
+#define STORAGE_FILE_DELETE_MASK (0U)
 
 /**
  * storage_file_move_flag - Flags to control 'move' semantics.
@@ -109,14 +107,12 @@ enum storage_file_delete_flag {
  *                                      current protocol. All other bits must be
  *                                      set to 0.
  */
-enum storage_file_move_flag {
-    STORAGE_FILE_MOVE_CREATE = (1 << 0),
-    STORAGE_FILE_MOVE_CREATE_EXCLUSIVE = (1 << 1),
-    STORAGE_FILE_MOVE_OPEN_FILE = (1 << 2),
-    STORAGE_FILE_MOVE_MASK = STORAGE_FILE_MOVE_CREATE |
-                             STORAGE_FILE_MOVE_CREATE_EXCLUSIVE |
-                             STORAGE_FILE_MOVE_OPEN_FILE,
-};
+#define STORAGE_FILE_MOVE_CREATE (1U << 0)
+#define STORAGE_FILE_MOVE_CREATE_EXCLUSIVE (1U << 1)
+#define STORAGE_FILE_MOVE_OPEN_FILE (1U << 2)
+#define STORAGE_FILE_MOVE_MASK                                       \
+    (STORAGE_FILE_MOVE_CREATE | STORAGE_FILE_MOVE_CREATE_EXCLUSIVE | \
+     STORAGE_FILE_MOVE_OPEN_FILE)
 
 /**
  * storage_file_flag - Flags to control 'open' semantics.
@@ -133,14 +129,12 @@ enum storage_file_move_flag {
  *                                      current protocol. All other bits must be
  *                                      set to 0.
  */
-enum storage_file_open_flag {
-    STORAGE_FILE_OPEN_CREATE = (1 << 0),
-    STORAGE_FILE_OPEN_CREATE_EXCLUSIVE = (1 << 1),
-    STORAGE_FILE_OPEN_TRUNCATE = (1 << 2),
-    STORAGE_FILE_OPEN_MASK = STORAGE_FILE_OPEN_CREATE |
-                             STORAGE_FILE_OPEN_TRUNCATE |
-                             STORAGE_FILE_OPEN_CREATE_EXCLUSIVE,
-};
+#define STORAGE_FILE_OPEN_CREATE (1U << 0)
+#define STORAGE_FILE_OPEN_CREATE_EXCLUSIVE (1U << 1)
+#define STORAGE_FILE_OPEN_TRUNCATE (1U << 2)
+#define STORAGE_FILE_OPEN_MASK                               \
+    (STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE | \
+     STORAGE_FILE_OPEN_CREATE_EXCLUSIVE)
 
 /**
  * storage_file_list - Flags to control 'list' semantics.

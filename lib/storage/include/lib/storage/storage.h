@@ -40,9 +40,7 @@ struct storage_open_dir_state;
  * storage_ops_flags - storage related operation flags
  * @STORAGE_OP_COMPLETE: forces to commit current transaction
  */
-enum storage_ops_flags {
-    STORAGE_OP_COMPLETE = 0x1,
-};
+#define STORAGE_OP_COMPLETE 0x1U
 
 /**
  * storage_open_session() - Opens a storage session.

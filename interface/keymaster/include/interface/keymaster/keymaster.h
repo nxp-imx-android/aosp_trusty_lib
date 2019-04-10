@@ -23,13 +23,10 @@
  * @GET_AUTH_TOKEN_KEY: retrieves the auth token key from KM.
  *                      Payload not required.
  */
-enum secure_keymaster_command {
-    KM_RESP_BIT = 1,
-    KM_STOP_BIT = 2,
-    KM_REQ_SHIFT = 2,
-
-    KM_GET_AUTH_TOKEN_KEY = (0 << KM_REQ_SHIFT),
-};
+#define KM_RESP_BIT 1U
+#define KM_STOP_BIT 2U
+#define KM_REQ_SHIFT 2U
+#define KM_GET_AUTH_TOKEN_KEY (0U << KM_REQ_SHIFT)
 
 /**
  * keymaster_message - Serial header for communicating with KM server
