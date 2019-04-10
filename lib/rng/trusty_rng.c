@@ -181,7 +181,7 @@ __WEAK int trusty_rng_hw_rand(uint8_t* data, size_t len) {
 
     while (rx_msg.iov[0].iov_len > 0) {
         uevent_t uevt;
-        rc = wait(chan, &uevt, -1);
+        rc = wait(chan, &uevt, INFINITE_TIME);
         if (rc != NO_ERROR) {
             goto err;
         }

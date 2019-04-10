@@ -122,7 +122,7 @@ static ssize_t get_response(storage_session_t session,
         return 0;
 
     /* wait for reply */
-    int rc = wait(session, &ev, -1);
+    int rc = wait(session, &ev, INFINITE_TIME);
     if (rc != NO_ERROR) {
         TLOGE("%s: interrupted waiting for response", __func__);
         return rc;
@@ -275,7 +275,7 @@ int storage_move_file(storage_session_t session,
     };
     struct storage_file_move_req req = {
             .flags = flags,
-            .handle = handle,
+            .handle = _to_handle(handle),
             .old_name_len = old_name_len,
     };
     struct iovec tx[4] = {

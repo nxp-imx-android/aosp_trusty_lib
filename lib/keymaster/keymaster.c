@@ -59,7 +59,7 @@ static long send_req(keymaster_session_t session,
 static long await_response(keymaster_session_t session,
                            struct ipc_msg_info* inf) {
     uevent_t uevt;
-    long rc = wait(session, &uevt, -1);
+    long rc = wait(session, &uevt, INFINITE_TIME);
     if (rc != NO_ERROR) {
         TLOGE("%s: interrupted waiting for response (%ld)\n", __func__, rc);
         return rc;

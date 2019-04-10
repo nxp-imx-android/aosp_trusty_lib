@@ -91,7 +91,7 @@ static long send_req(hwkey_session_t session,
     }
 
     uevent_t uevt;
-    rc = wait(session, &uevt, -1);
+    rc = wait(session, &uevt, INFINITE_TIME);
     if (rc != NO_ERROR) {
         goto err_send_fail;
     }

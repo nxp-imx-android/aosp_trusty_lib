@@ -48,7 +48,7 @@ static int send_msg_wait(handle_t handle, struct ipc_msg* msg) {
         return ret;
     }
 
-    ret = wait(handle, &ev, -1);
+    ret = wait(handle, &ev, INFINITE_TIME);
     if (ret < 0) {
         return ret;
     }
@@ -113,7 +113,7 @@ int unittest_main(struct unittest** tests, size_t test_count) {
     int ret;
     handle_t hset;
     uevent_t evt = {
-            .event = ~0,
+            .event = ~0U,
     };
     struct unittest* test;
     uuid_t dummy_uuid;
@@ -126,7 +126,7 @@ int unittest_main(struct unittest** tests, size_t test_count) {
     hset = ret;
 
     /* create control port and just wait on it */
-    while (test_count--) {
+    for (; test_count; test_count--) {
         test = *tests++;
         ret = port_create(test->port_name, 1, MAX_PORT_BUF_SIZE,
                           IPC_PORT_ALLOW_NS_CONNECT);
@@ -149,7 +149,7 @@ int unittest_main(struct unittest** tests, size_t test_count) {
     /* and just wait forever for now */
     TLOGI("waiting forever\n");
     for (;;) {
-        ret = wait(hset, &evt, -1);
+        ret = wait(hset, &evt, INFINITE_TIME);
         test = evt.cookie;
         TLOGI("got event (ret=%d): ev=%x handle=%d port=%s\n", ret, evt.event,
               evt.handle, test->port_name);
