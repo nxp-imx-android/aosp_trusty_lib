@@ -17,6 +17,7 @@
 // TODO: move this file to a better location
 #pragma once
 
+#include <lk/compiler.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <trusty_log.h>
@@ -30,6 +31,7 @@
 #include <lk/trusty_unittest.h>
 
 #define PORT_TEST(suite_name, port_name_string)           \
+    __BEGIN_CDECLS                                        \
     static bool run_##suite_name(struct unittest* test) { \
         return RUN_ALL_TESTS();                           \
     }                                                     \
@@ -41,4 +43,5 @@
         };                                                \
         struct unittest* tests = &test;                   \
         return unittest_main(&tests, 1);                  \
-    }
+    }                                                     \
+    __END_CDECLS
