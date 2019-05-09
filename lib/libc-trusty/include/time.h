@@ -16,32 +16,16 @@
 
 #pragma once
 
+/* Augment time.h with trusty-specific functions. */
+#include_next <time.h>
+
 #include <lk/compiler.h>
 #include <stdint.h>
 
 __BEGIN_CDECLS
 
-typedef int clockid_t;
-typedef long time_t;
-
-/* For BoringSSL compatibility. */
-struct tm {
-    int tm_sec;   /* seconds */
-    int tm_min;   /* minutes */
-    int tm_hour;  /* hours */
-    int tm_mday;  /* day of the month */
-    int tm_mon;   /* month */
-    int tm_year;  /* year */
-    int tm_wday;  /* day of the week */
-    int tm_yday;  /* day in the year */
-    int tm_isdst; /* daylight saving time */
-
-    long int tm_gmtoff;  /* Seconds east of UTC.  */
-    const char* tm_zone; /* Timezone abbreviation.  */
-};
-
-static inline time_t time(time_t* t) {
-    return 0;
-}
+/* Prefixed with trusty_ because the signatures do not match POSIX. */
+int trusty_gettime(clockid_t clock_id, int64_t* time);
+int trusty_nanosleep(clockid_t clock_id, uint32_t flags, uint64_t sleep_time);
 
 __END_CDECLS

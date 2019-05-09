@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 The Android Open Source Project
+ * Copyright (C) 2019 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,18 +14,13 @@
  * limitations under the License.
  */
 
-#pragma once
-
-/* Augment time.h with trusty-specific functions. */
-#include_next <time.h>
-
 #include <lk/compiler.h>
-#include <stdint.h>
+#include <stdlib.h>
+#include <trusty_syscalls.h>
 
-__BEGIN_CDECLS
-
-/* Prefixed with trusty_ because the signatures do not match POSIX. */
-int trusty_gettime(clockid_t clock_id, int64_t* time);
-int trusty_nanosleep(clockid_t clock_id, uint32_t flags, uint64_t sleep_time);
-
-__END_CDECLS
+int __set_thread_area(void* p) {
+    /*
+     * Return 1 on success so Musl knows threading is not enabled.
+     */
+    return _trusty_set_user_tls(p) || 1;
+}

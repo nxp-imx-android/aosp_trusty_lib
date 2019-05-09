@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 The Android Open Source Project
+ * Copyright (C) 2019 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,16 +14,6 @@
  * limitations under the License.
  */
 
-#pragma once
-
 #include <lk/compiler.h>
-#include <malloc.h>
 
-/* TODO(ncbray): remove layering on top of kernel libc. */
-#include_next <stdlib.h>
-
-__BEGIN_CDECLS
-
-__NO_RETURN void exit(int status);
-
-__END_CDECLS
+__attribute__((section(".bss"))) __WEAK void* __dso_handle = (void*)0;

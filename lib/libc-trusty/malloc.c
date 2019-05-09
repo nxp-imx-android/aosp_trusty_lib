@@ -32,6 +32,7 @@
 #define ABORT exit(-1)
 #define HAVE_MMAP 0
 #define MORECORE sbrk
+#define malloc_getpagesize ((size_t)4096U)
 
 #define ENOMEM ERR_NO_MEMORY
 #define EINVAL ERR_INVALID_ARGS
