@@ -150,6 +150,13 @@ MODULE_SRCS += \
 	$(MUSL_DIR)/src/math/__signbitl.c \
 
 
+# Turn on the stack protector, except in libc.
+# TODO extract the early startup code from this module and turn on the stack
+# protector for most of libc.
+GLOBAL_COMPILEFLAGS += -fstack-protector-strong
+MODULE_COMPILEFLAGS += -fno-stack-protector
+MODULE_SRCS += $(MUSL_DIR)/src/env/__stack_chk_fail.c
+
 # Defined by kernel/lib/ubsan/enable.mk if in use for the build
 ifeq ($(UBSAN_ENABLED), true)
 MODULE_DEPS += trusty/kernel/lib/ubsan
