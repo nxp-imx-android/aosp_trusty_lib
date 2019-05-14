@@ -43,25 +43,21 @@
 #include <uapi/err.h>
 #include <unistd.h>
 
-long brk(uint32_t brk) {
-    return _trusty_brk(brk);
-}
-
 static char* __libc_brk;
 
 #define SBRK_ALIGN 32
-static void* sbrk(ptrdiff_t increment) {
+void* sbrk(ptrdiff_t increment) {
     char* new_brk;
     char* start;
     char* end;
 
     if (!__libc_brk)
-        __libc_brk = (char*)brk(0);
+        __libc_brk = (char*)_trusty_brk(0);
 
     start = (char*)round_up((long)__libc_brk, SBRK_ALIGN);
     end = start + round_up((long)increment, SBRK_ALIGN);
 
-    new_brk = (char*)brk((uint32_t)(uintptr_t)end);
+    new_brk = (char*)_trusty_brk((uint32_t)(uintptr_t)end);
     if (new_brk < end)
         return (void*)-1;
 
