@@ -162,6 +162,9 @@ ifeq ($(UBSAN_ENABLED), true)
 MODULE_DEPS += trusty/kernel/lib/ubsan
 endif
 
+# Add Trusty libc extensions (separated due to use both in the kernel and here)
+MODULE_DEPS += trusty/kernel/lib/libc-ext
+
 # Add dependency on syscall-stubs
 include  trusty/user/base/lib/syscall-stubs/add-dependency-inc.mk
 
