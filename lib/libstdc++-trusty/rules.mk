@@ -13,5 +13,6 @@ MODULE_COMPILEFLAGS += -D_LIBCPP_BUILDING_LIBRARY
 MODULE_SRCS := \
         $(LIBCXX_DIR)/src/memory.cpp \
         $(LIBCXX_DIR)/src/new.cpp \
+        $(LIBCXX_DIR)/src/string.cpp \
 
 include make/module.mk
