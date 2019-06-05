@@ -14,5 +14,6 @@ MODULE_SRCS := \
         $(LIBCXX_DIR)/src/memory.cpp \
         $(LIBCXX_DIR)/src/new.cpp \
         $(LIBCXX_DIR)/src/string.cpp \
+        $(LIBCXX_DIR)/src/vector.cpp \
 
 include make/module.mk
