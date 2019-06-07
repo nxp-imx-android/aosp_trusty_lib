@@ -19,13 +19,17 @@
 /* Augment time.h with trusty-specific functions. */
 #include_next <time.h>
 
-#include <lk/compiler.h>
 #include <stdint.h>
 
-__BEGIN_CDECLS
+/* Don't use convenience macros here, it will polute the namespace. */
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* Prefixed with trusty_ because the signatures do not match POSIX. */
 int trusty_gettime(clockid_t clock_id, int64_t* time);
 int trusty_nanosleep(clockid_t clock_id, uint32_t flags, uint64_t sleep_time);
 
-__END_CDECLS
+#ifdef __cplusplus
+}
+#endif

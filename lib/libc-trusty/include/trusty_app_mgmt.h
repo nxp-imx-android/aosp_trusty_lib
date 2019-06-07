@@ -16,11 +16,13 @@
 
 #pragma once
 
-#include <lk/compiler.h>
 #include <stdint.h>
 #include <uapi/trusty_uuid.h>
 
-__BEGIN_CDECLS
+/* Don't use convenience macros here, it will polute the namespace. */
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * register_app(): register an application with the application manager
@@ -44,4 +46,6 @@ int register_app(void* img_uaddr, uint32_t img_size);
  */
 int unregister_app(uuid_t* app_uuid);
 
-__END_CDECLS
+#ifdef __cplusplus
+}
+#endif

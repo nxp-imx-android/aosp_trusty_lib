@@ -19,11 +19,13 @@
 /* Augment sys/mman.h with trusty-specific functions. */
 #include_next <sys/mman.h>
 
-#include <lk/compiler.h>
 #include <stdint.h>
 #include <uapi/mm.h>
 
-__BEGIN_CDECLS
+/* Don't use convenience macros here, it will polute the namespace. */
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* Trusty specific. */
 long prepare_dma(void* uaddr,
@@ -32,4 +34,6 @@ long prepare_dma(void* uaddr,
                  struct dma_pmem* pmem);
 long finish_dma(void* uaddr, uint32_t size, uint32_t flags);
 
-__END_CDECLS
+#ifdef __cplusplus
+}
+#endif
