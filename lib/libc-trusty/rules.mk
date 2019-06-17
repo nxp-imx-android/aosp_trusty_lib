@@ -39,10 +39,17 @@ MODULE_INCLUDES += \
 	$(MUSL_DIR)/src/internal \
 	$(MUSL_DIR)/src/include \
 
-# Musl is scrupulous about exposing functions and defines based on what standard
-# is requested. This gets us what we need, approximately.
-# The header files check these defines, so they need to be defined everywhere.
-GLOBAL_COMPILEFLAGS += -D_BSD_SOURCE=1 -D_XOPEN_SOURCE=700
+# Musl is scrupulous about exposing prototypes and defines based on what
+# standard is requested. When compiling C++ code, however, Clang defines
+# _GNU_SOURCE because libcxx's header files depend on prototypes that are only
+# available with _GNU_SOURCE specified. To avoid skew where prototypes are
+# defined for C++ but not C, turn everything on always.
+GLOBAL_COMPILEFLAGS += -D_ALL_SOURCE
+
+# Musl declares global variables with names like "index" that can conflict with
+# function names when _ALL_SOURCE is turned on. Compile Musl as it expects to be
+# compiled.
+MODULE_COMPILEFLAGS += -U_ALL_SOURCE -D_XOPEN_SOURCE=700
 
 # libc should be freestanding, but the rest of the app should not be.
 MODULE_COMPILEFLAGS += -ffreestanding
