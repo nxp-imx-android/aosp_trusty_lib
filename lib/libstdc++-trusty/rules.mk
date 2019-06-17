@@ -20,6 +20,7 @@ MODULE_CPPFLAGS += -DLIBCXX_BUILDING_LIBCXXABI
 GLOBAL_CPPFLAGS += -D_LIBCPP_BUILD_STATIC -D_LIBCPP_HAS_NO_THREADS -D_LIBCPP_HAS_MUSL_LIBC
 
 MODULE_SRCS := \
+        $(LIBCXX_DIR)/src/algorithm.cpp \
         $(LIBCXX_DIR)/src/any.cpp \
         $(LIBCXX_DIR)/src/bind.cpp \
         $(LIBCXX_DIR)/src/charconv.cpp \
@@ -45,6 +46,7 @@ MODULE_SRCS := \
         $(LIBCXX_DIR)/src/vector.cpp \
 
 
+# TODO add src/random.cpp when there is support for getting entropy.
 # TODO files that require locale support.
 
 
