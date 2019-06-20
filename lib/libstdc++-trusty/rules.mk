@@ -27,12 +27,14 @@ MODULE_SRCS := \
         $(LIBCXX_DIR)/src/any.cpp \
         $(LIBCXX_DIR)/src/bind.cpp \
         $(LIBCXX_DIR)/src/charconv.cpp \
-        $(LIBCXX_DIR)/src/chrono.cpp \
         $(LIBCXX_DIR)/src/condition_variable.cpp \
         $(LIBCXX_DIR)/src/debug.cpp \
         $(LIBCXX_DIR)/src/exception.cpp \
         $(LIBCXX_DIR)/src/future.cpp \
         $(LIBCXX_DIR)/src/hash.cpp \
+        $(LIBCXX_DIR)/src/ios.cpp \
+        $(LIBCXX_DIR)/src/iostream.cpp \
+        $(LIBCXX_DIR)/src/locale.cpp \
         $(LIBCXX_DIR)/src/memory.cpp \
         $(LIBCXX_DIR)/src/mutex.cpp \
         $(LIBCXX_DIR)/src/new.cpp \
@@ -40,6 +42,7 @@ MODULE_SRCS := \
         $(LIBCXX_DIR)/src/regex.cpp \
         $(LIBCXX_DIR)/src/shared_mutex.cpp \
         $(LIBCXX_DIR)/src/string.cpp \
+        $(LIBCXX_DIR)/src/strstream.cpp \
         $(LIBCXX_DIR)/src/system_error.cpp \
         $(LIBCXX_DIR)/src/thread.cpp \
         $(LIBCXX_DIR)/src/typeinfo.cpp \
@@ -49,8 +52,8 @@ MODULE_SRCS := \
         $(LIBCXX_DIR)/src/vector.cpp \
 
 
+# TODO add src/chrono.cpp when we have a gettime that uses timespecs.
 # TODO add src/random.cpp when there is support for getting entropy.
-# TODO files that require locale support.
 
 
 MODULE_DEPS := \
