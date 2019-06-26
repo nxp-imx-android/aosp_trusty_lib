@@ -91,9 +91,14 @@ MODULE_SRCS += \
 	$(LOCAL_DIR)/time.c \
 	$(LOCAL_DIR)/trusty_app_mgmt.c \
 
+ifeq ($(ASLR),false)
+    MODULE_SRCS += $(MUSL_DIR)/crt/crt1.c
+else
+    MODULE_SRCS += $(MUSL_DIR)/crt/rcrt1.c
+endif
+
 # Musl
 MODULE_SRCS += \
-	$(MUSL_DIR)/crt/crt1.c \
 	$(MUSL_DIR)/src/env/__environ.c \
 	$(MUSL_DIR)/src/env/__init_tls.c \
 	$(MUSL_DIR)/src/env/__libc_start_main.c \
