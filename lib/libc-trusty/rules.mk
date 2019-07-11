@@ -14,16 +14,6 @@ MODULE_STATIC_LIB := true
 
 MUSL_DIR := external/trusty/musl
 
-# Fix arch naming differences.
-ifeq ($(ARCH),arm64)
-MUSL_ARCH := aarch64
-else ifeq ($(ARCH),x86)
-MUSL_ARCH := x86_64
-else
-MUSL_ARCH := $(ARCH)
-endif
-
-
 # This eliminate /usr/local/include and /usr/include from includepaths.
 # Note that this does NOT eliminate the compiler's builtin include directory,
 # which includes header files for vector intrinsics and similar.
@@ -39,7 +29,7 @@ GLOBAL_COMPILEFLAGS += --sysroot=fake_sysroot
 # particularly when -Wall is enabled enabled.  Because we're using -Werror,
 # we must either patch the header files or use -isystem.
 GLOBAL_COMPILEFLAGS += \
-	-isystem $(MUSL_DIR)/arch/$(MUSL_ARCH) \
+	-isystem $(MUSL_DIR)/arch/$(STANDARD_ARCH_NAME) \
 	-isystem $(MUSL_DIR)/arch/generic \
 	-isystem $(MUSL_DIR)/include \
 
