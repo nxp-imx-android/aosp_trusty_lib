@@ -310,6 +310,27 @@ long hwkey_derive_versioned(hwkey_session_t session,
     return hwkey_err_to_tipc_err(resp_msg.header.status);
 }
 
+long hwkey_mp_decrypt(hwkey_session_t session, uint8_t* enc,
+                      uint32_t size, uint8_t* out) {
+    if (enc == NULL || size == 0 || out == NULL) {
+        // invalid input
+        return ERR_NOT_VALID;
+    }
+
+    struct hwkey_msg msg = {
+            .header.cmd = HWKEY_MP_DEC,
+    };
+
+    uint32_t out_size = size;
+    long rc = send_req(session, &msg, enc, size, out, &out_size);
+
+    if (rc == NO_ERROR && out_size != size) {
+        return ERR_BAD_LEN;
+    }
+
+    return rc;
+}
+
 void hwkey_close(hwkey_session_t session) {
     close(session);
 }
