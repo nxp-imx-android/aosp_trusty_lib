@@ -83,6 +83,10 @@ long hwkey_derive(hwkey_session_t session,
                   uint8_t* dest,
                   uint32_t buf_size);
 
+long hwkey_mp_decrypt(hwkey_session_t session,
+                      uint8_t* enc,
+                      uint32_t size,
+                      uint8_t* out);
 /**
  * struct hwkey_versioned_key_options - Options that control how a versioned
  *                                      key will be derived.

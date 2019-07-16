@@ -48,6 +48,7 @@ enum hwkey_cmd {
      * commands for &struct hwkey_derive_versioned_msg
      */
     HWKEY_DERIVE_VERSIONED = (2 << HWKEY_REQ_SHIFT),
+    HWKEY_MP_DEC = (5 << HWKEY_REQ_SHIFT),
 };
 
 /**
