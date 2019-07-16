@@ -41,6 +41,7 @@ enum hwkey_cmd {
 
     HWKEY_GET_KEYSLOT = (0 << HWKEY_REQ_SHIFT),
     HWKEY_DERIVE = (1 << HWKEY_REQ_SHIFT),
+    HWKEY_MP_DEC = (2 << HWKEY_REQ_SHIFT),
 };
 
 /**
