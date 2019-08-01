@@ -28,11 +28,11 @@ extern "C" {
 #endif
 
 /* Trusty specific. */
-long prepare_dma(void* uaddr,
-                 uint32_t size,
-                 uint32_t flags,
-                 struct dma_pmem* pmem);
-long finish_dma(void* uaddr, uint32_t size, uint32_t flags);
+int prepare_dma(void* uaddr,
+                uint32_t size,
+                uint32_t flags,
+                struct dma_pmem* pmem);
+int finish_dma(void* uaddr, uint32_t size, uint32_t flags);
 
 #ifdef __cplusplus
 }

@@ -35,12 +35,12 @@ __BEGIN_CDECLS
  *  handle_t is an opaque 32 bit value that is used to reference an
  *  object (like ipc port or channel) in kernel space
  */
-typedef uint32_t handle_t;
+typedef int32_t handle_t;
 
 /*
  *  Invalid IPC handle
  */
-#define INVALID_IPC_HANDLE (0xFFFFFFFFu)
+#define INVALID_IPC_HANDLE ((handle_t)-1)
 
 /*
  *  Specify this timeout value to wait forever.
@@ -110,7 +110,7 @@ enum {
  *  about event.
  */
 typedef struct uevent {
-    uint32_t handle; /* handle this event is related too */
+    handle_t handle; /* handle this event is related too */
     uint32_t event;  /* combination of IPC_HANDLE_POLL_XXX flags */
     void* cookie;    /* cookie aasociated with handle */
 } uevent_t;
@@ -118,24 +118,24 @@ typedef struct uevent {
 #define UEVENT_INITIAL_VALUE(event) \
     { 0, 0, 0 }
 
-long port_create(const char* path,
-                 uint32_t num_recv_bufs,
-                 uint32_t recv_buf_size,
-                 uint32_t flags);
-long connect(const char* path, uint32_t flags);
-long accept(uint32_t handle_id, uuid_t* peer_uuid);
-long close(uint32_t handle_id);
-long set_cookie(uint32_t handle, void* cookie);
-long handle_set_create(void);
-long handle_set_ctrl(uint32_t handle, uint32_t cmd, struct uevent* evt);
-long wait(uint32_t handle_id, uevent_t* event, uint32_t timeout_msecs);
-long wait_any(uevent_t* event, uint32_t timeout_msecs);
-long get_msg(uint32_t handle, ipc_msg_info_t* msg_info);
-long read_msg(uint32_t handle,
-              uint32_t msg_id,
-              uint32_t offset,
-              ipc_msg_t* msg);
-long put_msg(uint32_t handle, uint32_t msg_id);
-long send_msg(uint32_t handle, ipc_msg_t* msg);
+handle_t port_create(const char* path,
+                     uint32_t num_recv_bufs,
+                     uint32_t recv_buf_size,
+                     uint32_t flags);
+handle_t connect(const char* path, uint32_t flags);
+handle_t accept(handle_t handle, uuid_t* peer_uuid);
+int close(handle_t handle);
+int set_cookie(handle_t handle, void* cookie);
+handle_t handle_set_create(void);
+int handle_set_ctrl(handle_t handle, uint32_t cmd, struct uevent* evt);
+int wait(handle_t handle, uevent_t* event, uint32_t timeout_msecs);
+int wait_any(uevent_t* event, uint32_t timeout_msecs);
+int get_msg(handle_t handle, ipc_msg_info_t* msg_info);
+ssize_t read_msg(handle_t handle,
+                 uint32_t msg_id,
+                 uint32_t offset,
+                 ipc_msg_t* msg);
+int put_msg(handle_t handle, uint32_t msg_id);
+ssize_t send_msg(handle_t handle, ipc_msg_t* msg);
 
 __END_CDECLS

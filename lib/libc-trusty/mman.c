@@ -40,8 +40,7 @@ void* mmap(void* uaddr,
         return MAP_FAILED;
     }
 
-    result =
-            (void*)_trusty_mmap(uaddr, size, (uint32_t)flags, (uint32_t)handle);
+    result = (void*)_trusty_mmap(uaddr, size, (uint32_t)flags, (int32_t)handle);
     if (IS_ERR(result)) {
         return MAP_FAILED;
     }
@@ -52,13 +51,13 @@ int munmap(void* uaddr, size_t size) {
     return _trusty_munmap(uaddr, size);
 }
 
-long prepare_dma(void* uaddr,
-                 uint32_t size,
-                 uint32_t flags,
-                 struct dma_pmem* pmem) {
+int prepare_dma(void* uaddr,
+                uint32_t size,
+                uint32_t flags,
+                struct dma_pmem* pmem) {
     return _trusty_prepare_dma(uaddr, size, flags, pmem);
 }
 
-long finish_dma(void* uaddr, uint32_t size, uint32_t flags) {
+int finish_dma(void* uaddr, uint32_t size, uint32_t flags) {
     return _trusty_finish_dma(uaddr, size, flags);
 }
