@@ -16,6 +16,7 @@
 
 #include <time.h>
 
+#include <errno.h>
 #include <trusty_syscalls.h>
 
 int trusty_nanosleep(clockid_t clock_id, uint32_t flags, uint64_t sleep_time) {
@@ -24,4 +25,23 @@ int trusty_nanosleep(clockid_t clock_id, uint32_t flags, uint64_t sleep_time) {
 
 int trusty_gettime(clockid_t clock_id, int64_t* time) {
     return _trusty_gettime(clock_id, 0, time);
+}
+
+#define NS_PER_SEC 1000000000
+
+int clock_gettime(clockid_t clock_id, struct timespec* ts) {
+    if (ts == NULL) {
+        errno = EFAULT;
+        return -1;
+    }
+    int64_t time;
+    int rc = trusty_gettime(clock_id, &time);
+    if (rc) {
+        /* &time is valid, so clock_id must have been invalid. */
+        errno = EINVAL;
+        return -1;
+    }
+    ts->tv_sec = (time_t)(time / NS_PER_SEC);
+    ts->tv_nsec = (long)(time % NS_PER_SEC);
+    return 0;
 }
