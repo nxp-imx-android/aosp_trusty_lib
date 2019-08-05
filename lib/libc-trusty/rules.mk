@@ -72,6 +72,19 @@ MODULE_CFLAGS += -Wno-strict-prototypes
 MODULE_COMPILEFLAGS += \
 	-Wno-unknown-pragmas \
 
+# Musl will do something like this:
+# weak_alias(a, b); weak_alias(b, c);
+# But it appears the second statement will get eagerly evaluated to:
+# weak_alias(a, c);
+# and overriding b will not affect c.  This is likely not intended behavior, but
+# it does not matter for us so ignore it.
+MODULE_COMPILEFLAGS += \
+	-Wno-ignored-attributes \
+
+# The are compares that make sense in 64-bit but do not make sense in 32-bit.
+MODULE_COMPILEFLAGS += \
+	-Wno-tautological-constant-compare
+
 # NOTE eabi_unwind_stubs.c because libgcc pulls in unwinding stuff.
 # NOTE using dlmalloc because it's difficult to guarentee Musl's malloc will
 # work without mmap.
@@ -79,6 +92,7 @@ MODULE_SRCS := \
 	external/lk/lib/libc/eabi_unwind_stubs.c \
 	$(LOCAL_DIR)/__dso_handle.c \
 	$(LOCAL_DIR)/__set_thread_area.c \
+	$(LOCAL_DIR)/file_stubs.c \
 	$(LOCAL_DIR)/locale_stubs.c \
 	$(LOCAL_DIR)/malloc.c \
 	$(LOCAL_DIR)/time_stubs.c \
@@ -261,14 +275,20 @@ MODULE_SRCS += \
 	$(MUSL_DIR)/src/string/wmemmove.c \
 	$(MUSL_DIR)/src/string/wmemset.c \
 	$(MUSL_DIR)/src/stdio/asprintf.c \
+	$(MUSL_DIR)/src/stdio/fclose.c \
 	$(MUSL_DIR)/src/stdio/fflush.c \
+	$(MUSL_DIR)/src/stdio/fileno.c \
 	$(MUSL_DIR)/src/stdio/fputc.c \
 	$(MUSL_DIR)/src/stdio/fputs.c \
 	$(MUSL_DIR)/src/stdio/fprintf.c \
+	$(MUSL_DIR)/src/stdio/fread.c \
+	$(MUSL_DIR)/src/stdio/fseek.c \
+	$(MUSL_DIR)/src/stdio/ftell.c \
 	$(MUSL_DIR)/src/stdio/fwrite.c \
 	$(MUSL_DIR)/src/stdio/getc.c \
 	$(MUSL_DIR)/src/stdio/ofl.c \
 	$(MUSL_DIR)/src/stdio/printf.c \
+	$(MUSL_DIR)/src/stdio/putc_unlocked.c \
 	$(MUSL_DIR)/src/stdio/putchar.c \
 	$(MUSL_DIR)/src/stdio/puts.c \
 	$(MUSL_DIR)/src/stdio/sscanf.c \
@@ -279,6 +299,7 @@ MODULE_SRCS += \
 	$(MUSL_DIR)/src/stdio/stdout.c \
 	$(MUSL_DIR)/src/stdio/ungetc.c \
 	$(MUSL_DIR)/src/stdio/vasprintf.c \
+	$(MUSL_DIR)/src/stdio/vprintf.c \
 	$(MUSL_DIR)/src/stdio/vfprintf.c \
 	$(MUSL_DIR)/src/stdio/vsnprintf.c \
 	$(MUSL_DIR)/src/stdio/vsprintf.c \
@@ -300,6 +321,10 @@ MODULE_SRCS += \
 	$(MUSL_DIR)/src/thread/default_attr.c \
 	$(MUSL_DIR)/src/thread/pthread_once.c \
 	$(MUSL_DIR)/src/thread/pthread_cleanup_push.c \
+	$(MUSL_DIR)/src/time/gettimeofday.c \
+	$(MUSL_DIR)/src/time/localtime.c \
+	$(MUSL_DIR)/src/time/localtime_r.c \
+	$(MUSL_DIR)/src/time/__secs_to_tm.c \
 
 # Math
 MODULE_SRCS += \

@@ -37,3 +37,18 @@ size_t strftime(char* restrict s,
                 const struct tm* restrict tm) {
     return strftime_l(s, n, f, tm, 0);
 }
+
+/* Mock Musl function for timezone information - no databases available. */
+void __secs_to_zone(long long t,
+                    int local,
+                    int* isdst,
+                    long* offset,
+                    long* oppoff,
+                    const char** zonename) {
+    /* UTC+0 */
+    *isdst = 0;
+    *offset = 0;
+    if (oppoff)
+        *oppoff = 0;
+    *zonename = "UTC";
+}
