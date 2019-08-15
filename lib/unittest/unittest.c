@@ -129,7 +129,7 @@ int unittest_main(struct unittest** tests, size_t test_count) {
     for (; test_count; test_count--) {
         test = *tests++;
         ret = port_create(test->port_name, 1, MAX_PORT_BUF_SIZE,
-                          IPC_PORT_ALLOW_NS_CONNECT);
+                          IPC_PORT_ALLOW_NS_CONNECT | IPC_PORT_ALLOW_TA_CONNECT);
         if (ret < 0) {
             TLOGI("failed to create port %s: %d\n", test->port_name, ret);
             return ret;
