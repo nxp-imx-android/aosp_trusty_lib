@@ -186,6 +186,10 @@ MODULE_SRCS += \
 	$(MUSL_DIR)/src/multibyte/wcstombs.c \
 	$(MUSL_DIR)/src/multibyte/wctob.c \
 	$(MUSL_DIR)/src/multibyte/wctomb.c \
+	$(MUSL_DIR)/src/network/htonl.c \
+	$(MUSL_DIR)/src/network/htons.c \
+	$(MUSL_DIR)/src/network/ntohl.c \
+	$(MUSL_DIR)/src/network/ntohs.c \
 	$(MUSL_DIR)/src/prng/rand.c \
 	$(MUSL_DIR)/src/stdlib/abs.c \
 	$(MUSL_DIR)/src/stdlib/atof.c \
