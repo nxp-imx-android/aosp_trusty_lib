@@ -14,7 +14,12 @@
  * limitations under the License.
  */
 
+#include <errno.h>
+#include <sys/time.h>
 #include <time.h>
+
+/* Needed by Musl internals. Normally provided by Musl's __tz.c file. */
+const char __utc[] = "UTC";
 
 /*
  * strftime ends up depending on time zone data files. Stub this function rather
@@ -51,4 +56,10 @@ void __secs_to_zone(long long t,
     if (oppoff)
         *oppoff = 0;
     *zonename = "UTC";
+}
+
+/* sys/time.h is not quite right for ALL_SOURCE, so declare the last argument as
+ * void* */
+int settimeofday(const struct timeval* tv, const void* tz) {
+    return EPERM;
 }

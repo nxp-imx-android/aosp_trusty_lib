@@ -16,20 +16,71 @@
 
 #include <time.h>
 
+#include <assert.h>
 #include <errno.h>
 #include <trusty_syscalls.h>
 
+#define NS_PER_SEC 1000000000
+
 int trusty_nanosleep(clockid_t clock_id, uint32_t flags, uint64_t sleep_time) {
+    /* TODO validate clock_ids. */
+    /* No flags, yet. */
+    assert(flags == 0);
     return _trusty_nanosleep(clock_id, flags, sleep_time);
+}
+
+int clock_nanosleep(clockid_t clock_id,
+                    int flags,
+                    const struct timespec* req,
+                    struct timespec* rem) {
+    /* Validate inputs. */
+    if (!req) {
+        errno = EFAULT;
+        return -1;
+    }
+    if (req->tv_sec < 0) {
+        errno = EINVAL;
+        return -1;
+    }
+    if (req->tv_nsec >= NS_PER_SEC || req->tv_nsec < 0) {
+        errno = EINVAL;
+        return -1;
+    }
+    /* Convert timespec to nanoseconds. */
+    uint64_t sleep_time;
+    if (__builtin_mul_overflow(req->tv_sec, NS_PER_SEC, &sleep_time)) {
+        errno = EINVAL;
+        return -1;
+    }
+    if (__builtin_add_overflow(sleep_time, req->tv_nsec, &sleep_time)) {
+        errno = EINVAL;
+        return -1;
+    }
+    /* Actually sleep. */
+    int ret = trusty_nanosleep(clock_id, flags, sleep_time);
+    /* Handle the result. */
+    if (rem) {
+        /* Trusty should not wake up early, except for clock rounding. */
+        rem->tv_sec = 0;
+        rem->tv_nsec = 0;
+    }
+    if (ret) {
+        /* clock_id was invalid? */
+        errno = EINVAL;
+        return -1;
+    }
+    return 0;
+}
+
+int nanosleep(const struct timespec* req, struct timespec* rem) {
+    return clock_nanosleep(CLOCK_BOOTTIME, 0, req, rem);
 }
 
 int trusty_gettime(clockid_t clock_id, int64_t* time) {
     return _trusty_gettime(clock_id, 0, time);
 }
 
-#define NS_PER_SEC 1000000000
-
-int clock_gettime(clockid_t clock_id, struct timespec* ts) {
+int __clock_gettime(clockid_t clock_id, struct timespec* ts) {
     if (ts == NULL) {
         errno = EFAULT;
         return -1;
@@ -45,3 +96,10 @@ int clock_gettime(clockid_t clock_id, struct timespec* ts) {
     ts->tv_nsec = (long)(time % NS_PER_SEC);
     return 0;
 }
+
+/*
+ * Internally, Musl references __clock_gettime, and then provides an alias for
+ * external users. Since we're providing the function, we need to provide the
+ * internal name for Musl and the external name for the user.
+ */
+weak_alias(__clock_gettime, clock_gettime);

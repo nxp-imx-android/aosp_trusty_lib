@@ -329,7 +329,12 @@ MODULE_SRCS += \
 	$(MUSL_DIR)/src/time/gettimeofday.c \
 	$(MUSL_DIR)/src/time/localtime.c \
 	$(MUSL_DIR)/src/time/localtime_r.c \
+	$(MUSL_DIR)/src/time/gmtime.c \
+	$(MUSL_DIR)/src/time/gmtime_r.c \
+	$(MUSL_DIR)/src/time/time.c \
 	$(MUSL_DIR)/src/time/__secs_to_tm.c \
+	$(MUSL_DIR)/src/unistd/sleep.c \
+	$(MUSL_DIR)/src/unistd/usleep.c \
 
 # Math
 MODULE_SRCS += \
