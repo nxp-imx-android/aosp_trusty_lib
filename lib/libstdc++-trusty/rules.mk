@@ -27,6 +27,7 @@ MODULE_SRCS := \
         $(LIBCXX_DIR)/src/any.cpp \
         $(LIBCXX_DIR)/src/bind.cpp \
         $(LIBCXX_DIR)/src/charconv.cpp \
+        $(LIBCXX_DIR)/src/chrono.cpp \
         $(LIBCXX_DIR)/src/condition_variable.cpp \
         $(LIBCXX_DIR)/src/debug.cpp \
         $(LIBCXX_DIR)/src/exception.cpp \
@@ -52,7 +53,6 @@ MODULE_SRCS := \
         $(LIBCXX_DIR)/src/vector.cpp \
 
 
-# TODO add src/chrono.cpp when we have a gettime that uses timespecs.
 # TODO add src/random.cpp when there is support for getting entropy.
 
 
