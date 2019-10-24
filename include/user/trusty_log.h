@@ -55,7 +55,8 @@ static inline int unittest_printf(const char* fmt, ...) {
 #define TLOGI(x...)                      \
     do {                                 \
         if (TLOG_LVL >= TLOG_LVL_INFO) { \
-            TLOG(x);                     \
+            fprintf(stderr, "%s: " x, TLOG_TAG); \
+            unittest_printf("%s: " x, TLOG_TAG); \
         }                                \
     } while (0)
 
