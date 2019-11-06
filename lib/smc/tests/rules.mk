@@ -11,10 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
 
-include trusty/user/app/keymaster/usertests-inc.mk
-include trusty/user/app/sample/usertests-inc.mk
+LOCAL_DIR := $(GET_LOCAL_DIR)
 
-TRUSTY_ALL_USER_TASKS += \
-	trusty/user/base/lib/smc/tests \
+MODULE := $(LOCAL_DIR)
+
+MODULE_SRCS += \
+	$(LOCAL_DIR)/smc_test.c \
+	$(LOCAL_DIR)/manifest.c
+
+MODULE_DEPS += \
+	trusty/user/base/lib/libc-trusty \
+	trusty/user/base/lib/smc \
+	trusty/user/base/lib/unittest \
+
+include make/module.mk
