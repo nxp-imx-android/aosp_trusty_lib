@@ -60,6 +60,7 @@ MODULE_COMPILEFLAGS += \
 	-Wno-incompatible-pointer-types-discards-qualifiers \
 	-Wno-string-plus-int \
 	-Wno-missing-braces \
+	-Wno-implicit-fallthrough \
 
 # Musl is generally not strict about its function prototypes.
 # This could be fixed, except for "main". The prototype for main is deliberately
