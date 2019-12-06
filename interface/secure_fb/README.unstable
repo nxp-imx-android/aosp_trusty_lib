@@ -1,0 +1,11 @@
+# secure_fb interface
+
+This interface is between trusted applications that need a secure framebuffer
+to display trusted UI, and a platform specific implementation (driver) that
+can provide such a framebuffer.
+
+## Note!
+      This interface definition is not very stable yet and subject to change
+      to accommodate unanticipated requirements for such a service.
+      That said, please start using this interface and let us know if you
+      have special requirements by submitting patches to this AOSP repository.
