@@ -48,7 +48,12 @@ int clock_nanosleep(clockid_t clock_id,
     }
     /* Convert timespec to nanoseconds. */
     uint64_t sleep_time;
-    if (__builtin_mul_overflow(req->tv_sec, NS_PER_SEC, &sleep_time)) {
+    /*
+     * Note: casting NS_PER_SEC to work around a Clang codegen bug.
+     * See: b/145830721
+     */
+    if (__builtin_mul_overflow(req->tv_sec, (uint64_t)NS_PER_SEC,
+                               &sleep_time)) {
         errno = EINVAL;
         return -1;
     }
