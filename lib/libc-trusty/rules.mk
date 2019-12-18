@@ -105,6 +105,8 @@ MODULE_SRCS += \
 	$(LOCAL_DIR)/mman.c \
 	$(LOCAL_DIR)/time.c \
 	$(LOCAL_DIR)/trusty_app_mgmt.c \
+	$(LOCAL_DIR)/trusty_err.c \
+	$(LOCAL_DIR)/trusty_uio.c \
 
 ifeq ($(ASLR),false)
     MODULE_SRCS += $(MUSL_DIR)/crt/crt1.c
