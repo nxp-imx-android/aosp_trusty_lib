@@ -37,6 +37,7 @@
 #define ENOMEM ERR_NO_MEMORY
 #define EINVAL ERR_INVALID_ARGS
 
+#include <errno.h>
 #include <lk/macros.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -55,12 +56,14 @@ void* sbrk(ptrdiff_t increment) {
     if (!__libc_brk)
         __libc_brk = (char*)_trusty_brk(0);
 
-    start = (char*)round_up((unsigned long)__libc_brk, SBRK_ALIGN);
-    end = start + round_up((unsigned long)increment, SBRK_ALIGN);
+    start = (char*)round_up((uintptr_t)__libc_brk, SBRK_ALIGN);
+    end = (char*)round_up((uintptr_t)(start + increment), SBRK_ALIGN);
 
     new_brk = (char*)_trusty_brk(end);
-    if (new_brk < end)
+    if (new_brk < end) {
+        errno = ENOMEM;
         return (void*)-1;
+    }
 
     __libc_brk = new_brk;
     return start;
