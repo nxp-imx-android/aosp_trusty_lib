@@ -23,6 +23,7 @@ LIBTEEUI_ROOT := $(TRUSTY_TOP)/system/teeui/libteeui
 CONFIRMATIONUI_LAYOUTS ?= $(LOCAL_DIR)/layouts
 
 MODULE_SRCS += \
+	$(LIBTEEUI_ROOT)/prebuilt/localization/ConfirmationUITranslations.c \
 	$(LIBTEEUI_ROOT)/src/cbor.cpp \
 	$(LIBTEEUI_ROOT)/src/button.cpp \
 	$(LIBTEEUI_ROOT)/src/font_rendering.cpp \
@@ -34,6 +35,7 @@ MODULE_SRCS += \
 
 GLOBAL_INCLUDES += \
 	$(LIBTEEUI_ROOT)/include \
+	$(LIBTEEUI_ROOT)/prebuilt/localization/include \
 
 MODULE_CPPFLAGS := -std=c++17 -fno-short-enums -fno-exceptions
 MODULE_CPPFLAGS += -fno-threadsafe-statics -fno-rtti -DNDEBUG
