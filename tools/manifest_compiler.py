@@ -111,11 +111,21 @@ def get_int(manifest_dict, key, log):
         return None
 
     int_value = manifest_dict.pop(key)
-    if not isinstance(int_value, int):
-        log.error(
-                "Invalid value for" +
-                " {} - \"{}\", Valid integer value is expected"
-                .format(key, int_value))
+
+    if isinstance(int_value, int):
+        return int_value
+    elif isinstance(int_value, basestring):
+        try:
+            return int(int_value, 0)
+        except ValueError as ex:
+            log.error("Invalid value for" +
+                      " {} - \"{}\", valid integer or hex string is expected"
+                      .format(key, int_value))
+            return None
+    else:
+        log.error("Invalid value for" +
+                  " {} - \"{}\", valid integer value is expected"
+                  .format(key, int_value))
         return None
 
     return int_value

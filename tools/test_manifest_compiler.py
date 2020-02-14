@@ -76,8 +76,8 @@ class TestManifest(unittest.TestCase):
         config_data  = {"data": "4096"}
         data = manifest_compiler.get_int(config_data, "data", log)
         self.assertEqual(len(config_data), 0)
-        self.assertTrue(log.error_occurred())
-        self.assertIsNone(data)
+        self.assertFalse(log.error_occurred())
+        self.assertEqual(data, 4096)
 
     '''
     Test with integer value
@@ -96,6 +96,36 @@ class TestManifest(unittest.TestCase):
     def test_get_int_4(self):
         log = manifest_compiler.Log()
         config_data  = {}
+        data = manifest_compiler.get_int(config_data, "data", log)
+        self.assertTrue(log.error_occurred())
+        self.assertIsNone(data)
+
+    '''
+    Test with valid hex string
+    '''
+    def test_get_int_5(self):
+        log = manifest_compiler.Log()
+        config_data  = {"data": "0X7f010000"}
+        data = manifest_compiler.get_int(config_data, "data", log)
+        self.assertFalse(log.error_occurred())
+        self.assertEqual(data, 0X7f010000)
+
+    '''
+    Test with invalid hex string
+    '''
+    def test_get_int_6(self):
+        log = manifest_compiler.Log()
+        config_data  = {"data": "0X7k010000"}
+        data = manifest_compiler.get_int(config_data, "data", log)
+        self.assertTrue(log.error_occurred())
+        self.assertIsNone(data)
+
+    '''
+    Test with string containing non-integers
+    '''
+    def test_get_int_7(self):
+        log = manifest_compiler.Log()
+        config_data  = {"data": "123A7"}
         data = manifest_compiler.get_int(config_data, "data", log)
         self.assertTrue(log.error_occurred())
         self.assertIsNone(data)
