@@ -167,6 +167,7 @@ MODULE_SRCS += \
 	$(MUSL_DIR)/src/exit/atexit.c \
 	$(MUSL_DIR)/src/exit/exit.c \
 	$(MUSL_DIR)/src/exit/_Exit.c \
+	$(MUSL_DIR)/src/misc/getauxval.c \
 	$(MUSL_DIR)/src/multibyte/btowc.c \
 	$(MUSL_DIR)/src/multibyte/c16rtomb.c \
 	$(MUSL_DIR)/src/multibyte/c32rtomb.c \
