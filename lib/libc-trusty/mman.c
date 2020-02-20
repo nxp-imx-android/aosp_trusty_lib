@@ -29,18 +29,17 @@ void* mmap(void* uaddr,
            off_t offset) {
     void* result;
 
-    /*
-     * These parameters exist for POSIX compatibility, but are unused.
-     * Require fixed values.
-     */
-    if (prot != (PROT_READ | PROT_WRITE)) {
-        return MAP_FAILED;
-    }
     if (offset != 0) {
         return MAP_FAILED;
     }
 
-    result = (void*)_trusty_mmap(uaddr, size, (uint32_t)flags, (int32_t)handle);
+    /*
+     * or the flags together for now since the syscall doesn't have enough
+     * arguments and now that we have real mappable handles, we have to dispatch
+     * on the flags to switch between regions and handles
+     */
+    result = (void*)_trusty_mmap(uaddr, size, (uint32_t)prot | flags,
+                                 (int32_t)handle);
     if (IS_ERR(result)) {
         return MAP_FAILED;
     }

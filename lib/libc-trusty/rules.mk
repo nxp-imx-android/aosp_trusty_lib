@@ -102,6 +102,7 @@ MODULE_SRCS := \
 # Trusty-specific syscalls
 MODULE_SRCS += \
 	$(LOCAL_DIR)/ipc.c \
+	$(LOCAL_DIR)/memref.c \
 	$(LOCAL_DIR)/mman.c \
 	$(LOCAL_DIR)/time.c \
 	$(LOCAL_DIR)/trusty_app_mgmt.c \
