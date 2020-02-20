@@ -18,18 +18,26 @@ USAGE:
 
    Input sample JSON Manifest config file content -
    {
-      "uuid": "5f902ace-5e5c-4cd8-ae54-87b88c22ddaf",
-      "min_heap": 4096,
-      "min_stack": 4096
-   }
-
-   Output packed data:
-   {
-      { 16 bytes UUID }
-      unsigned char uuid[16];
-
-      { min_heap_tag, min_heap_value, min_stack_tag, min_stack_value }
-      uint32_t configs[4];
+        "uuid": "5f902ace-5e5c-4cd8-ae54-87b88c22ddaf",
+        "min_heap": 4096,
+        "min_stack": 4096,
+        "mem_map":[
+            {
+                "id": 1,
+                "addr": "0x70000000",
+                "size": "0x1000"
+            },
+            {
+                "id": 2,
+                "addr": "0x70010000",
+                "size": "0x100"
+            },
+            {
+                "id": 3,
+                "addr": "0x70020000",
+                "size": "0x4"
+            }
+        ]
    }
 '''
 
@@ -46,21 +54,40 @@ import sys
 UUID = "uuid"
 MIN_HEAP = "min_heap"
 MIN_STACK = "min_stack"
+MEM_MAP = "mem_map"
+MEM_MAP_ID = "id"
+MEM_MAP_ADDR = "addr"
+MEM_MAP_SIZE = "size"
 
 # CONFIG TAGS
 # These values need to be kept in sync with uapi/trusty_app_manifest_types.h
 TRUSTY_APP_CONFIG_KEY_MIN_STACK_SIZE = 1
 TRUSTY_APP_CONFIG_KEY_MIN_HEAP_SIZE = 2
+TRUSTY_APP_CONFIG_KEY_MAP_MEM = 3
+
+
+class MemIOMap(object):
+    def __init__(self, id_, addr, size):
+        self.id = id_
+        self.addr = addr
+        self.size = size
 
 
 '''
 Holds Manifest data to be used for packing
 '''
 class Manifest(object):
-    def __init__(self, uuid, min_heap, min_stack):
+    def __init__(
+            self,
+            uuid,
+            min_heap,
+            min_stack,
+            mem_io_maps
+    ):
         self.uuid = uuid
         self.min_heap = min_heap
         self.min_stack = min_stack
+        self.mem_io_maps = mem_io_maps
 
 
 '''
@@ -89,16 +116,19 @@ def get_string(manifest_dict, key, log):
                 .format(key))
         return None
 
-    str_value = manifest_dict.pop(key)
-    if not isinstance(str_value, str) and \
-            not isinstance(str_value, unicode):
+    return coerce_to_string(manifest_dict.pop(key), key, log)
+
+
+def coerce_to_string(value, key, log):
+    if not isinstance(value, str) and \
+            not isinstance(value, unicode):
         log.error(
                 "Invalid value for" +
                 " {} - \"{}\", Valid string value is expected"
-                .format(key, str_value))
+                .format(key, value))
         return None
 
-    return str_value
+    return value
 
 
 '''
@@ -110,25 +140,68 @@ def get_int(manifest_dict, key, log):
         log.error("Manifest is missing required attribute - {}".format(key))
         return None
 
-    int_value = manifest_dict.pop(key)
+    return coerce_to_int(manifest_dict.pop(key), key,log)
 
-    if isinstance(int_value, int):
-        return int_value
-    elif isinstance(int_value, basestring):
+
+def coerce_to_int(value, key, log):
+    if isinstance(value, int):
+        return value
+    elif isinstance(value, basestring):
         try:
-            return int(int_value, 0)
+            return int(value, 0)
         except ValueError as ex:
             log.error("Invalid value for" +
                       " {} - \"{}\", valid integer or hex string is expected"
-                      .format(key, int_value))
+                      .format(key, value))
             return None
     else:
         log.error("Invalid value for" +
                   " {} - \"{}\", valid integer value is expected"
-                  .format(key, int_value))
+                  .format(key, value))
         return None
 
-    return int_value
+
+'''
+Determines whether the value for the given key in dictionary is of type List
+and if it is List then returns the value
+'''
+def get_list(manifest_dict, key, log):
+    if key not in manifest_dict:
+        log.error("Manifest is missing required attribute - {}".format(key))
+        return None
+    return coerce_to_list(manifest_dict.pop(key), key, log)
+
+
+def coerce_to_list(value, key, log):
+    if not isinstance(value, list):
+        log.error("Invalid value for" +
+                  " {} - \"{}\", valid list is expected"
+                  .format(key, value))
+        return None
+
+    return value
+
+
+'''
+Determines whether the value for the given
+key in dictionary is of type Dictionary
+and if it is Dictionary then returns the value
+'''
+def get_dict(manifest_dict, key, log):
+    if key not in manifest_dict:
+        log.error("Manifest is missing required attribute - {}".format(key))
+        return None
+    return coerce_to_dict(manifest_dict.pop(key), key, log)
+
+
+def coerce_to_dict(value, key, log):
+    if not isinstance(value, dict):
+        log.error("Invalid value for" +
+                  " {} - \"{}\", valid dict is expected"
+                  .format(key, value))
+        return None
+
+    return value
 
 
 '''
@@ -190,6 +263,27 @@ def parse_memory_size(memory_size, log):
     return memory_size
 
 
+def parse_mem_map(mem_maps, key, log):
+    if mem_maps is None:
+        return None
+
+    mem_io_maps = []
+    for mem_map_entry in mem_maps:
+        mem_map_entry = coerce_to_dict(mem_map_entry, key, log)
+        if mem_map_entry is None:
+            continue
+        mem_map = MemIOMap(
+                get_int(mem_map_entry, MEM_MAP_ID, log),
+                get_int(mem_map_entry, MEM_MAP_ADDR, log),
+                get_int(mem_map_entry, MEM_MAP_SIZE, log))
+        if mem_map_entry:
+            log.error("Unknown atributes in mem_map entries in manifest: {} "
+                      .format(mem_map_entry))
+        mem_io_maps.append(mem_map)
+
+    return mem_io_maps
+
+
 '''
 validate the manifest config and extract key, values
 '''
@@ -203,6 +297,14 @@ def parse_manifest_config(manifest_dict, log):
     # MIN_STACK
     min_stack = parse_memory_size(get_int(manifest_dict, MIN_STACK, log), log)
 
+    # MEM_MAP
+    mem_io_maps = []
+    if MEM_MAP in manifest_dict:
+        mem_io_maps = parse_mem_map(
+                get_list(manifest_dict, MEM_MAP, log),
+                MEM_MAP,
+                log)
+
     # look for any extra attributes
     if manifest_dict:
         log.error("Unknown atributes in manifest: {} ".format(manifest_dict))
@@ -210,7 +312,7 @@ def parse_manifest_config(manifest_dict, log):
     if log.error_occurred():
         return None
 
-    return Manifest(uuid, min_heap, min_stack)
+    return Manifest(uuid, min_heap, min_stack, mem_io_maps)
 
 
 '''
@@ -231,7 +333,9 @@ def pack_manifest_data(manifest, log):
     # PACK {
     #        uuid,
     #        TRUSTY_APP_CONFIG_KEY_MIN_HEAP_SIZE, min_heap,
-    #        TRUSTY_APP_CONFIG_KEY_MIN_STACK_SIZE, min_stack
+    #        TRUSTY_APP_CONFIG_KEY_MIN_STACK_SIZE, min_stack,
+    #        TRUSTY_APP_CONFIG_KEY_MAP_MEM, id, addr, size
+    #        TRUSTY_APP_CONFIG_KEY_MAP_MEM, id, addr, size
     #      }
     out = cStringIO.StringIO()
 
@@ -245,6 +349,13 @@ def pack_manifest_data(manifest, log):
     if manifest.min_stack is not None:
         out.write(struct.pack("II", TRUSTY_APP_CONFIG_KEY_MIN_STACK_SIZE,
                               manifest.min_stack))
+
+    for memio_map in manifest.mem_io_maps:
+        out.write(struct.pack("IIII",
+                              TRUSTY_APP_CONFIG_KEY_MAP_MEM,
+                              memio_map.id,
+                              memio_map.addr,
+                              memio_map.size))
 
     return out.getvalue()
 
@@ -292,6 +403,20 @@ def unpack_binary_manifest_to_data(packed_data):
             assert MIN_STACK not in manifest
             (manifest[MIN_STACK],), packed_data = struct.unpack(
                     "I", packed_data[:4]), packed_data[4:]
+        elif tag == TRUSTY_APP_CONFIG_KEY_MAP_MEM:
+            if MEM_MAP not in manifest:
+                manifest[MEM_MAP] = []
+            mem_map_entry = {}
+            (id_,), packed_data = struct.unpack(
+                    "I", packed_data[:4]), packed_data[4:]
+            (addr,), packed_data = struct.unpack(
+                    "I", packed_data[:4]), packed_data[4:]
+            (size,), packed_data = struct.unpack(
+                    "I", packed_data[:4]), packed_data[4:]
+            mem_map_entry[MEM_MAP_ID] = id_
+            mem_map_entry[MEM_MAP_ADDR] = hex(addr)
+            mem_map_entry[MEM_MAP_SIZE] = hex(size)
+            manifest[MEM_MAP].append(mem_map_entry)
         else:
             raise Exception("Unknown tag: {}".format(tag))
 

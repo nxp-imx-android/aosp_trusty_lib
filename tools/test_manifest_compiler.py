@@ -261,6 +261,110 @@ class TestManifest(unittest.TestCase):
         self.assertEqual(data, 4294967296)
 
     '''
+    Test with a single memory mapping
+    '''
+    def test_validate_mem_map_1(self):
+        mem_map_ref_data = [{"id": 1, "addr": 0x70000000, "size": 0x1000}]
+
+        mem_map_json_data = [{"id": 1, "addr": "0x70000000", "size": "0x1000"}]
+
+        log = manifest_compiler.Log()
+        mem_io_map_list = manifest_compiler.parse_mem_map(
+                mem_map_json_data, manifest_compiler.MEM_MAP, log)
+        self.assertFalse(log.error_occurred())
+
+        for (memio_map, memio_ref_data) in zip(
+                mem_io_map_list, mem_map_ref_data):
+            self.assertEqual(memio_map.id, memio_ref_data["id"])
+            self.assertEqual(memio_map.addr, memio_ref_data["addr"])
+            self.assertEqual(memio_map.size, memio_ref_data["size"])
+
+    '''
+    Test with multiple memory mapping
+    '''
+    def test_validate_mem_map_2(self):
+        mem_map_ref_data = [{"id": 1, "addr": 0x70000000, "size": 0x1000},
+                            {"id": 2, "addr": 0x70010000, "size": 0x100},
+                            {"id": 3, "addr": 0x70020000, "size": 0x4}]
+
+        mem_map_json_data = [{"id": 1, "addr": "0x70000000", "size": "0x1000"},
+                             {"id": 2, "addr": "0x70010000", "size": "0x100"},
+                             {"id": 3, "addr": "0x70020000", "size": "0x4"}]
+
+        log = manifest_compiler.Log()
+        mem_io_map_list = manifest_compiler.parse_mem_map(
+                mem_map_json_data, manifest_compiler.MEM_MAP, log)
+        self.assertFalse(log.error_occurred())
+
+        for (memio_map, memio_ref_data) in zip(
+                mem_io_map_list, mem_map_ref_data):
+            self.assertEqual(memio_map.id, memio_ref_data["id"])
+            self.assertEqual(memio_map.addr, memio_ref_data["addr"])
+            self.assertEqual(memio_map.size, memio_ref_data["size"])
+
+    '''
+    Test with a unknown entry in memory mapping
+    '''
+    def test_validate_mem_map_3(self):
+        mem_map_json_data = [{"id": 1, "addr": "0x70000000", "size": "0x1000",
+                              "offset": "0x70001000"}]
+
+        log = manifest_compiler.Log()
+        mem_io_map_list = manifest_compiler.parse_mem_map(
+                mem_map_json_data, manifest_compiler.MEM_MAP, log)
+        self.assertTrue(log.error_occurred())
+
+    '''
+    Test with a empty memory mapping entry
+    '''
+    def test_validate_mem_map_4(self):
+        mem_map_json_data = []
+
+        log = manifest_compiler.Log()
+        mem_io_map_list = manifest_compiler.parse_mem_map(
+                mem_map_json_data, manifest_compiler.MEM_MAP, log)
+        self.assertFalse(log.error_occurred())
+        self.assertFalse(mem_io_map_list)
+
+    '''
+    Test with a memory mapping entry with missing "size"
+    '''
+    def test_validate_mem_map_5(self):
+        mem_map_json_data = [{"id": 1, "addr": "0x70000000"}]
+
+        log = manifest_compiler.Log()
+        mem_io_map_list = manifest_compiler.parse_mem_map(
+                mem_map_json_data, manifest_compiler.MEM_MAP, log)
+        self.assertTrue(log.error_occurred())
+
+    '''
+    Test with a memory mapping entry with invalid JSON format
+    Pass invalid list of JSON attributes
+    '''
+    def test_validate_mem_map_6(self):
+        mem_map_json_data = ["id", 1, "addr", "0x70000000"]
+
+        log = manifest_compiler.Log()
+        mem_io_map_list = manifest_compiler.parse_mem_map(
+                mem_map_json_data, manifest_compiler.MEM_MAP, log)
+        self.assertTrue(log.error_occurred())
+
+    '''
+    Test with a memory mapping entry with invalid JSON format
+    Pass a MEM_MAP JSON object instead of list of MEM_MAP JSON objects.
+    '''
+    def test_validate_mem_map_7(self):
+        config_data = {manifest_compiler.MEM_MAP:
+                       {"id": 1, "addr": "0x70000000"}}
+
+        log = manifest_compiler.Log()
+        mem_io_map_list = manifest_compiler.parse_mem_map(
+                manifest_compiler.get_list(
+                        config_data, manifest_compiler.MEM_MAP, log),
+                manifest_compiler.MEM_MAP, log)
+        self.assertTrue(log.error_occurred())
+
+    '''
     Test with valid UUID with hex values and
     valid values for min_heap and min_stack.
     '''
@@ -268,12 +372,17 @@ class TestManifest(unittest.TestCase):
         uuid_in = "5f902ace-5e5c-4cd8-ae54-87b88c22ddaf"
         min_heap = 4096
         min_stack = 4096
+        id_ = 1
+        addr = "0x70000000"
+        size = "0x1000"
+        mem_map_data = [{"id": id_, "addr": addr, "size": size}]
         log = manifest_compiler.Log()
 
         config_data  = {
                 "uuid": uuid_in,
                 "min_heap": min_heap,
-                "min_stack": min_stack
+                "min_stack": min_stack,
+                "mem_map": mem_map_data
         }
         manifest = manifest_compiler.parse_manifest_config(config_data, log)
         self.assertFalse(log.error_occurred())
@@ -281,6 +390,10 @@ class TestManifest(unittest.TestCase):
         self.assertEqual(manifest.uuid.encode("hex"), uuid_in.replace("-", ""))
         self.assertEqual(manifest.min_heap, min_heap)
         self.assertEqual(manifest.min_stack, min_stack)
+        for memio_map in manifest.mem_io_maps:
+            self.assertEqual(memio_map.id, id_)
+            self.assertEqual(memio_map.addr, int(addr, 0))
+            self.assertEqual(memio_map.size, int(size, 0))
 
     '''
     Test with invalid value in config,
@@ -331,6 +444,38 @@ class TestManifest(unittest.TestCase):
                 manifest_compiler.UUID: "5f902ace-5e5c-4cd8-ae54-87b88c22ddaf",
                 manifest_compiler.MIN_HEAP: 8192,
                 manifest_compiler.MIN_STACK: 4096
+        }
+
+        '''
+        Pack manifest config_data
+        Unpack the binary packed data to JSON text
+        Validate unpacked JSON text
+        '''
+        self.assertEqual(manifest_compiler.manifest_data_to_json(config_data),
+                         manifest_compiler.unpack_binary_manifest_to_json(
+                             pack_manifest_config_data(self, config_data, log)
+                         ))
+
+    '''
+    Test with valid manifest config containing
+      - UUID
+      - min_heap and min_stack
+      - memory mapping entries
+    Pack the manifest config data and unpack it and
+    verify it with the expected values
+    '''
+    def test_manifest_valid_pack_2(self):
+        log = manifest_compiler.Log()
+
+        # JSON manifest data structure
+        config_data  = {
+                manifest_compiler.UUID: "5f902ace-5e5c-4cd8-ae54-87b88c22ddaf",
+                manifest_compiler.MIN_HEAP: 8192,
+                manifest_compiler.MIN_STACK: 4096,
+                manifest_compiler.MEM_MAP: [
+                        {"id": 1, "addr": "0x70000000", "size": "0x1000"},
+                        {"id": 2, "addr": "0x70010000", "size": "0x100"},
+                        {"id": 3, "addr": "0x70020000", "size": "0x4"}]
         }
 
         '''
