@@ -6,8 +6,6 @@ Command to run tests:
 '''
 
 import unittest
-import os
-import struct
 
 import manifest_compiler
 
@@ -326,44 +324,38 @@ class TestManifest(unittest.TestCase):
     '''
     def test_manifest_valid_pack_1(self):
         # PLZ DON'T EDIT VALUES
-        uuid_in = "5f902ace-5e5c-4cd8-ae54-87b88c22ddaf"
-        uuid_out = "ce2a905f5c5ed84cae5487b88c22ddaf"
-        min_heap = 8192
-        min_stack = 4096
         log = manifest_compiler.Log()
 
+        # JSON manifest data structure
         config_data  = {
-                "uuid": uuid_in,
-                "min_heap": min_heap,
-                "min_stack": min_stack
+                manifest_compiler.UUID: "5f902ace-5e5c-4cd8-ae54-87b88c22ddaf",
+                manifest_compiler.MIN_HEAP: 8192,
+                manifest_compiler.MIN_STACK: 4096
         }
 
-        manifest = manifest_compiler.parse_manifest_config(config_data, log)
-        self.assertFalse(log.error_occurred())
-        packed_data = manifest_compiler.pack_manifest_data(manifest, log)
-        self.assertEqual(len(config_data), 0)
-        self.assertFalse(log.error_occurred())
-        self.assertIsNotNone(packed_data)
+        '''
+        Pack manifest config_data
+        Unpack the binary packed data to JSON text
+        Validate unpacked JSON text
+        '''
+        self.assertEqual(manifest_compiler.manifest_data_to_json(config_data),
+                         manifest_compiler.unpack_binary_manifest_to_json(
+                             pack_manifest_config_data(self, config_data, log)
+                         ))
 
-        uuid, packed_data = packed_data[:16], packed_data[16:]
-        self.assertEqual(uuid.encode("hex"), uuid_out)
 
-        (tag1,), packed_data = struct.unpack(
-                "I", packed_data[:4]), packed_data[4:]
-        self.assertEqual(tag1, 2)
+def pack_manifest_config_data(self, config_data, log):
+    # parse manifest JSON data
+    manifest = manifest_compiler.parse_manifest_config(config_data, log)
+    self.assertFalse(log.error_occurred())
 
-        (value1,), packed_data = struct.unpack(
-                "I", packed_data[:4]), packed_data[4:]
-        self.assertEqual(value1, 8192)
+    # pack manifest config data
+    packed_data = manifest_compiler.pack_manifest_data(manifest, log)
+    self.assertEqual(len(config_data), 0)
+    self.assertFalse(log.error_occurred())
+    self.assertIsNotNone(packed_data)
 
-        (tag2,), packed_data = struct.unpack(
-                "I", packed_data[:4]), packed_data[4:]
-        self.assertEqual(tag2, 1)
-
-        (value2,), packed_data = struct.unpack(
-                "I", packed_data[:4]), packed_data[4:]
-        self.assertEqual(value2, 4096)
-
+    return packed_data
 
 '''
 START - Test start point

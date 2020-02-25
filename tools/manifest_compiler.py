@@ -216,9 +216,10 @@ def parse_manifest_config(manifest_dict, log):
 '''
 This script represents UUIDs in a purely big endian order.
 Trusty stores the first three components of the UUID in little endian order.
-Rearrange the byte order for Trusty.
+Rearrange the byte order accordingly by doing inverse
+on first three components of UUID
 '''
-def pack_uuid(uuid):
+def swap_uuid_bytes(uuid):
     return uuid[3::-1] + uuid[5:3:-1] + uuid[7:5:-1] + uuid[8:]
 
 
@@ -234,20 +235,67 @@ def pack_manifest_data(manifest, log):
     #      }
     out = cStringIO.StringIO()
 
-    uuid = pack_uuid(manifest.uuid)
+    uuid = swap_uuid_bytes(manifest.uuid)
     out.write(uuid)
 
-    out.write(
-            struct.pack("ii",
-                        TRUSTY_APP_CONFIG_KEY_MIN_HEAP_SIZE,
-                        manifest.min_heap))
+    if manifest.min_heap is not None:
+        out.write(struct.pack("II",TRUSTY_APP_CONFIG_KEY_MIN_HEAP_SIZE,
+                              manifest.min_heap))
 
-    out.write(
-            struct.pack("ii",
-                        TRUSTY_APP_CONFIG_KEY_MIN_STACK_SIZE,
-                        manifest.min_stack))
+    if manifest.min_stack is not None:
+        out.write(struct.pack("II", TRUSTY_APP_CONFIG_KEY_MIN_STACK_SIZE,
+                              manifest.min_stack))
 
     return out.getvalue()
+
+
+'''
+Creates manifest JSON string from packed manifest data
+'''
+def unpack_binary_manifest_to_json(packed_data):
+    return manifest_data_to_json(unpack_binary_manifest_to_data(packed_data))
+
+
+def manifest_data_to_json(manifest):
+    return json.dumps(manifest, sort_keys=True, indent=4)
+
+
+'''
+This method can be used for extracting manifest data from packed binary.
+UUID should be present in packed data.
+'''
+def unpack_binary_manifest_to_data(packed_data):
+    manifest = {}
+
+    # Extract UUID
+    uuid, packed_data = packed_data[:16], packed_data[16:]
+    uuid = swap_uuid_bytes(uuid)
+    uuid = uuid.encode("hex")
+    uuid = uuid[:8] + "-" \
+            + uuid[8:12] + "-" \
+            + uuid[12:16] + "-" \
+            + uuid[16:20] + "-" \
+            + uuid[20:]
+
+    manifest[UUID] = uuid
+
+    # Extract remaining app configurations
+    while len(packed_data) > 0:
+        (tag,), packed_data = struct.unpack(
+                "I", packed_data[:4]), packed_data[4:]
+
+        if tag == TRUSTY_APP_CONFIG_KEY_MIN_HEAP_SIZE:
+            assert MIN_HEAP not in manifest
+            (manifest[MIN_HEAP],), packed_data = struct.unpack(
+                    "I", packed_data[:4]), packed_data[4:]
+        elif tag == TRUSTY_APP_CONFIG_KEY_MIN_STACK_SIZE:
+            assert MIN_STACK not in manifest
+            (manifest[MIN_STACK],), packed_data = struct.unpack(
+                    "I", packed_data[:4]), packed_data[4:]
+        else:
+            raise Exception("Unknown tag: {}".format(tag))
+
+    return manifest
 
 
 def write_packed_data_to_bin_file(packed_data, output_file, log):
