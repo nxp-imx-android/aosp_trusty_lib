@@ -554,6 +554,115 @@ class TestManifest(unittest.TestCase):
         self.assertTrue(log.error_occurred())
 
     '''
+    Test with a valid management flags
+    '''
+    def test_validate_mgmt_flags_1(self):
+        mgmt_flags_ref_data = {
+                manifest_compiler.MGMT_FLAG_RESTART_ON_EXIT: True,
+                manifest_compiler.MGMT_FLAG_DEFERRED_START: True}
+        mgmt_flags_data = {
+                manifest_compiler.MGMT_FLAG_RESTART_ON_EXIT: True,
+                manifest_compiler.MGMT_FLAG_DEFERRED_START: True}
+
+        log = manifest_compiler.Log()
+        mgmt_flags = manifest_compiler.parse_mgmt_flags(
+            mgmt_flags_data, log)
+        self.assertFalse(log.error_occurred())
+        self.assertEqual(mgmt_flags.restart_on_exit,
+                         mgmt_flags_ref_data[
+                             manifest_compiler.MGMT_FLAG_RESTART_ON_EXIT])
+        self.assertEqual(mgmt_flags.deferred_start,
+                         mgmt_flags_ref_data[
+                             manifest_compiler.MGMT_FLAG_DEFERRED_START])
+
+    '''
+    Test with a valid management flags
+    '''
+    def test_validate_mgmt_flags_2(self):
+        mgmt_flags_ref_data = {
+                manifest_compiler.MGMT_FLAG_RESTART_ON_EXIT: False,
+                manifest_compiler.MGMT_FLAG_DEFERRED_START: False}
+        mgmt_flags_data = {
+                manifest_compiler.MGMT_FLAG_RESTART_ON_EXIT: False,
+                manifest_compiler.MGMT_FLAG_DEFERRED_START: False}
+
+        log = manifest_compiler.Log()
+        mgmt_flags = manifest_compiler.parse_mgmt_flags(
+            mgmt_flags_data, log)
+        self.assertFalse(log.error_occurred())
+        self.assertEqual(mgmt_flags.restart_on_exit,
+                         mgmt_flags_ref_data[
+                             manifest_compiler.MGMT_FLAG_RESTART_ON_EXIT])
+        self.assertEqual(mgmt_flags.deferred_start,
+                         mgmt_flags_ref_data[
+                             manifest_compiler.MGMT_FLAG_DEFERRED_START])
+
+    '''
+    Test with a valid management flags
+    '''
+    def test_validate_mgmt_flags_3(self):
+        mgmt_flags_ref_data = {
+                manifest_compiler.MGMT_FLAG_RESTART_ON_EXIT: False,
+                manifest_compiler.MGMT_FLAG_DEFERRED_START: True}
+        mgmt_flags_data = {
+                manifest_compiler.MGMT_FLAG_RESTART_ON_EXIT: False,
+                manifest_compiler.MGMT_FLAG_DEFERRED_START: True}
+
+        log = manifest_compiler.Log()
+        mgmt_flags = manifest_compiler.parse_mgmt_flags(
+            mgmt_flags_data, log)
+        self.assertFalse(log.error_occurred())
+        self.assertEqual(mgmt_flags.restart_on_exit,
+                         mgmt_flags_ref_data[
+                             manifest_compiler.MGMT_FLAG_RESTART_ON_EXIT])
+        self.assertEqual(mgmt_flags.deferred_start,
+                         mgmt_flags_ref_data[
+                             manifest_compiler.MGMT_FLAG_DEFERRED_START])
+
+    '''
+    Test with a management flags missing
+    manifest_compiler.MGMT_FLAG_RESTART_ON_EXIT
+    '''
+    def test_validate_mgmt_flags_4(self):
+        mgmt_flags_data = {manifest_compiler.MGMT_FLAG_DEFERRED_START: True}
+
+        log = manifest_compiler.Log()
+        mgmt_flags = manifest_compiler.parse_mgmt_flags(
+            mgmt_flags_data, log)
+        self.assertTrue(log.error_occurred())
+        self.assertIsNone(mgmt_flags.restart_on_exit)
+        self.assertTrue(mgmt_flags.deferred_start)
+
+    '''
+    Test with a empty management flags"
+    '''
+    def test_validate_mgmt_flags_5(self):
+        mgmt_flags_data = {}
+
+        log = manifest_compiler.Log()
+        mgmt_flags = manifest_compiler.parse_mgmt_flags(
+            mgmt_flags_data, log)
+        self.assertTrue(log.error_occurred())
+        self.assertIsNone(mgmt_flags.restart_on_exit)
+        self.assertIsNone(mgmt_flags.deferred_start)
+
+    '''
+    Test with a mgmt_flags as array of flags
+    '''
+    def test_validate_mgmt_flags_6(self):
+        config_data = {manifest_compiler.MGMT_FLAGS: [{
+                manifest_compiler.MGMT_FLAG_RESTART_ON_EXIT: True,
+                manifest_compiler.MGMT_FLAG_DEFERRED_START: True}]}
+
+        log = manifest_compiler.Log()
+        mgmt_flags = manifest_compiler.parse_mgmt_flags(
+            manifest_compiler.get_dict(
+                    config_data, manifest_compiler.MGMT_FLAGS, log,
+                    optional=True),
+            log)
+        self.assertTrue(log.error_occurred())
+
+    '''
     Test with valid UUID with hex values and
     valid values for min_heap and min_stack.
     '''
@@ -583,6 +692,8 @@ class TestManifest(unittest.TestCase):
             self.assertEqual(memio_map.id, id_)
             self.assertEqual(memio_map.addr, int(addr, 0))
             self.assertEqual(memio_map.size, int(size, 0))
+        self.assertFalse(manifest.mgmt_flags.restart_on_exit)
+        self.assertFalse(manifest.mgmt_flags.deferred_start)
 
     '''
     Test with invalid value in config,
@@ -628,6 +739,17 @@ class TestManifest(unittest.TestCase):
         # PLZ DON'T EDIT VALUES
         log = manifest_compiler.Log()
 
+        # Reference JSON manifest data structure
+        config_ref_data  = {
+                manifest_compiler.UUID: "5f902ace-5e5c-4cd8-ae54-87b88c22ddaf",
+                manifest_compiler.MIN_HEAP: 8192,
+                manifest_compiler.MIN_STACK: 4096,
+                manifest_compiler.MGMT_FLAGS: {
+                        manifest_compiler.MGMT_FLAG_RESTART_ON_EXIT: False,
+                        manifest_compiler.MGMT_FLAG_DEFERRED_START: False
+                }
+        }
+
         # JSON manifest data structure
         config_data  = {
                 manifest_compiler.UUID: "5f902ace-5e5c-4cd8-ae54-87b88c22ddaf",
@@ -640,10 +762,10 @@ class TestManifest(unittest.TestCase):
         Unpack the binary packed data to JSON text
         Validate unpacked JSON text
         '''
-        self.assertEqual(manifest_compiler.manifest_data_to_json(config_data),
-                         manifest_compiler.unpack_binary_manifest_to_json(
-                             pack_manifest_config_data(self, config_data, log)
-                         ))
+        self.assertEqual(
+                manifest_compiler.manifest_data_to_json(config_ref_data),
+                manifest_compiler.unpack_binary_manifest_to_json(
+                        pack_manifest_config_data(self, config_data, log)))
 
     '''
     Test with valid manifest config containing
@@ -655,6 +777,21 @@ class TestManifest(unittest.TestCase):
     '''
     def test_manifest_valid_pack_2(self):
         log = manifest_compiler.Log()
+
+        # Reference JSON manifest data structure
+        ref_config_data  = {
+                manifest_compiler.UUID: "5f902ace-5e5c-4cd8-ae54-87b88c22ddaf",
+                manifest_compiler.MIN_HEAP: 8192,
+                manifest_compiler.MIN_STACK: 4096,
+                manifest_compiler.MEM_MAP: [
+                        {"id": 1, "addr": "0x70000000", "size": "0x1000"},
+                        {"id": 2, "addr": "0x70010000", "size": "0x100"},
+                        {"id": 3, "addr": "0x70020000", "size": "0x4"}],
+                manifest_compiler.MGMT_FLAGS: {
+                        manifest_compiler.MGMT_FLAG_RESTART_ON_EXIT: False,
+                        manifest_compiler.MGMT_FLAG_DEFERRED_START: False
+                }
+        }
 
         # JSON manifest data structure
         config_data  = {
@@ -672,10 +809,42 @@ class TestManifest(unittest.TestCase):
         Unpack the binary packed data to JSON text
         Validate unpacked JSON text
         '''
-        self.assertEqual(manifest_compiler.manifest_data_to_json(config_data),
-                         manifest_compiler.unpack_binary_manifest_to_json(
-                             pack_manifest_config_data(self, config_data, log)
-                         ))
+        self.assertEqual(
+                manifest_compiler.manifest_data_to_json(ref_config_data),
+                manifest_compiler.unpack_binary_manifest_to_json(
+                        pack_manifest_config_data(self, config_data, log)))
+
+    '''
+    Test with valid manifest config containing
+      - UUID
+      - min_heap and min_stack
+      - Management flags
+    Pack the manifest config data and unpack it and
+    verify it with the expected values
+    '''
+    def test_manifest_valid_pack_3(self):
+        log = manifest_compiler.Log()
+
+        # JSON manifest data structure
+        config_data  = {
+                manifest_compiler.UUID: "5f902ace-5e5c-4cd8-ae54-87b88c22ddaf",
+                manifest_compiler.MIN_HEAP: 8192,
+                manifest_compiler.MIN_STACK: 4096,
+                manifest_compiler.MGMT_FLAGS: {
+                        manifest_compiler.MGMT_FLAG_RESTART_ON_EXIT: True,
+                        manifest_compiler.MGMT_FLAG_DEFERRED_START: False
+                }
+        }
+
+        '''
+        Pack manifest config_data
+        Unpack the binary packed data to JSON text
+        Validate unpacked JSON text
+        '''
+        self.assertEqual(
+                manifest_compiler.manifest_data_to_json(config_data),
+                manifest_compiler.unpack_binary_manifest_to_json(
+                        pack_manifest_config_data(self, config_data, log)))
 
 
 def pack_manifest_config_data(self, config_data, log):

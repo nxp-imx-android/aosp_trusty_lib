@@ -21,23 +21,10 @@ USAGE:
         "uuid": "5f902ace-5e5c-4cd8-ae54-87b88c22ddaf",
         "min_heap": 4096,
         "min_stack": 4096,
-        "mem_map":[
-            {
-                "id": 1,
-                "addr": "0x70000000",
-                "size": "0x1000"
-            },
-            {
-                "id": 2,
-                "addr": "0x70010000",
-                "size": "0x100"
-            },
-            {
-                "id": 3,
-                "addr": "0x70020000",
-                "size": "0x4"
-            }
-        ]
+        "mem_map": [{"id": 1, "addr": "0x70000000", "size": "0x1000"}, \
+                {"id": 2, "addr": "0x70010000", "size": "0x100"}, \
+                {"id": 3, "addr": "0x70020000", "size": "0x4"}],
+        "mgmt_flags": {"restart_on_exit": true, "deferred_start": false}
    }
 '''
 
@@ -58,12 +45,22 @@ MEM_MAP = "mem_map"
 MEM_MAP_ID = "id"
 MEM_MAP_ADDR = "addr"
 MEM_MAP_SIZE = "size"
+MGMT_FLAGS = "mgmt_flags"
+MGMT_FLAG_RESTART_ON_EXIT = "restart_on_exit"
+MGMT_FLAG_DEFERRED_START = "deferred_start"
 
 # CONFIG TAGS
 # These values need to be kept in sync with uapi/trusty_app_manifest_types.h
 TRUSTY_APP_CONFIG_KEY_MIN_STACK_SIZE = 1
 TRUSTY_APP_CONFIG_KEY_MIN_HEAP_SIZE = 2
 TRUSTY_APP_CONFIG_KEY_MAP_MEM = 3
+TRUSTY_APP_CONFIG_KEY_MGMT_FLAGS = 4
+
+# MGMT FLAGS
+# These values need to be kept in sync with uapi/trusty_app_manifest_types.h
+TRUSTY_APP_MGMT_FLAGS_NONE = 0
+TRUSTY_APP_MGMT_FLAGS_RESTART_ON_EXIT = 1 << 0
+TRUSTY_APP_MGMT_FLAGS_DEFERRED_START = 1 << 1
 
 
 class MemIOMap(object):
@@ -71,6 +68,12 @@ class MemIOMap(object):
         self.id = id_
         self.addr = addr
         self.size = size
+
+
+class MgmtFlags(object):
+    def __init__(self, restart_on_exit, deferred_start):
+        self.restart_on_exit = restart_on_exit
+        self.deferred_start = deferred_start
 
 
 '''
@@ -82,12 +85,14 @@ class Manifest(object):
             uuid,
             min_heap,
             min_stack,
-            mem_io_maps
+            mem_io_maps,
+            mgmt_flags
     ):
         self.uuid = uuid
         self.min_heap = min_heap
         self.min_stack = min_stack
         self.mem_io_maps = mem_io_maps
+        self.mgmt_flags = mgmt_flags
 
 
 '''
@@ -318,6 +323,21 @@ def parse_mem_map(mem_maps, key, log):
     return mem_io_maps
 
 
+def parse_mgmt_flags(flags, log):
+    if flags is None:
+        return None
+
+    mgmt_flags = MgmtFlags(
+            get_boolean(flags, MGMT_FLAG_RESTART_ON_EXIT, log),
+            get_boolean(flags, MGMT_FLAG_DEFERRED_START, log))
+
+    if flags:
+        log.error("Unknown atributes in mgmt_flags entries in manifest: {} "
+                  .format(flags))
+
+    return mgmt_flags
+
+
 '''
 validate the manifest config and extract key, values
 '''
@@ -337,6 +357,13 @@ def parse_manifest_config(manifest_dict, log):
             MEM_MAP,
             log)
 
+    # MGMT_FLAGS
+    mgmt_flags = parse_mgmt_flags(
+            get_dict(manifest_dict, MGMT_FLAGS, log, optional=True,
+                     default={
+                             MGMT_FLAG_RESTART_ON_EXIT: False,
+                             MGMT_FLAG_DEFERRED_START: False}), log)
+
     # look for any extra attributes
     if manifest_dict:
         log.error("Unknown atributes in manifest: {} ".format(manifest_dict))
@@ -344,7 +371,7 @@ def parse_manifest_config(manifest_dict, log):
     if log.error_occurred():
         return None
 
-    return Manifest(uuid, min_heap, min_stack, mem_io_maps)
+    return Manifest(uuid, min_heap, min_stack, mem_io_maps, mgmt_flags)
 
 
 '''
@@ -357,6 +384,16 @@ def swap_uuid_bytes(uuid):
     return uuid[3::-1] + uuid[5:3:-1] + uuid[7:5:-1] + uuid[8:]
 
 
+def pack_mgmt_flags(mgmt_flags):
+    flags = TRUSTY_APP_MGMT_FLAGS_NONE
+    if mgmt_flags.restart_on_exit:
+        flags |= TRUSTY_APP_MGMT_FLAGS_RESTART_ON_EXIT
+    if mgmt_flags.deferred_start:
+        flags |= TRUSTY_APP_MGMT_FLAGS_DEFERRED_START
+
+    return flags
+
+
 '''
 Creates Packed data from extracted manifest data
 Writes the packed data to binary file
@@ -366,8 +403,9 @@ def pack_manifest_data(manifest, log):
     #        uuid,
     #        TRUSTY_APP_CONFIG_KEY_MIN_HEAP_SIZE, min_heap,
     #        TRUSTY_APP_CONFIG_KEY_MIN_STACK_SIZE, min_stack,
-    #        TRUSTY_APP_CONFIG_KEY_MAP_MEM, id, addr, size
-    #        TRUSTY_APP_CONFIG_KEY_MAP_MEM, id, addr, size
+    #        TRUSTY_APP_CONFIG_KEY_MAP_MEM, id, addr, size,
+    #        TRUSTY_APP_CONFIG_KEY_MAP_MEM, id, addr, size,
+    #        TRUSTY_APP_CONFIG_KEY_MGMT_FLAGS, mgmt_flags
     #      }
     out = cStringIO.StringIO()
 
@@ -388,6 +426,11 @@ def pack_manifest_data(manifest, log):
                               memio_map.id,
                               memio_map.addr,
                               memio_map.size))
+
+    if manifest.mgmt_flags is not None:
+        out.write(struct.pack("II",
+                              TRUSTY_APP_CONFIG_KEY_MGMT_FLAGS,
+                              pack_mgmt_flags(manifest.mgmt_flags)))
 
     return out.getvalue()
 
@@ -449,6 +492,18 @@ def unpack_binary_manifest_to_data(packed_data):
             mem_map_entry[MEM_MAP_ADDR] = hex(addr)
             mem_map_entry[MEM_MAP_SIZE] = hex(size)
             manifest[MEM_MAP].append(mem_map_entry)
+        elif tag == TRUSTY_APP_CONFIG_KEY_MGMT_FLAGS:
+            (flag,), packed_data = struct.unpack(
+                    "I", packed_data[:4]), packed_data[4:]
+            mgmt_flag = {
+                    MGMT_FLAG_RESTART_ON_EXIT: False,
+                    MGMT_FLAG_DEFERRED_START: False
+            }
+            if flag & TRUSTY_APP_MGMT_FLAGS_RESTART_ON_EXIT:
+                mgmt_flag[MGMT_FLAG_RESTART_ON_EXIT] = True
+            if flag &  TRUSTY_APP_MGMT_FLAGS_DEFERRED_START:
+                mgmt_flag[MGMT_FLAG_DEFERRED_START] = True
+            manifest[MGMT_FLAGS] = mgmt_flag
         else:
             raise Exception("Unknown tag: {}".format(tag))
 
