@@ -129,6 +129,46 @@ class TestManifest(unittest.TestCase):
         self.assertIsNone(data)
 
     '''
+    Test with boolean value
+    '''
+    def test_get_int_8(self):
+        log = manifest_compiler.Log()
+        config_data  = {"data": True}
+        data = manifest_compiler.get_int(config_data, "data", log)
+        self.assertTrue(log.error_occurred())
+        self.assertIsNone(data)
+
+    '''
+    Test with valid boolean values
+    '''
+    def test_get_boolean_1(self):
+        log = manifest_compiler.Log()
+        config_data  = {"data": True}
+        data = manifest_compiler.get_boolean(config_data, "data", log)
+        self.assertFalse(log.error_occurred())
+        self.assertTrue(data)
+
+    '''
+    Test with invalid values
+    '''
+    def test_get_boolean_2(self):
+        log = manifest_compiler.Log()
+        config_data  = {"data": "True"}
+        data = manifest_compiler.get_boolean(config_data, "data", log)
+        self.assertTrue(log.error_occurred())
+        self.assertIsNone(data)
+
+    '''
+    Test with invalid values
+    '''
+    def test_get_boolean_3(self):
+        log = manifest_compiler.Log()
+        config_data  = {"data": 1}
+        data = manifest_compiler.get_boolean(config_data, "data", log)
+        self.assertTrue(log.error_occurred())
+        self.assertIsNone(data)
+
+    '''
     Test with valid UUID with hex values
     '''
     def test_validate_uuid_1(self):

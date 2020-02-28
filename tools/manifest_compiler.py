@@ -144,7 +144,8 @@ def get_int(manifest_dict, key, log):
 
 
 def coerce_to_int(value, key, log):
-    if isinstance(value, int):
+    if isinstance(value, int) and \
+            not isinstance(value, bool):
         return value
     elif isinstance(value, basestring):
         try:
@@ -199,6 +200,29 @@ def coerce_to_dict(value, key, log):
         log.error("Invalid value for" +
                   " {} - \"{}\", valid dict is expected"
                   .format(key, value))
+        return None
+
+    return value
+
+
+'''
+Determines whether the value for the given key in dictionary is of type boolean
+and if it is boolean then returns the value
+'''
+def get_boolean(manifest_dict, key, log):
+    if key not in manifest_dict:
+        log.error("Manifest is missing required attribute - {}".format(key))
+        return None
+
+    return coerce_to_boolean(manifest_dict.pop(key), key, log)
+
+
+def coerce_to_boolean(value, key, log):
+    if not isinstance(value, bool):
+        log.error(
+                "Invalid value for" +
+                " {} - \"{}\", Valid boolean value is expected"
+                .format(key, value))
         return None
 
     return value
