@@ -109,12 +109,12 @@ class Log(object):
 Determines whether the value for the given key in dictionary is of type string
 and if it is a string then returns the value.
 '''
-def get_string(manifest_dict, key, log):
+def get_string(manifest_dict, key, log, optional=False, default=None):
     if key not in manifest_dict:
-        log.error(
-                "Manifest is missing required attribute - {} "
-                .format(key))
-        return None
+        if not optional:
+            log.error("Manifest is missing required attribute - {}"
+                      .format(key))
+        return default
 
     return coerce_to_string(manifest_dict.pop(key), key, log)
 
@@ -135,10 +135,12 @@ def coerce_to_string(value, key, log):
 Determines whether the value for the given key in dictionary is of type integer
 and if it is int then returns the value
 '''
-def get_int(manifest_dict, key, log):
+def get_int(manifest_dict, key, log, optional=False, default=None):
     if key not in manifest_dict:
-        log.error("Manifest is missing required attribute - {}".format(key))
-        return None
+        if not optional:
+            log.error("Manifest is missing required attribute - {}"
+                      .format(key))
+        return default
 
     return coerce_to_int(manifest_dict.pop(key), key,log)
 
@@ -166,10 +168,13 @@ def coerce_to_int(value, key, log):
 Determines whether the value for the given key in dictionary is of type List
 and if it is List then returns the value
 '''
-def get_list(manifest_dict, key, log):
+def get_list(manifest_dict, key, log, optional=False, default=None):
     if key not in manifest_dict:
-        log.error("Manifest is missing required attribute - {}".format(key))
-        return None
+        if not optional:
+            log.error("Manifest is missing required attribute - {}"
+                      .format(key))
+        return default
+
     return coerce_to_list(manifest_dict.pop(key), key, log)
 
 
@@ -188,10 +193,13 @@ Determines whether the value for the given
 key in dictionary is of type Dictionary
 and if it is Dictionary then returns the value
 '''
-def get_dict(manifest_dict, key, log):
+def get_dict(manifest_dict, key, log, optional=False, default=None):
     if key not in manifest_dict:
-        log.error("Manifest is missing required attribute - {}".format(key))
-        return None
+        if not optional:
+            log.error("Manifest is missing required attribute - {}"
+                      .format(key))
+        return default
+
     return coerce_to_dict(manifest_dict.pop(key), key, log)
 
 
@@ -209,10 +217,12 @@ def coerce_to_dict(value, key, log):
 Determines whether the value for the given key in dictionary is of type boolean
 and if it is boolean then returns the value
 '''
-def get_boolean(manifest_dict, key, log):
+def get_boolean(manifest_dict, key, log, optional=False, default=None):
     if key not in manifest_dict:
-        log.error("Manifest is missing required attribute - {}".format(key))
-        return None
+        if not optional:
+            log.error("Manifest is missing required attribute - {}"
+                      .format(key))
+        return default
 
     return coerce_to_boolean(manifest_dict.pop(key), key, log)
 
@@ -322,12 +332,10 @@ def parse_manifest_config(manifest_dict, log):
     min_stack = parse_memory_size(get_int(manifest_dict, MIN_STACK, log), log)
 
     # MEM_MAP
-    mem_io_maps = []
-    if MEM_MAP in manifest_dict:
-        mem_io_maps = parse_mem_map(
-                get_list(manifest_dict, MEM_MAP, log),
-                MEM_MAP,
-                log)
+    mem_io_maps = parse_mem_map(
+            get_list(manifest_dict, MEM_MAP, log, optional=True, default=[]),
+            MEM_MAP,
+            log)
 
     # look for any extra attributes
     if manifest_dict:

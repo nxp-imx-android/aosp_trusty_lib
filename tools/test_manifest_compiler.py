@@ -45,13 +45,34 @@ class TestManifest(unittest.TestCase):
         self.assertEqual(data, "")
 
     '''
-    Test with empty config data
+    Test with empty config data and non optional field
     '''
     def test_get_string_4(self):
         log = manifest_compiler.Log()
         config_data  = {}
         data = manifest_compiler.get_string(config_data, "data", log)
         self.assertEqual(len(config_data), 0)
+        self.assertTrue(log.error_occurred())
+        self.assertIsNone(data)
+
+    '''
+    Test with non-existing attribute which is optional
+    '''
+    def test_get_string_5(self):
+        log = manifest_compiler.Log()
+        config_data  = {}
+        data = manifest_compiler.get_string(config_data, "data",
+                                            log, optional=True, default="")
+        self.assertFalse(log.error_occurred())
+        self.assertEqual(data, "")
+
+    '''
+    Test with empty config with required field
+    '''
+    def test_get_string_6(self):
+        log = manifest_compiler.Log()
+        config_data  = {}
+        data = manifest_compiler.get_string(config_data, "data", log)
         self.assertTrue(log.error_occurred())
         self.assertIsNone(data)
 
@@ -89,7 +110,7 @@ class TestManifest(unittest.TestCase):
         self.assertEqual(data, 4096)
 
     '''
-    Test with empty config data
+    Test with empty config data and non optional field
     '''
     def test_get_int_4(self):
         log = manifest_compiler.Log()
@@ -139,6 +160,28 @@ class TestManifest(unittest.TestCase):
         self.assertIsNone(data)
 
     '''
+    Test with non-existing attribute which is optional field
+    '''
+    def test_get_int_9(self):
+        log = manifest_compiler.Log()
+        config_data  = {}
+        data = manifest_compiler.get_int(config_data, "data", log,
+                                         optional=True)
+        self.assertFalse(log.error_occurred())
+        self.assertIsNone(data)
+
+    '''
+    Test with non-existing attribute which is optional field
+    '''
+    def test_get_int_10(self):
+        log = manifest_compiler.Log()
+        config_data  = {}
+        data = manifest_compiler.get_int(config_data, "data", log,
+                                         optional=True, default=0)
+        self.assertFalse(log.error_occurred())
+        self.assertEqual(data, 0)
+
+    '''
     Test with valid boolean values
     '''
     def test_get_boolean_1(self):
@@ -167,6 +210,111 @@ class TestManifest(unittest.TestCase):
         data = manifest_compiler.get_boolean(config_data, "data", log)
         self.assertTrue(log.error_occurred())
         self.assertIsNone(data)
+
+    '''
+    Test with empty config data with non optional field
+    '''
+    def test_get_boolean_4(self):
+        log = manifest_compiler.Log()
+        config_data  = {}
+        data = manifest_compiler.get_boolean(config_data, "data", log)
+        self.assertTrue(log.error_occurred())
+        self.assertIsNone(data)
+
+    '''
+    Test with non-existing attribute which is optional
+    '''
+    def test_get_boolean_5(self):
+        log = manifest_compiler.Log()
+        config_data  = {}
+        data = manifest_compiler.get_boolean(config_data, "data", log,
+                                             optional=True, default=False)
+        self.assertFalse(log.error_occurred())
+        self.assertFalse(data)
+
+    '''
+    Test with valid value as list
+    '''
+    def test_get_list_1(self):
+        log = manifest_compiler.Log()
+        sample_list = [1, 2, 3]
+        config_data  = {"data": sample_list}
+        data = manifest_compiler.get_list(config_data, "data", log)
+        self.assertFalse(log.error_occurred())
+        self.assertEqual(data, sample_list)
+
+    '''
+    Test with non-existing attribute with optional field
+    '''
+    def test_get_list_2(self):
+        log = manifest_compiler.Log()
+        config_data  = {}
+        data = manifest_compiler.get_list(config_data, "data", log,
+                                          optional=True, default=[])
+        self.assertFalse(log.error_occurred())
+        self.assertEqual(data, [])
+
+    '''
+    Test with empty config data with required field
+    '''
+    def test_get_list_3(self):
+        log = manifest_compiler.Log()
+        config_data  = {}
+        data = manifest_compiler.get_list(config_data, "data", log)
+        self.assertTrue(log.error_occurred())
+        self.assertIsNone(data)
+
+    '''
+    Test with invalid value
+    '''
+    def test_get_list_4(self):
+        log = manifest_compiler.Log()
+        config_data  = {"data": 123}
+        data = manifest_compiler.get_list(config_data, "data", log,
+                                          optional=True)
+        self.assertTrue(log.error_occurred())
+
+    '''
+    Test with valid value as dict
+    '''
+    def test_get_dict_1(self):
+        log = manifest_compiler.Log()
+        sample_dict = {"attr": 1}
+        config_data  = {"data": sample_dict}
+        data = manifest_compiler.get_dict(config_data, "data", log)
+        self.assertFalse(log.error_occurred())
+        self.assertEqual(data, sample_dict)
+
+    '''
+    Test with non-existing attribute with optional field
+    '''
+    def test_get_dict_2(self):
+        log = manifest_compiler.Log()
+        config_data  = {}
+        data = manifest_compiler.get_dict(config_data, "data", log,
+                                          optional=True, default={})
+        self.assertFalse(log.error_occurred())
+        self.assertEqual(data, {})
+
+    '''
+    Test with empty config data with required field
+    '''
+    def test_get_dict_3(self):
+        log = manifest_compiler.Log()
+        config_data  = {}
+        data = manifest_compiler.get_dict(config_data, "data", log)
+        self.assertTrue(log.error_occurred())
+        self.assertIsNone(data)
+
+    '''
+    Test with invalid value
+    '''
+    def test_get_dict_4(self):
+        log = manifest_compiler.Log()
+        config_data  = {"data": 123}
+        data = manifest_compiler.get_dict(config_data, "data",
+                                          log, optional=True)
+        self.assertTrue(log.error_occurred())
 
     '''
     Test with valid UUID with hex values
@@ -400,7 +548,8 @@ class TestManifest(unittest.TestCase):
         log = manifest_compiler.Log()
         mem_io_map_list = manifest_compiler.parse_mem_map(
                 manifest_compiler.get_list(
-                        config_data, manifest_compiler.MEM_MAP, log),
+                        config_data, manifest_compiler.MEM_MAP, log,
+                        optional=True),
                 manifest_compiler.MEM_MAP, log)
         self.assertTrue(log.error_occurred())
 
