@@ -663,6 +663,142 @@ class TestManifest(unittest.TestCase):
         self.assertTrue(log.error_occurred())
 
     '''
+    Test with a  single start_ports entry
+    '''
+    def test_validate_start_port_1(self):
+        ref_data = [{
+            manifest_compiler.START_PORT_NAME: \
+                "com.android.trusty.appmgmt.loadable.start",
+            manifest_compiler.START_PORT_FLAGS: {
+                manifest_compiler.START_PORT_ALLOW_TA_CONNECT: True,
+                manifest_compiler.START_PORT_ALLOW_NS_CONNECT: False}}]
+
+        port_conf_data = [{
+            manifest_compiler.START_PORT_NAME: \
+                "com.android.trusty.appmgmt.loadable.start",
+            manifest_compiler.START_PORT_FLAGS: {
+                manifest_compiler.START_PORT_ALLOW_TA_CONNECT: True,
+                manifest_compiler.START_PORT_ALLOW_NS_CONNECT: False}}]
+
+        log = manifest_compiler.Log()
+        start_ports_list = manifest_compiler.parse_app_start_ports(
+                port_conf_data, manifest_compiler.START_PORTS, log)
+        self.assertFalse(log.error_occurred())
+
+        for (start_port, ref_port) in zip(
+                start_ports_list, ref_data):
+            self.assertEqual(start_port.name,
+                             ref_port[manifest_compiler.START_PORT_NAME])
+            ref_flags = ref_port[manifest_compiler.START_PORT_FLAGS]
+            self.assertEqual(
+                start_port.start_port_flags.allow_ta_connect,
+                ref_flags[manifest_compiler.START_PORT_ALLOW_TA_CONNECT])
+            self.assertEqual(
+                start_port.start_port_flags.allow_ns_connect,
+                ref_flags[manifest_compiler.START_PORT_ALLOW_NS_CONNECT])
+
+    '''
+    Test with a  multiple start_ports entry
+    '''
+    def test_validate_start_port_2(self):
+        ref_data = [
+            {
+                manifest_compiler.START_PORT_NAME: \
+                    "com.android.trusty.appmgmt.loadable.start",
+                manifest_compiler.START_PORT_FLAGS: {
+                    manifest_compiler.START_PORT_ALLOW_TA_CONNECT: True,
+                    manifest_compiler.START_PORT_ALLOW_NS_CONNECT: False
+                }
+            },
+            {
+                manifest_compiler.START_PORT_NAME: \
+                    "com.android.trusty.appmgmt.portstartsrv.shutdown",
+                manifest_compiler.START_PORT_FLAGS: {
+                    manifest_compiler.START_PORT_ALLOW_TA_CONNECT: True,
+                    manifest_compiler.START_PORT_ALLOW_NS_CONNECT: True
+                }
+            }]
+
+        port_conf_data = [
+            {
+                manifest_compiler.START_PORT_NAME: \
+                    "com.android.trusty.appmgmt.loadable.start",
+                manifest_compiler.START_PORT_FLAGS: {
+                    manifest_compiler.START_PORT_ALLOW_TA_CONNECT: True,
+                    manifest_compiler.START_PORT_ALLOW_NS_CONNECT: False}
+            },
+            {
+                manifest_compiler.START_PORT_NAME: \
+                        "com.android.trusty.appmgmt.portstartsrv.shutdown",
+                manifest_compiler.START_PORT_FLAGS: {
+                    manifest_compiler.START_PORT_ALLOW_TA_CONNECT: True,
+                    manifest_compiler.START_PORT_ALLOW_NS_CONNECT: True}
+            }]
+
+        log = manifest_compiler.Log()
+        start_ports_list = manifest_compiler.parse_app_start_ports(
+                port_conf_data, manifest_compiler.START_PORTS, log)
+        self.assertFalse(log.error_occurred())
+
+        for (start_port, ref_port) in zip(
+                start_ports_list, ref_data):
+            self.assertEqual(start_port.name,
+                    ref_port[manifest_compiler.START_PORT_NAME])
+            ref_port_flags = ref_port[manifest_compiler.START_PORT_FLAGS]
+            self.assertEqual(
+                start_port.start_port_flags.allow_ta_connect,
+                ref_port_flags[manifest_compiler.START_PORT_ALLOW_TA_CONNECT])
+            self.assertEqual(
+                start_port.start_port_flags.allow_ns_connect,
+                ref_port_flags[manifest_compiler.START_PORT_ALLOW_NS_CONNECT])
+
+    '''
+    Test with a zero start_ports
+    '''
+    def test_validate_start_port_3(self):
+        start_ports_json_data = []
+
+        log = manifest_compiler.Log()
+        start_ports_list = manifest_compiler.parse_app_start_ports(
+                start_ports_json_data, manifest_compiler.START_PORTS, log)
+        self.assertFalse(log.error_occurred())
+        self.assertEqual(len(start_ports_list), 0)
+
+    '''
+    Test with a unknown attribute in start_port entry
+    '''
+    def test_validate_start_port_4(self):
+        start_ports_json_data = [
+            {
+                manifest_compiler.START_PORT_NAME: \
+                        "com.android.trusty.appmgmt.loadable.start",
+                manifest_compiler.START_PORT_ALLOW_TA_CONNECT: True,
+                manifest_compiler.START_PORT_FLAGS: {
+                    manifest_compiler.START_PORT_ALLOW_TA_CONNECT: True,
+                    manifest_compiler.START_PORT_ALLOW_NS_CONNECT: False}
+            }]
+
+        log = manifest_compiler.Log()
+        start_ports_list = manifest_compiler.parse_app_start_ports(
+                start_ports_json_data, manifest_compiler.START_PORTS, log)
+        self.assertTrue(log.error_occurred())
+
+    '''
+    Test with a flags missing in start_port entry
+    '''
+    def test_validate_start_port_5(self):
+        start_ports_json_data = [
+            {
+                manifest_compiler.START_PORT_NAME: \
+                        "com.android.trusty.appmgmt.loadable.start",
+            }]
+
+        log = manifest_compiler.Log()
+        start_ports_list = manifest_compiler.parse_app_start_ports(
+                start_ports_json_data, manifest_compiler.START_PORTS, log)
+        self.assertTrue(log.error_occurred())
+
+    '''
     Test with valid UUID with hex values and
     valid values for min_heap and min_stack.
     '''
@@ -843,6 +979,66 @@ class TestManifest(unittest.TestCase):
         '''
         self.assertEqual(
                 manifest_compiler.manifest_data_to_json(config_data),
+                manifest_compiler.unpack_binary_manifest_to_json(
+                        pack_manifest_config_data(self, config_data, log)))
+
+
+    '''
+    Test with valid manifest config containing
+      - UUID
+      - min_heap and min_stack
+      - start_ports
+    Pack the manifest config data and unpack it and
+    verify it with the expected values
+    '''
+    def test_manifest_valid_pack_4(self):
+        log = manifest_compiler.Log()
+
+        # Reference manifest data structure
+        ref_config_data  = {
+                manifest_compiler.UUID: "5f902ace-5e5c-4cd8-ae54-87b88c22ddaf",
+                manifest_compiler.MIN_HEAP: 8192,
+                manifest_compiler.MIN_STACK: 4096,
+                manifest_compiler.START_PORTS: [
+                    {
+                        manifest_compiler.START_PORT_NAME: \
+                                "com.android.trusty.appmgmt.loadable.start",
+                        manifest_compiler.START_PORT_FLAGS: {
+                            manifest_compiler.START_PORT_ALLOW_TA_CONNECT: True,
+                            manifest_compiler.START_PORT_ALLOW_NS_CONNECT: False
+                        }
+                    }
+                ],
+                manifest_compiler.MGMT_FLAGS: {
+                        manifest_compiler.MGMT_FLAG_RESTART_ON_EXIT: False,
+                        manifest_compiler.MGMT_FLAG_DEFERRED_START: False
+                }
+        }
+
+        # JSON manifest data structure
+        config_data  = {
+                manifest_compiler.UUID: "5f902ace-5e5c-4cd8-ae54-87b88c22ddaf",
+                manifest_compiler.MIN_HEAP: 8192,
+                manifest_compiler.MIN_STACK: 4096,
+                manifest_compiler.START_PORTS: [
+                    {
+                        manifest_compiler.START_PORT_NAME: \
+                                "com.android.trusty.appmgmt.loadable.start",
+                        manifest_compiler.START_PORT_FLAGS: {
+                            manifest_compiler.START_PORT_ALLOW_TA_CONNECT: True,
+                            manifest_compiler.START_PORT_ALLOW_NS_CONNECT: False
+                        }
+                    }
+                ]
+        }
+
+        '''
+        Pack manifest config_data
+        Unpack the binary packed data to JSON text
+        Validate unpacked JSON text
+        '''
+        self.assertEqual(
+                manifest_compiler.manifest_data_to_json(ref_config_data),
                 manifest_compiler.unpack_binary_manifest_to_json(
                         pack_manifest_config_data(self, config_data, log)))
 

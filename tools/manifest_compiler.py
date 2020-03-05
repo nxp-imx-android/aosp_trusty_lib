@@ -25,6 +25,8 @@ USAGE:
                 {"id": 2, "addr": "0x70010000", "size": "0x100"}, \
                 {"id": 3, "addr": "0x70020000", "size": "0x4"}],
         "mgmt_flags": {"restart_on_exit": true, "deferred_start": false}
+        "start_ports": [{"name": "com.android.trusty.appmgmt.loadable.start", \
+                "flags": {"allow_ta_connect": true, "allow_ns_connect": false}}]
    }
 '''
 
@@ -48,6 +50,11 @@ MEM_MAP_SIZE = "size"
 MGMT_FLAGS = "mgmt_flags"
 MGMT_FLAG_RESTART_ON_EXIT = "restart_on_exit"
 MGMT_FLAG_DEFERRED_START = "deferred_start"
+START_PORTS = "start_ports"
+START_PORT_FLAGS = "flags"
+START_PORT_NAME = "name"
+START_PORT_ALLOW_TA_CONNECT = "allow_ta_connect"
+START_PORT_ALLOW_NS_CONNECT = "allow_ns_connect"
 
 # CONFIG TAGS
 # These values need to be kept in sync with uapi/trusty_app_manifest_types.h
@@ -55,12 +62,33 @@ TRUSTY_APP_CONFIG_KEY_MIN_STACK_SIZE = 1
 TRUSTY_APP_CONFIG_KEY_MIN_HEAP_SIZE = 2
 TRUSTY_APP_CONFIG_KEY_MAP_MEM = 3
 TRUSTY_APP_CONFIG_KEY_MGMT_FLAGS = 4
+TRUSTY_APP_CONFIG_KEY_START_PORT = 5
 
 # MGMT FLAGS
 # These values need to be kept in sync with uapi/trusty_app_manifest_types.h
 TRUSTY_APP_MGMT_FLAGS_NONE = 0
 TRUSTY_APP_MGMT_FLAGS_RESTART_ON_EXIT = 1 << 0
 TRUSTY_APP_MGMT_FLAGS_DEFERRED_START = 1 << 1
+
+# START_PORT flags
+# These values need to be kept in sync with user/base/include/user/trusty_ipc.h
+IPC_PORT_ALLOW_TA_CONNECT = 0x1
+IPC_PORT_ALLOW_NS_CONNECT = 0x2
+
+IPC_PORT_PATH_MAX = 64
+
+
+class StartPortFlags(object):
+    def __init__(self, allow_ta_connect, allow_ns_connect):
+        self.allow_ta_connect = allow_ta_connect
+        self.allow_ns_connect = allow_ns_connect
+
+
+class StartPort(object):
+    def __init__(self, name, name_size, start_port_flags):
+        self.name = name
+        self.name_size = name_size
+        self.start_port_flags = start_port_flags
 
 
 class MemIOMap(object):
@@ -86,13 +114,15 @@ class Manifest(object):
             min_heap,
             min_stack,
             mem_io_maps,
-            mgmt_flags
+            mgmt_flags,
+            start_ports
     ):
         self.uuid = uuid
         self.min_heap = min_heap
         self.min_stack = min_stack
         self.mem_io_maps = mem_io_maps
         self.mgmt_flags = mgmt_flags
+        self.start_ports = start_ports
 
 
 '''
@@ -338,6 +368,38 @@ def parse_mgmt_flags(flags, log):
     return mgmt_flags
 
 
+def parse_app_start_ports(start_port_list, key, log):
+    start_ports = []
+
+    for port_entry in start_port_list:
+        port_entry = coerce_to_dict(port_entry, key, log)
+        if port_entry is None:
+            continue
+
+        name = get_string(port_entry, START_PORT_NAME, log)
+        if len(name) >= IPC_PORT_PATH_MAX:
+            log.error("Length of start port name should be less than {}"
+                      .format(IPC_PORT_PATH_MAX))
+
+        flags = get_dict(port_entry, START_PORT_FLAGS, log)
+        start_ports_flag = None
+        if flags:
+            start_ports_flag = StartPortFlags(
+                    get_boolean(flags, START_PORT_ALLOW_TA_CONNECT, log),
+                    get_boolean(flags, START_PORT_ALLOW_NS_CONNECT, log))
+
+        if port_entry:
+            log.error("Unknown atributes in start_ports entries" +
+                      " in manifest: {} ".format(port_entry))
+        if flags:
+            log.error("Unknown atributes in start_ports.flags entries" +
+                      " in manifest: {} ".format(flags))
+
+        start_ports.append(StartPort(name, len(name), start_ports_flag))
+
+    return start_ports
+
+
 '''
 validate the manifest config and extract key, values
 '''
@@ -364,6 +426,13 @@ def parse_manifest_config(manifest_dict, log):
                              MGMT_FLAG_RESTART_ON_EXIT: False,
                              MGMT_FLAG_DEFERRED_START: False}), log)
 
+    # START_PORTS
+    start_ports = parse_app_start_ports(
+            get_list(manifest_dict, START_PORTS, log,
+                     optional=True, default=[]),
+            START_PORTS,
+            log)
+
     # look for any extra attributes
     if manifest_dict:
         log.error("Unknown atributes in manifest: {} ".format(manifest_dict))
@@ -371,7 +440,8 @@ def parse_manifest_config(manifest_dict, log):
     if log.error_occurred():
         return None
 
-    return Manifest(uuid, min_heap, min_stack, mem_io_maps, mgmt_flags)
+    return Manifest(uuid, min_heap, min_stack, mem_io_maps, mgmt_flags,
+                    start_ports)
 
 
 '''
@@ -394,6 +464,29 @@ def pack_mgmt_flags(mgmt_flags):
     return flags
 
 
+def pack_start_port_flags(flags):
+    start_port_flags = TRUSTY_APP_MGMT_FLAGS_NONE
+    if flags.allow_ta_connect:
+        start_port_flags |= IPC_PORT_ALLOW_TA_CONNECT
+    if flags.allow_ns_connect:
+        start_port_flags |= IPC_PORT_ALLOW_NS_CONNECT
+
+    return start_port_flags
+
+
+'''
+Pack a given string with null padding to make its size
+multiple of 4.
+packed data includes length + string + null + padding
+'''
+def pack_inline_string(value):
+    size = len(value) + 1
+    pad_len = 3 - (size + 3) % 4
+    packed = struct.pack("I", size) + value + '\0' + pad_len * '\0'
+    assert len(packed) % 4 == 0
+    return packed
+
+
 '''
 Creates Packed data from extracted manifest data
 Writes the packed data to binary file
@@ -406,6 +499,7 @@ def pack_manifest_data(manifest, log):
     #        TRUSTY_APP_CONFIG_KEY_MAP_MEM, id, addr, size,
     #        TRUSTY_APP_CONFIG_KEY_MAP_MEM, id, addr, size,
     #        TRUSTY_APP_CONFIG_KEY_MGMT_FLAGS, mgmt_flags
+    #        TRUSTY_APP_CONFIG_KEY_START_PORT, flag, name_size, name
     #      }
     out = cStringIO.StringIO()
 
@@ -431,6 +525,13 @@ def pack_manifest_data(manifest, log):
         out.write(struct.pack("II",
                               TRUSTY_APP_CONFIG_KEY_MGMT_FLAGS,
                               pack_mgmt_flags(manifest.mgmt_flags)))
+
+    for port_entry in manifest.start_ports:
+        out.write(struct.pack("II",
+                              TRUSTY_APP_CONFIG_KEY_START_PORT,
+                              pack_start_port_flags(
+                                      port_entry.start_port_flags)))
+        out.write(pack_inline_string(port_entry.name))
 
     return out.getvalue()
 
@@ -504,6 +605,36 @@ def unpack_binary_manifest_to_data(packed_data):
             if flag &  TRUSTY_APP_MGMT_FLAGS_DEFERRED_START:
                 mgmt_flag[MGMT_FLAG_DEFERRED_START] = True
             manifest[MGMT_FLAGS] = mgmt_flag
+        elif tag == TRUSTY_APP_CONFIG_KEY_START_PORT:
+            if START_PORTS not in manifest:
+                manifest[START_PORTS] = []
+            start_port_entry = {}
+
+            (flag,), packed_data = struct.unpack(
+                    "I", packed_data[:4]), packed_data[4:]
+
+            # read size of the name, this includes a null character
+            (name_size,), packed_data = struct.unpack(
+                    "I", packed_data[:4]), packed_data[4:]
+            # read the name without a trailing null character
+            start_port_entry[START_PORT_NAME], packed_data = \
+                    packed_data[:name_size-1], packed_data[name_size-1:]
+            # discard trailing null characters
+            # it includes trailing null character of a string and null padding
+            pad_len = 1 + 3 - (name_size + 3) % 4
+            packed_data = packed_data[pad_len:]
+
+            start_port_flags = {
+                    START_PORT_ALLOW_TA_CONNECT: False,
+                    START_PORT_ALLOW_NS_CONNECT: False
+            }
+            if flag & IPC_PORT_ALLOW_TA_CONNECT:
+                start_port_flags[START_PORT_ALLOW_TA_CONNECT] = True
+            if flag & IPC_PORT_ALLOW_NS_CONNECT:
+                start_port_flags[IPC_PORT_ALLOW_NS_CONNECT] = True
+            start_port_entry[START_PORT_FLAGS] = start_port_flags
+
+            manifest[START_PORTS].append(start_port_entry)
         else:
             raise Exception("Unknown tag: {}".format(tag))
 
