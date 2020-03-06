@@ -29,7 +29,7 @@
 #define MALLOC_FAILURE_ACTION \
     do {                      \
     } while (0)
-#define ABORT exit(-1)
+#define ABORT abort()
 #define HAVE_MMAP 0
 #define MORECORE sbrk
 #define malloc_getpagesize ((size_t)4096U)
