@@ -6,28 +6,55 @@ input. Processes the JSON config file and creates packed data
 mapping to C structures and dumps in binary format.
 
 USAGE:
-    manifest_compiler.py --input <input_filename> --output <output_filename>
+    manifest_compiler.py --input <input_filename> --output <output_filename> \
+        --constants <config_constants_file_1> \
+        --constants <config_constants_file_2> \
+        --header-dir <header_file_path>
 
     Arguments:
     input_filename  - Trusted app manifest config file in JSON format.
     output_filename - Binary file containing packed manifest config data mapped
                       to C structres.
+    config_constant_file - This is optional
+                    Config file with constants in JSON format
+                    Corresponding header file will be
+                    created with its constants defined in it
+    header_file_path - Directory in which header files to be generated.
 
     example:
-        manifest_compiler.py --input manifest.json --output output.bin
+        manifest_compiler.py --input manifest.json --output output.bin \
+                --constants manifest_constants.json \
+                --header-dir \
+                <build_dir>/user_tasks/trusty/user/app/sample/hwcrypto/include
+
 
    Input sample JSON Manifest config file content -
    {
-        "uuid": "5f902ace-5e5c-4cd8-ae54-87b88c22ddaf",
+        "uuid": "SECURE_STORAGE_SERVER_APP_UUID",
         "min_heap": 4096,
         "min_stack": 4096,
         "mem_map": [{"id": 1, "addr": "0x70000000", "size": "0x1000"}, \
                 {"id": 2, "addr": "0x70010000", "size": "0x100"}, \
                 {"id": 3, "addr": "0x70020000", "size": "0x4"}],
         "mgmt_flags": {"restart_on_exit": true, "deferred_start": false}
-        "start_ports": [{"name": "com.android.trusty.appmgmt.loadable.start", \
+        "start_ports": [{"name": "LOADABLE_START_PORT", \
                 "flags": {"allow_ta_connect": true, "allow_ns_connect": false}}]
    }
+
+   JSON manifest constant config -
+   {
+        "header": "storage_constants.h",
+        "constants": [{
+            "name": "LOADABLE_START_PORT",
+            "value": "com.android.trusty.appmgmt.loadable.start",
+            "type": "port"
+        },
+        {
+            "name": "SECURE_STORAGE_SERVER_APP_UUID",
+            "value": "eca48f94-00aa-560e-8f8c-d94b50d484f3",
+            "type": "uuid"
+        }]
+    }
 '''
 
 import argparse
@@ -56,6 +83,18 @@ START_PORT_NAME = "name"
 START_PORT_ALLOW_TA_CONNECT = "allow_ta_connect"
 START_PORT_ALLOW_NS_CONNECT = "allow_ns_connect"
 
+# constants configs
+CONSTANTS = "constants"
+HEADER = "header"
+CONST_NAME = "name"
+CONST_VALUE = "value"
+CONST_TYPE = "type"
+CONST_UNSIGNED = "unsigned"
+CONST_PORT = "port"
+CONST_UUID = "uuid"
+CONST_INT = "int"
+CONST_BOOL = "bool"
+
 # CONFIG TAGS
 # These values need to be kept in sync with uapi/trusty_app_manifest_types.h
 TRUSTY_APP_CONFIG_KEY_MIN_STACK_SIZE = 1
@@ -76,6 +115,21 @@ IPC_PORT_ALLOW_TA_CONNECT = 0x1
 IPC_PORT_ALLOW_NS_CONNECT = 0x2
 
 IPC_PORT_PATH_MAX = 64
+
+
+class Constant(object):
+    def __init__(self, name, value, type_, unsigned=False, hex_num=False):
+        self.name = name
+        self.value = value
+        self.type = type_
+        self.unsigned = unsigned
+        self.hex_num = hex_num
+
+
+class ConfigConstants(object):
+    def __init__(self, constants, header):
+        self.constants = constants
+        self.header = header
 
 
 class StartPortFlags(object):
@@ -141,17 +195,53 @@ class Log(object):
 
 
 '''
+For the given manifest JSON field it returns its literal value type mapped.
+'''
+def get_string_sub_type(field):
+    if field == UUID:
+        return CONST_UUID
+    elif field == START_PORT_NAME:
+        return CONST_PORT
+    else:
+        # field with string value but doesn't support a constant
+        return None
+
+
+def get_constant(constants, key, type_, log):
+    const = constants.get(key)
+    if const is None:
+        return None
+
+    if const.type != type_:
+        log.error("{} constant type mismatch, expected type is {}"
+                  .format(key, type_))
+        return None
+
+    return const.value
+
+
+'''
 Determines whether the value for the given key in dictionary is of type string
 and if it is a string then returns the value.
 '''
-def get_string(manifest_dict, key, log, optional=False, default=None):
+def get_string(manifest_dict, key, constants, log, optional=False,
+               default=None):
     if key not in manifest_dict:
         if not optional:
             log.error("Manifest is missing required attribute - {}"
                       .format(key))
         return default
 
-    return coerce_to_string(manifest_dict.pop(key), key, log)
+    value = manifest_dict.pop(key)
+
+    # try to check is this field holding a constant
+    type_ = get_string_sub_type(key)
+    if type_:
+        const_value = get_constant(constants, value, type_, log)
+        if const_value is not None:
+            return const_value
+
+    return coerce_to_string(value, key, log)
 
 
 def coerce_to_string(value, key, log):
@@ -170,14 +260,20 @@ def coerce_to_string(value, key, log):
 Determines whether the value for the given key in dictionary is of type integer
 and if it is int then returns the value
 '''
-def get_int(manifest_dict, key, log, optional=False, default=None):
+def get_int(manifest_dict, key, constants, log, optional=False,
+            default=None):
     if key not in manifest_dict:
         if not optional:
             log.error("Manifest is missing required attribute - {}"
                       .format(key))
         return default
 
-    return coerce_to_int(manifest_dict.pop(key), key,log)
+    value = manifest_dict.pop(key)
+    const_value = get_constant(constants, value, CONST_INT, log)
+    if const_value is not None:
+        return const_value
+
+    return coerce_to_int(value, key,log)
 
 
 def coerce_to_int(value, key, log):
@@ -252,14 +348,20 @@ def coerce_to_dict(value, key, log):
 Determines whether the value for the given key in dictionary is of type boolean
 and if it is boolean then returns the value
 '''
-def get_boolean(manifest_dict, key, log, optional=False, default=None):
+def get_boolean(manifest_dict, key, constants, log, optional=False,
+                default=None):
     if key not in manifest_dict:
         if not optional:
             log.error("Manifest is missing required attribute - {}"
                       .format(key))
         return default
 
-    return coerce_to_boolean(manifest_dict.pop(key), key, log)
+    value = manifest_dict.pop(key)
+    const_value = get_constant(constants, value, CONST_BOOL, log)
+    if const_value is not None:
+        return const_value
+
+    return coerce_to_boolean(value, key, log)
 
 
 def coerce_to_boolean(value, key, log):
@@ -271,6 +373,25 @@ def coerce_to_boolean(value, key, log):
         return None
 
     return value
+
+
+def get_uuid(manifest_dict, key, constants, log, optional=False, default=None):
+    if key not in manifest_dict:
+        if not optional:
+            log.error("Manifest is missing required attribute - {}"
+                      .format(key))
+        return default
+
+    uuid = get_string(manifest_dict, key, {}, log, optional, default)
+    const_value = get_constant(constants, uuid, CONST_UUID, log)
+    if const_value is not None:
+        return const_value
+
+    return parse_uuid(uuid, log)
+
+
+def get_port(port, key, constants, log, optional=False, default=None):
+    return get_string(port, key, constants, log, optional, default)
 
 
 '''
@@ -332,7 +453,7 @@ def parse_memory_size(memory_size, log):
     return memory_size
 
 
-def parse_mem_map(mem_maps, key, log):
+def parse_mem_map(mem_maps, key, constants, log):
     if mem_maps is None:
         return None
 
@@ -342,9 +463,9 @@ def parse_mem_map(mem_maps, key, log):
         if mem_map_entry is None:
             continue
         mem_map = MemIOMap(
-                get_int(mem_map_entry, MEM_MAP_ID, log),
-                get_int(mem_map_entry, MEM_MAP_ADDR, log),
-                get_int(mem_map_entry, MEM_MAP_SIZE, log))
+                get_int(mem_map_entry, MEM_MAP_ID, constants, log),
+                get_int(mem_map_entry, MEM_MAP_ADDR, constants, log),
+                get_int(mem_map_entry, MEM_MAP_SIZE, constants, log))
         if mem_map_entry:
             log.error("Unknown atributes in mem_map entries in manifest: {} "
                       .format(mem_map_entry))
@@ -353,13 +474,13 @@ def parse_mem_map(mem_maps, key, log):
     return mem_io_maps
 
 
-def parse_mgmt_flags(flags, log):
+def parse_mgmt_flags(flags, constants, log):
     if flags is None:
         return None
 
     mgmt_flags = MgmtFlags(
-            get_boolean(flags, MGMT_FLAG_RESTART_ON_EXIT, log),
-            get_boolean(flags, MGMT_FLAG_DEFERRED_START, log))
+            get_boolean(flags, MGMT_FLAG_RESTART_ON_EXIT, constants, log),
+            get_boolean(flags, MGMT_FLAG_DEFERRED_START, constants, log))
 
     if flags:
         log.error("Unknown atributes in mgmt_flags entries in manifest: {} "
@@ -368,7 +489,7 @@ def parse_mgmt_flags(flags, log):
     return mgmt_flags
 
 
-def parse_app_start_ports(start_port_list, key, log):
+def parse_app_start_ports(start_port_list, key, constants, log):
     start_ports = []
 
     for port_entry in start_port_list:
@@ -376,7 +497,7 @@ def parse_app_start_ports(start_port_list, key, log):
         if port_entry is None:
             continue
 
-        name = get_string(port_entry, START_PORT_NAME, log)
+        name = get_port(port_entry, START_PORT_NAME, constants, log)
         if len(name) >= IPC_PORT_PATH_MAX:
             log.error("Length of start port name should be less than {}"
                       .format(IPC_PORT_PATH_MAX))
@@ -385,8 +506,10 @@ def parse_app_start_ports(start_port_list, key, log):
         start_ports_flag = None
         if flags:
             start_ports_flag = StartPortFlags(
-                    get_boolean(flags, START_PORT_ALLOW_TA_CONNECT, log),
-                    get_boolean(flags, START_PORT_ALLOW_NS_CONNECT, log))
+                    get_boolean(flags, START_PORT_ALLOW_TA_CONNECT, constants,
+                                log),
+                    get_boolean(flags, START_PORT_ALLOW_NS_CONNECT, constants,
+                                log))
 
         if port_entry:
             log.error("Unknown atributes in start_ports entries" +
@@ -403,34 +526,38 @@ def parse_app_start_ports(start_port_list, key, log):
 '''
 validate the manifest config and extract key, values
 '''
-def parse_manifest_config(manifest_dict, log):
+def parse_manifest_config(manifest_dict, constants, log):
     # UUID
-    uuid = parse_uuid(get_string(manifest_dict, UUID, log), log)
+    uuid = get_uuid(manifest_dict, UUID, constants, log)
 
     # MIN_HEAP
-    min_heap = parse_memory_size(get_int(manifest_dict, MIN_HEAP, log), log)
+    min_heap = parse_memory_size(get_int(manifest_dict, MIN_HEAP, constants,
+                                         log), log)
 
     # MIN_STACK
-    min_stack = parse_memory_size(get_int(manifest_dict, MIN_STACK, log), log)
+    min_stack = parse_memory_size(get_int(manifest_dict, MIN_STACK, constants,
+                                          log), log)
 
     # MEM_MAP
     mem_io_maps = parse_mem_map(
             get_list(manifest_dict, MEM_MAP, log, optional=True, default=[]),
             MEM_MAP,
-            log)
+            constants, log)
 
     # MGMT_FLAGS
     mgmt_flags = parse_mgmt_flags(
             get_dict(manifest_dict, MGMT_FLAGS, log, optional=True,
                      default={
                              MGMT_FLAG_RESTART_ON_EXIT: False,
-                             MGMT_FLAG_DEFERRED_START: False}), log)
+                             MGMT_FLAG_DEFERRED_START: False}),
+                     constants, log)
 
     # START_PORTS
     start_ports = parse_app_start_ports(
             get_list(manifest_dict, START_PORTS, log,
                      optional=True, default=[]),
             START_PORTS,
+            constants,
             log)
 
     # look for any extra attributes
@@ -653,7 +780,7 @@ def write_packed_data_to_bin_file(packed_data, output_file, log):
                 .format(output_file) + "\n" + str(ex))
 
 
-def read_manifest_config_file(input_file, log):
+def read_json_config_file(input_file, log):
     try:
        read_file = open(input_file, "r")
     except IOError as ex:
@@ -667,9 +794,183 @@ def read_manifest_config_file(input_file, log):
         return manifest_dict
     except ValueError as ex:
         log.error(
-                "Unable to parse manifest config JSON - {}"
+                "Unable to parse config JSON - {}"
                 .format(str(ex)))
         return None
+
+
+def read_config_constants(const_config_files, log):
+    const_configs_list = []
+    for const_file in const_config_files:
+        const_configs_list.append(read_json_config_file(const_file, log))
+
+    return const_configs_list
+
+
+def define_integer_const_entry(const, log):
+    text = hex(const.value) if const.hex_num else str(const.value)
+    if const.unsigned:
+        text += "U"
+
+    return "#define {} ({})\n".format(const.name, text)
+
+
+def define_string_const_entry(const, log):
+    return "#define {} {}\n".format(const.name, json.dumps(const.value))
+
+
+def define_bool_const_entry(const, log):
+    return "#define {} ({})\n".format(const.name, json.dumps(const.value))
+
+
+def define_uuid_const_entry(const, log):
+    uuid = const.value.encode("hex")
+
+    part = ", ".join(
+            ["0x" + uuid[index:index+2] for index in range(16, len(uuid), 2)])
+
+    value = "{{0x{}, 0x{}, 0x{}, {{ {} }}}}\n".format(
+            uuid[:8], uuid[8:12], uuid[12:16], part)
+
+    return "#define {} {}".format(const.name, value)
+
+
+def create_header_entry(constant, log):
+    if constant.type == CONST_PORT:
+        return define_string_const_entry(constant, log)
+    elif constant.type == CONST_UUID:
+        return define_uuid_const_entry(constant, log)
+    elif constant.type == CONST_INT:
+        return define_integer_const_entry(constant, log)
+    elif constant.type == CONST_BOOL:
+        return define_bool_const_entry(constant, log)
+    else:
+        raise Exception("Unknown tag: {}".format(const_type))
+
+
+'''
+Writes given constants to header file in given header directory.
+'''
+def write_consts_to_header_file(const_config, header_dir, log):
+    # Construct header file path
+    header_file = os.path.join(header_dir, const_config.header)
+    # Check whether the output directory of header file exist
+    # If it not exists create it.
+    dir_name = os.path.dirname(header_file)
+    if dir_name and not os.path.exists(dir_name):
+        os.makedirs(dir_name)
+
+    try:
+        with open(header_file, "w") as out_file:
+            out_file.write("#pragma once\n")
+            out_file.write("#include <stdbool.h>\n\n")
+            for const in const_config.constants:
+                header_entries = create_header_entry(const, log)
+                out_file.write(header_entries)
+    except IOError as ex:
+        log.error(
+                "Unable to write to header file: {}"
+                .format(header_file) + "\n" + str(ex))
+
+
+'''
+Parse a give JSON constant data structure
+'''
+def parse_constant(constant, log):
+    const_type = get_string(constant, CONST_TYPE, {}, log)
+    if const_type is None:
+        return None
+
+    name = get_string(constant, CONST_NAME, {}, log)
+    if const_type == CONST_PORT:
+        value = get_string(constant, CONST_VALUE, {}, log)
+        return Constant(name, value, const_type)
+    elif const_type == CONST_UUID:
+        value = get_string(constant, CONST_VALUE, {}, log)
+        return Constant(name, parse_uuid(value, log), const_type)
+    elif const_type == CONST_INT:
+        unsigned = get_boolean(constant, CONST_UNSIGNED, {}, log)
+        text_value = constant.get(CONST_VALUE)
+        hex_num = isinstance(text_value, basestring) and \
+                text_value.startswith("0x")
+        value = get_int(constant, CONST_VALUE, {}, log)
+        return Constant(name, value, const_type, unsigned, hex_num)
+    elif const_type == CONST_BOOL:
+        value = get_boolean(constant, CONST_VALUE, {}, log)
+        return Constant(name, value, const_type)
+    else:
+        log.error("Unknown constant type: {}".format(const_type))
+
+
+'''
+Parse a given JSON constant-config data structure containing
+a header and list of constants
+'''
+def parse_config_constant(const_config, log):
+    header_file = get_string(const_config, HEADER, {}, log)
+
+    const_list = get_list(const_config, CONSTANTS, log, optional=False,
+                          default=[])
+
+    constants = []
+    for item in const_list:
+        item = coerce_to_dict(item, CONSTANTS, log)
+        if item is None:
+            continue
+        constants.append(parse_constant(item, log))
+        if item:
+            log.error("Unknown atributes in constant: {} "
+                      .format(item))
+
+    if const_config:
+        log.error("Unknown atributes in constants config: {} "
+                  .format(const_config))
+
+    return ConfigConstants(constants, header_file)
+
+
+'''
+Collects ConfigConstant(s) from list of JSON config constants data
+'''
+def extract_config_constants(config_consts_list, log):
+    config_constants = []
+
+    for config_const in config_consts_list:
+        config_constants.append(parse_config_constant(config_const, log))
+
+    return config_constants
+
+
+'''
+Parse JSON config constants and creates separate header files with constants
+for each JSON config
+'''
+def process_config_constants(const_config_files, header_dir, log):
+    if const_config_files is None:
+        return []
+
+    config_consts_list = read_config_constants(const_config_files, log)
+    if log.error_occurred():
+        return []
+
+    config_constants = extract_config_constants(config_consts_list, log)
+    if log.error_occurred():
+        return []
+
+    # generate header files
+    for const_config in config_constants:
+        write_consts_to_header_file(const_config, header_dir, log)
+
+    return config_constants
+
+
+def index_constants(config_constants, log):
+    constants = {}
+    for const_config in config_constants:
+        for const in const_config.constants:
+            constants[const.name] = const
+
+    return constants
 
 
 '''
@@ -694,10 +995,33 @@ def main(argv):
             type=str,
             help="It will be binary file with packed manifest data"
     )
+    parser.add_argument(
+            "-c", "--constants",
+            dest="constants",
+            required=False,
+            action="append",
+            help="JSON file with manifest config constants"
+    )
+    parser.add_argument(
+            "--header-dir",
+            dest="header_dir",
+            required=False,
+            type=str,
+            help="Directory path for generating headers"
+    )
     # Parse the command line arguments
     args = parser.parse_args()
+    if args.constants and not args.header_dir:
+        args.error("--header-dir is required if --constants are specified")
 
     log = Log()
+
+    # collect config constants and create header files for each const config
+    config_constants = process_config_constants(args.constants,
+                                                args.header_dir, log)
+    if log.error_occurred():
+        return 1
+    constants = index_constants(config_constants, log)
 
     if not os.path.exists(args.input_filename):
         log.error(
@@ -705,12 +1029,12 @@ def main(argv):
                 .format(args.input_filename))
         return 1
 
-    manifest_dict = read_manifest_config_file(args.input_filename, log)
+    manifest_dict = read_json_config_file(args.input_filename, log)
     if log.error_occurred():
         return 1
 
     # parse the manifest config
-    manifest = parse_manifest_config(manifest_dict, log)
+    manifest = parse_manifest_config(manifest_dict, constants, log)
     if log.error_occurred():
         return 1
 
