@@ -16,9 +16,10 @@ LOCAL_DIR := $(GET_LOCAL_DIR)
 
 MODULE := $(LOCAL_DIR)
 
+MANIFEST := $(LOCAL_DIR)/manifest.json
+
 MODULE_SRCS += \
-	$(LOCAL_DIR)/smc_test.c \
-	$(LOCAL_DIR)/manifest.c
+	$(LOCAL_DIR)/smc_test.c
 
 MODULE_DEPS += \
 	trusty/user/base/lib/libc-trusty \
