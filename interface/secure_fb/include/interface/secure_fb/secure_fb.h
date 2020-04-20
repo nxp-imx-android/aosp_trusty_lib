@@ -26,6 +26,7 @@ typedef enum trusty_secure_fb_error_e {
     TTUI_ERROR_NO_FRAMEBUFFER,
     TTUI_ERROR_MEMORY_ALLOCATION_FAILED,
     TTUI_ERROR_UNEXPECTED_NULL_PTR,
+    TTUI_ERROR_BUFFER_SIZE_MISSMATCH,
 } trusty_secure_fb_error;
 
 typedef enum trusty_secure_fb_pixel_format_e {
@@ -111,6 +112,8 @@ trusty_secure_fb_error trusty_secure_fb_get_secure_fb(
  * TTUI_ERROR_MEMORY_ALLOCATION_FAILED - if any memory allocation failed during
  *         the operation.
  * TTUI_ERROR_UNEXPECTED_NULL_PTR - if the fb_info parameter was NULL.
+ * TTUI_ERROR_BUFFER_SIZE_MISSMATCH - if copy was requested but subsequent
+ * buffers have different size.
  */
 trusty_secure_fb_error trusty_secure_fb_display_next(
         struct trusty_secure_fb_info* fb_info,
