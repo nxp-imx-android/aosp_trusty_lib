@@ -36,7 +36,8 @@ int smc_read_response(handle_t channel, struct smc_msg* msg) {
     if (rc != (int)msg_len) {
         TLOGD("%s: failed (%d) to read message. Expected to read %zu bytes.\n",
               __func__, rc, msg_len);
-        rc = ERR_BAD_LEN;
+        if (rc >= 0)
+            rc = ERR_BAD_LEN;
     }
 
 err:
@@ -49,7 +50,8 @@ int smc_send_request(handle_t channel, struct smc_msg* msg) {
     if (rc != (int)msg_len) {
         TLOGD("%s: failed (%d) to send message. Expected to send %zu bytes.\n",
               __func__, rc, msg_len);
-        rc = ERR_BAD_LEN;
+        if (rc >= 0)
+            rc = ERR_BAD_LEN;
     }
     return rc;
 }
