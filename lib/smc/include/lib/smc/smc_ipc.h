@@ -17,7 +17,10 @@
 #pragma once
 
 #include <interface/smc/smc.h>
+#include <lk/compiler.h>
 #include <trusty_ipc.h>
+
+__BEGIN_CDECLS
 
 /**
  * smc_send_request() - send message to SMC service
@@ -38,3 +41,5 @@ int smc_send_request(handle_t channel, struct smc_msg* msg);
  * on success, a negative error code otherwise
  */
 int smc_read_response(handle_t channel, struct smc_msg* msg);
+
+__END_CDECLS
