@@ -32,7 +32,9 @@
 #define ABORT abort()
 #define HAVE_MMAP 0
 #define MORECORE sbrk
-#define malloc_getpagesize ((size_t)4096U)
+
+#include <sys/auxv.h>
+#define malloc_getpagesize getauxval(AT_PAGESZ)
 
 #define ENOMEM ERR_NO_MEMORY
 #define EINVAL ERR_INVALID_ARGS
