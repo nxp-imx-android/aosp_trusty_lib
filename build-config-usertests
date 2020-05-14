@@ -15,6 +15,8 @@
 # This file lists userspace tests
 
 [
-    include("trusty/user/app/sample/build-config-usertests"),
     include("trusty/user/app/keymaster/build-config-usertests"),
+    include("trusty/user/app/sample/build-config-usertests"),
+
+    porttest("com.android.trusty.smc.test"),
 ]
