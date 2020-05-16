@@ -222,7 +222,11 @@ static int unpack_shm(struct spi_dev_ctx* spi,
 
         switch (shm_hdr_cmd) {
         case SPI_CMD_SHM_OP_XFER:
-            rc = handle_xfer_args(spi, shm);
+            if (state->cs) {
+                rc = handle_xfer_args(spi, shm);
+            } else {
+                rc = ERR_NOT_READY;
+            }
             break;
 
         case SPI_CMD_SHM_OP_CS_ASSERT:

@@ -99,6 +99,8 @@ int spi_exec_cmds(struct spi_dev* dev, size_t* failed);
  *
  * This routine configures command to exchange data with specified device.
  *
+ * CS must be asserted for data transfer to succeed.
+ *
  * Either @tx or @rx may be NULL to indicate that send-only or receive-only
  * operation is required. If both @tx and @rx are NULL, then @len bytes of data
  * is still allocated in shared memory, but not used. Both @tx and @rx may point
