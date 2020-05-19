@@ -62,8 +62,8 @@ struct spi_dev_ctx;
  *                       other devices.
  * @dev: SPI device to query
  *
- * If the SPI bus is shared, spi_seq_commit() will not be called for a sequence
- * that would leave CS asserted.
+ * If the SPI bus is shared, spi_seq_abort() will be called instead of
+ * spi_seq_commit() for a sequence that would leave CS asserted.
  *
  * Return: true if SPI bus is shared, false otherwise
  */
