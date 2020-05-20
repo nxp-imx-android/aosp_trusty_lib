@@ -132,8 +132,14 @@ err_memref_create:
 
 static inline size_t get_shm_size(size_t max_num_cmds,
                                   size_t max_total_payload) {
-    size_t cmd_size = sizeof(struct spi_shm_hdr) + SPI_CMD_SHM_ARGS_MAX_SIZE;
-    return round_up(max_num_cmds * cmd_size + max_total_payload, PAGE_SIZE);
+    /* account for space taken up by alignment requirements */
+    size_t max_total_align = max_num_cmds * (SPI_CMD_SHM_ALIGN - 1);
+    size_t cmd_size = round_up(sizeof(struct spi_shm_hdr), SPI_CMD_SHM_ALIGN) +
+                      round_up(SPI_CMD_SHM_ARGS_MAX_SIZE, SPI_CMD_SHM_ALIGN);
+    size_t shm_size =
+            max_num_cmds * cmd_size + max_total_payload + max_total_align;
+
+    return round_up(shm_size, PAGE_SIZE);
 }
 
 int spi_dev_open(struct spi_dev* dev,
@@ -175,6 +181,7 @@ int spi_dev_open(struct spi_dev* dev,
     mb_init(&dev->shm, shm_base, shm_size, SPI_CMD_SHM_ALIGN);
     mb_resize(&dev->shm, shm_size);
     dev->max_num_cmds = max_num_cmds;
+    dev->max_total_payload = max_total_payload;
     spi_clear_cmds(dev);
     return NO_ERROR;
 
@@ -202,6 +209,7 @@ void spi_clear_cmds(struct spi_dev* dev) {
     assert(is_initialized(dev));
     mb_rewind_pos(&dev->shm);
     dev->num_cmds = 0;
+    dev->total_payload = 0;
     dev->config_err = false;
 }
 
@@ -377,11 +385,15 @@ static int spi_add_cmd(struct spi_dev* dev,
         }
     }
     if (payload) {
-        *payload = mb_advance_pos(&dev->shm, payload_len);
-        if (!*payload) {
+        assert(dev->total_payload <= dev->max_total_payload);
+        if (payload_len > dev->max_total_payload - dev->total_payload) {
             rc = ERR_TOO_BIG;
             goto err_payload;
         }
+        dev->total_payload += payload_len;
+
+        *payload = mb_advance_pos(&dev->shm, payload_len);
+        assert(*payload);
     }
 
     dev->num_cmds++;

@@ -28,11 +28,13 @@ __BEGIN_CDECLS
 
 /**
  * struct spi_dev - SPI device tracking structure
- * @h:            SPI server connection handle
- * @shm:          state of memory region shared with SPI server
- * @max_num_cmds: maximum number of commands in one batch
- * @num_cmds:     number of commands in the current batch
- * @config_err:   whether an error occurred during command configuration
+ * @h:                 SPI server connection handle
+ * @shm:               state of memory region shared with SPI server
+ * @max_num_cmds:      maximum number of commands in one batch
+ * @num_cmds:          number of commands in the current batch
+ * @max_total_payload: maximum total number of bytes of payload in one batch
+ * @total_payload:     total number of bytes of payload in the current batch
+ * @config_err:        whether an error occurred during command configuration
  *
  * All members of this structure should be considered private
  */
@@ -41,6 +43,8 @@ struct spi_dev {
     struct mem_buf shm;
     size_t max_num_cmds;
     size_t num_cmds;
+    size_t max_total_payload;
+    size_t total_payload;
     bool config_err;
 };
 
