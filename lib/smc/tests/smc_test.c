@@ -41,6 +41,20 @@ TEST_F_TEARDOWN(smc) {
     close(_state->channel);
 }
 
+/* Macro to enable test cases for platform(s) on ARM and ARM64 architectures */
+#if defined(ARCH_ARM) || defined(ARCH_ARM64)
+#define ARM_ONLY_TEST(name) name
+#else
+#define ARM_ONLY_TEST(name) DISABLED_##name
+#endif
+
+/* Macro to enable test cases for generic ARM64 platform only */
+#if defined(PLATFORM_GENERIC_ARM64)
+#define GENERIC_ARM64_PLATFORM_ONLY_TEST(name) name
+#else
+#define GENERIC_ARM64_PLATFORM_ONLY_TEST(name) DISABLED_##name
+#endif
+
 /* ARM DEN 0028A(0.9.0) mandates that bits 23:16 must be zero for fast calls
  * (when bit 31 == 1) */
 #define ILLEGAL_SMC ((long)0x80FF0000)
@@ -48,7 +62,7 @@ TEST_F_TEARDOWN(smc) {
 #define SM_ERR_UNDEFINED_SMC ((int32_t)(-1))
 
 /* Check that SM_ERR_UNDEFINED_SMC is returned for an unknown SMC number */
-TEST_F(smc, unknown_smc) {
+TEST_F(smc, ARM_ONLY_TEST(unknown_smc)) {
     int rc;
     struct smc_msg request = {
             .params[0] = ILLEGAL_SMC,
@@ -66,7 +80,7 @@ test_abort:;
 }
 
 /* Check that SMC service supports clients on multiple channels */
-TEST_F(smc, multiple_channels) {
+TEST_F(smc, ARM_ONLY_TEST(multiple_channels)) {
     int rc;
     handle_t channel1;
     handle_t channel2;
@@ -116,7 +130,7 @@ test_abort:
  */
 #define SMC_FC_DEBUG_PUTC SMC_FASTCALL_NR(SMC_ENTITY_PLATFORM_MONITOR, 0x0)
 
-TEST_F(smc, putc) {
+TEST_F(smc, GENERIC_ARM64_PLATFORM_ONLY_TEST(putc)) {
     int rc;
     struct smc_msg request = {
             .params[0] = SMC_FC_DEBUG_PUTC,
@@ -146,7 +160,7 @@ test_abort:;
 #define GICC_BASE 0x8010000
 
 /* Check that we can query GICD base value from ATF */
-TEST_F(smc, get_gicd_base) {
+TEST_F(smc, GENERIC_ARM64_PLATFORM_ONLY_TEST(get_gicd_base)) {
     int rc;
     struct smc_msg request = {
             .params[0] = SMC_FC_GET_REG_BASE,
@@ -164,7 +178,7 @@ TEST_F(smc, get_gicd_base) {
 test_abort:;
 }
 
-TEST_F(smc, get_gicc_base) {
+TEST_F(smc, GENERIC_ARM64_PLATFORM_ONLY_TEST(get_gicc_base)) {
     int rc;
     struct smc_msg request = {
             .params[0] = SMC_FC_GET_REG_BASE,
