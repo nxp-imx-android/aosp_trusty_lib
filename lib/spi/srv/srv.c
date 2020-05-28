@@ -454,11 +454,18 @@ static const struct tipc_srv_ops spi_dev_ops = {
 int add_spimaster_service(struct tipc_hset* hset,
                           const struct tipc_port* ports,
                           size_t num_ports) {
+    int rc;
+
     for (size_t i = 0; i < num_ports; i++) {
         if (!ports[i].priv) {
             return ERR_INVALID_ARGS;
         }
+
+        rc = tipc_add_service(hset, &ports[i], 1, 1, &spi_dev_ops);
+        if (rc != NO_ERROR) {
+            return rc;
+        }
     }
-    return tipc_add_service(hset, ports, num_ports, 1 /* max_chan_cnt */,
-                            &spi_dev_ops);
+
+    return NO_ERROR;
 }

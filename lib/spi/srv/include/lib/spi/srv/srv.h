@@ -33,6 +33,8 @@ __BEGIN_CDECLS
  *
  * This routine can be called multiple times to register multiple services.
  *
+ * Each port in @ports may have at most one active connection.
+ *
  * Return: 0 on success, negative error code otherwise
  */
 int add_spimaster_service(struct tipc_hset* hset,
