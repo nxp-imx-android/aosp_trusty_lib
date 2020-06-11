@@ -36,7 +36,9 @@ USAGE:
         "mem_map": [{"id": 1, "addr": "0x70000000", "size": "0x1000"}, \
                 {"id": 2, "addr": "0x70010000", "size": "0x100"}, \
                 {"id": 3, "addr": "0x70020000", "size": "0x4"}],
-        "mgmt_flags": {"restart_on_exit": true, "deferred_start": false}
+        "mgmt_flags": {"restart_on_exit": true, \
+                "deferred_start": false, \
+                "non_critical_app": false},
         "start_ports": [{"name": "LOADABLE_START_PORT", \
                 "flags": {"allow_ta_connect": true, "allow_ns_connect": false}}]
    }
@@ -77,6 +79,7 @@ MEM_MAP_SIZE = "size"
 MGMT_FLAGS = "mgmt_flags"
 MGMT_FLAG_RESTART_ON_EXIT = "restart_on_exit"
 MGMT_FLAG_DEFERRED_START = "deferred_start"
+MGMT_FLAG_NON_CRITICAL_APP = "non_critical_app"
 START_PORTS = "start_ports"
 START_PORT_FLAGS = "flags"
 START_PORT_NAME = "name"
@@ -108,6 +111,7 @@ TRUSTY_APP_CONFIG_KEY_START_PORT = 5
 TRUSTY_APP_MGMT_FLAGS_NONE = 0
 TRUSTY_APP_MGMT_FLAGS_RESTART_ON_EXIT = 1 << 0
 TRUSTY_APP_MGMT_FLAGS_DEFERRED_START = 1 << 1
+TRUSTY_APP_MGMT_FLAGS_NON_CRITICAL_APP = 1 << 2
 
 # START_PORT flags
 # These values need to be kept in sync with user/base/include/user/trusty_ipc.h
@@ -153,9 +157,10 @@ class MemIOMap(object):
 
 
 class MgmtFlags(object):
-    def __init__(self, restart_on_exit, deferred_start):
+    def __init__(self, restart_on_exit, deferred_start, non_critical_app):
         self.restart_on_exit = restart_on_exit
         self.deferred_start = deferred_start
+        self.non_critical_app = non_critical_app
 
 
 '''
@@ -480,7 +485,8 @@ def parse_mgmt_flags(flags, constants, log):
 
     mgmt_flags = MgmtFlags(
             get_boolean(flags, MGMT_FLAG_RESTART_ON_EXIT, constants, log, optional=True),
-            get_boolean(flags, MGMT_FLAG_DEFERRED_START, constants, log, optional=True))
+            get_boolean(flags, MGMT_FLAG_DEFERRED_START, constants, log, optional=True),
+            get_boolean(flags, MGMT_FLAG_NON_CRITICAL_APP, constants, log, optional=True))
 
     if flags:
         log.error("Unknown atributes in mgmt_flags entries in manifest: {} "
@@ -549,7 +555,8 @@ def parse_manifest_config(manifest_dict, constants, log):
             get_dict(manifest_dict, MGMT_FLAGS, log, optional=True,
                      default={
                              MGMT_FLAG_RESTART_ON_EXIT: False,
-                             MGMT_FLAG_DEFERRED_START: False}),
+                             MGMT_FLAG_DEFERRED_START: False,
+                             MGMT_FLAG_NON_CRITICAL_APP: False}),
                      constants, log)
 
     # START_PORTS
@@ -587,6 +594,8 @@ def pack_mgmt_flags(mgmt_flags):
         flags |= TRUSTY_APP_MGMT_FLAGS_RESTART_ON_EXIT
     if mgmt_flags.deferred_start:
         flags |= TRUSTY_APP_MGMT_FLAGS_DEFERRED_START
+    if mgmt_flags.non_critical_app:
+        flags |= TRUSTY_APP_MGMT_FLAGS_NON_CRITICAL_APP
 
     return flags
 
@@ -725,12 +734,15 @@ def unpack_binary_manifest_to_data(packed_data):
                     "I", packed_data[:4]), packed_data[4:]
             mgmt_flag = {
                     MGMT_FLAG_RESTART_ON_EXIT: False,
-                    MGMT_FLAG_DEFERRED_START: False
+                    MGMT_FLAG_DEFERRED_START: False,
+                    MGMT_FLAG_NON_CRITICAL_APP: False
             }
             if flag & TRUSTY_APP_MGMT_FLAGS_RESTART_ON_EXIT:
                 mgmt_flag[MGMT_FLAG_RESTART_ON_EXIT] = True
             if flag &  TRUSTY_APP_MGMT_FLAGS_DEFERRED_START:
                 mgmt_flag[MGMT_FLAG_DEFERRED_START] = True
+            if flag & TRUSTY_APP_MGMT_FLAGS_NON_CRITICAL_APP:
+                mgmt_flag[MGMT_FLAG_NON_CRITICAL_APP] = True
             manifest[MGMT_FLAGS] = mgmt_flag
         elif tag == TRUSTY_APP_CONFIG_KEY_START_PORT:
             if START_PORTS not in manifest:

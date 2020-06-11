@@ -592,10 +592,12 @@ class TestManifest(unittest.TestCase):
         constants = {}
         mgmt_flags_ref_data = {
                 manifest_compiler.MGMT_FLAG_RESTART_ON_EXIT: True,
-                manifest_compiler.MGMT_FLAG_DEFERRED_START: True}
+                manifest_compiler.MGMT_FLAG_DEFERRED_START: True,
+                manifest_compiler.MGMT_FLAG_NON_CRITICAL_APP: True}
         mgmt_flags_data = {
                 manifest_compiler.MGMT_FLAG_RESTART_ON_EXIT: True,
-                manifest_compiler.MGMT_FLAG_DEFERRED_START: True}
+                manifest_compiler.MGMT_FLAG_DEFERRED_START: True,
+                manifest_compiler.MGMT_FLAG_NON_CRITICAL_APP: True}
 
         log = manifest_compiler.Log()
         mgmt_flags = manifest_compiler.parse_mgmt_flags(
@@ -607,6 +609,9 @@ class TestManifest(unittest.TestCase):
         self.assertEqual(mgmt_flags.deferred_start,
                          mgmt_flags_ref_data[
                              manifest_compiler.MGMT_FLAG_DEFERRED_START])
+        self.assertEqual(mgmt_flags.non_critical_app,
+                         mgmt_flags_ref_data[
+                             manifest_compiler.MGMT_FLAG_NON_CRITICAL_APP])
 
     '''
     Test with a valid management flags
@@ -615,10 +620,12 @@ class TestManifest(unittest.TestCase):
         constants = {}
         mgmt_flags_ref_data = {
                 manifest_compiler.MGMT_FLAG_RESTART_ON_EXIT: False,
-                manifest_compiler.MGMT_FLAG_DEFERRED_START: False}
+                manifest_compiler.MGMT_FLAG_DEFERRED_START: False,
+                manifest_compiler.MGMT_FLAG_NON_CRITICAL_APP: False}
         mgmt_flags_data = {
                 manifest_compiler.MGMT_FLAG_RESTART_ON_EXIT: False,
-                manifest_compiler.MGMT_FLAG_DEFERRED_START: False}
+                manifest_compiler.MGMT_FLAG_DEFERRED_START: False,
+                manifest_compiler.MGMT_FLAG_NON_CRITICAL_APP: False}
 
         log = manifest_compiler.Log()
         mgmt_flags = manifest_compiler.parse_mgmt_flags(
@@ -630,6 +637,9 @@ class TestManifest(unittest.TestCase):
         self.assertEqual(mgmt_flags.deferred_start,
                          mgmt_flags_ref_data[
                              manifest_compiler.MGMT_FLAG_DEFERRED_START])
+        self.assertEqual(mgmt_flags.non_critical_app,
+                         mgmt_flags_ref_data[
+                             manifest_compiler.MGMT_FLAG_NON_CRITICAL_APP])
 
     '''
     Test with a valid management flags
@@ -638,10 +648,12 @@ class TestManifest(unittest.TestCase):
         constants = {}
         mgmt_flags_ref_data = {
                 manifest_compiler.MGMT_FLAG_RESTART_ON_EXIT: False,
-                manifest_compiler.MGMT_FLAG_DEFERRED_START: True}
+                manifest_compiler.MGMT_FLAG_DEFERRED_START: True,
+                manifest_compiler.MGMT_FLAG_NON_CRITICAL_APP: False}
         mgmt_flags_data = {
                 manifest_compiler.MGMT_FLAG_RESTART_ON_EXIT: False,
-                manifest_compiler.MGMT_FLAG_DEFERRED_START: True}
+                manifest_compiler.MGMT_FLAG_DEFERRED_START: True,
+                manifest_compiler.MGMT_FLAG_NON_CRITICAL_APP: False}
 
         log = manifest_compiler.Log()
         mgmt_flags = manifest_compiler.parse_mgmt_flags(
@@ -653,6 +665,9 @@ class TestManifest(unittest.TestCase):
         self.assertEqual(mgmt_flags.deferred_start,
                          mgmt_flags_ref_data[
                              manifest_compiler.MGMT_FLAG_DEFERRED_START])
+        self.assertEqual(mgmt_flags.non_critical_app,
+                         mgmt_flags_ref_data[
+                             manifest_compiler.MGMT_FLAG_NON_CRITICAL_APP])
 
     '''
     Test with a management flags missing
@@ -668,6 +683,7 @@ class TestManifest(unittest.TestCase):
         self.assertFalse(log.error_occurred())
         self.assertIsNone(mgmt_flags.restart_on_exit)
         self.assertTrue(mgmt_flags.deferred_start)
+        self.assertIsNone(mgmt_flags.non_critical_app)
 
     '''
     Test with a empty management flags"
@@ -682,6 +698,7 @@ class TestManifest(unittest.TestCase):
         self.assertFalse(log.error_occurred())
         self.assertIsNone(mgmt_flags.restart_on_exit)
         self.assertIsNone(mgmt_flags.deferred_start)
+        self.assertIsNone(mgmt_flags.non_critical_app)
 
     '''
     Test with a mgmt_flags as array of flags
@@ -690,7 +707,8 @@ class TestManifest(unittest.TestCase):
         constants = {}
         config_data = {manifest_compiler.MGMT_FLAGS: [{
                 manifest_compiler.MGMT_FLAG_RESTART_ON_EXIT: True,
-                manifest_compiler.MGMT_FLAG_DEFERRED_START: True}]}
+                manifest_compiler.MGMT_FLAG_DEFERRED_START: True,
+                manifest_compiler.MGMT_FLAG_NON_CRITICAL_APP: True}]}
 
         log = manifest_compiler.Log()
         mgmt_flags = manifest_compiler.parse_mgmt_flags(
@@ -887,6 +905,7 @@ class TestManifest(unittest.TestCase):
             self.assertEqual(memio_map.size, int(size, 0))
         self.assertFalse(manifest.mgmt_flags.restart_on_exit)
         self.assertFalse(manifest.mgmt_flags.deferred_start)
+        self.assertFalse(manifest.mgmt_flags.non_critical_app)
 
     '''
     Test with invalid value in config,
@@ -1192,7 +1211,8 @@ class TestManifest(unittest.TestCase):
                 manifest_compiler.MIN_STACK: 4096,
                 manifest_compiler.MGMT_FLAGS: {
                         manifest_compiler.MGMT_FLAG_RESTART_ON_EXIT: False,
-                        manifest_compiler.MGMT_FLAG_DEFERRED_START: False
+                        manifest_compiler.MGMT_FLAG_DEFERRED_START: False,
+                        manifest_compiler.MGMT_FLAG_NON_CRITICAL_APP: False
                 }
         }
 
@@ -1237,7 +1257,8 @@ class TestManifest(unittest.TestCase):
                         {"id": 3, "addr": "0x70020000", "size": "0x4"}],
                 manifest_compiler.MGMT_FLAGS: {
                         manifest_compiler.MGMT_FLAG_RESTART_ON_EXIT: False,
-                        manifest_compiler.MGMT_FLAG_DEFERRED_START: False
+                        manifest_compiler.MGMT_FLAG_DEFERRED_START: False,
+                        manifest_compiler.MGMT_FLAG_NON_CRITICAL_APP: False
                 }
         }
 
@@ -1282,7 +1303,8 @@ class TestManifest(unittest.TestCase):
                 manifest_compiler.MIN_STACK: 4096,
                 manifest_compiler.MGMT_FLAGS: {
                         manifest_compiler.MGMT_FLAG_RESTART_ON_EXIT: True,
-                        manifest_compiler.MGMT_FLAG_DEFERRED_START: False
+                        manifest_compiler.MGMT_FLAG_DEFERRED_START: False,
+                        manifest_compiler.MGMT_FLAG_NON_CRITICAL_APP: False
                 }
         }
 
@@ -1327,7 +1349,8 @@ class TestManifest(unittest.TestCase):
                 ],
                 manifest_compiler.MGMT_FLAGS: {
                         manifest_compiler.MGMT_FLAG_RESTART_ON_EXIT: False,
-                        manifest_compiler.MGMT_FLAG_DEFERRED_START: False
+                        manifest_compiler.MGMT_FLAG_DEFERRED_START: False,
+                        manifest_compiler.MGMT_FLAG_NON_CRITICAL_APP: False
                 }
         }
 
@@ -1406,7 +1429,8 @@ class TestManifest(unittest.TestCase):
                 ],
                 manifest_compiler.MGMT_FLAGS: {
                         manifest_compiler.MGMT_FLAG_RESTART_ON_EXIT: False,
-                        manifest_compiler.MGMT_FLAG_DEFERRED_START: False
+                        manifest_compiler.MGMT_FLAG_DEFERRED_START: False,
+                        manifest_compiler.MGMT_FLAG_NON_CRITICAL_APP: False
                 }
         }
 
