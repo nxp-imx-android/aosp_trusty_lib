@@ -77,11 +77,13 @@ enum spi_cmd_msg {
  * @SPI_CMD_SHM_OP_XFER:        operation code for data transfer
  * @SPI_CMD_SHM_OP_CS_ASSERT:   operation code for chip select assert
  * @SPI_CMD_SHM_OP_CS_DEASSERT: operation code for chip select deassert
+ * @SPI_CMD_SHM_OP_SET_CLK:     operation code for setting SPI clock
  */
 enum spi_cmd_shm {
     SPI_CMD_SHM_OP_XFER = (0x1u << SPI_CMD_OP_SHIFT),
     SPI_CMD_SHM_OP_CS_ASSERT = (0x2u << SPI_CMD_OP_SHIFT),
     SPI_CMD_SHM_OP_CS_DEASSERT = (0x3u << SPI_CMD_OP_SHIFT),
+    SPI_CMD_SHM_OP_SET_CLK = (0x4u << SPI_CMD_OP_SHIFT),
 };
 
 /**
@@ -171,6 +173,15 @@ struct spi_batch_resp {
 struct spi_xfer_args {
     uint32_t len;
     uint32_t flags;
+};
+
+/**
+ * struct spi_clk_args - arguments for %SPI_CMD_SHM_OP_CLK request and response
+ * @clk_hz: SPI clock speed, in Hz. Request contains clock speed requested by
+ *          the client. Response contains actual clock speed that was set.
+ */
+struct spi_clk_args {
+    uint64_t clk_hz;
 };
 
 __END_CDECLS

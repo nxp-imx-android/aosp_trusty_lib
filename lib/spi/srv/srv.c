@@ -187,6 +187,25 @@ static int handle_xfer_args(struct spi_dev_ctx* spi, struct mem_buf* shm) {
     return rc;
 }
 
+static int handle_clk_args(struct spi_dev_ctx* spi, struct mem_buf* shm) {
+    int rc;
+    struct spi_clk_args* clk_args;
+
+    clk_args = mb_advance_pos(shm, sizeof(*clk_args));
+    if (!clk_args) {
+        TLOGE("failed to read SPI clk request arguments from shared memory\n");
+        return ERR_NO_MEMORY;
+    }
+
+    rc = spi_req_set_clk(spi, &clk_args->clk_hz);
+    if (rc != NO_ERROR) {
+        TLOGE("failed (%d) to set SPI clock speed\n", rc);
+    }
+
+    /* @clk_args response is handled by driver implementation */
+    return rc;
+}
+
 /**
  * spi_batch_state - tracks state associated with SPI batch being processed
  * @cs:       CS state resulting from the SPI batch
@@ -245,6 +264,10 @@ static int unpack_shm(struct spi_dev_ctx* spi,
             } else {
                 rc = ERR_NOT_READY;
             }
+            break;
+
+        case SPI_CMD_SHM_OP_SET_CLK:
+            rc = handle_clk_args(spi, shm);
             break;
 
         default:

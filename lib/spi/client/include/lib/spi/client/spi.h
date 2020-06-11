@@ -80,7 +80,7 @@ int spi_dev_open(struct spi_dev* dev,
 void spi_clear_cmds(struct spi_dev* dev);
 
 /**
- * spi_exec_xfer() - execute series of SPI commands
+ * spi_exec_cmds() - execute series of SPI commands
  * @dev:    handle of SPI device previously opened with spi_dev_open()
  * @failed: points to location to store index of failed command if an error
  *          occurred.
@@ -114,7 +114,7 @@ int spi_exec_cmds(struct spi_dev* dev, size_t* failed);
  * word-size is a multiple of 8 bits, the number of SPI clock cycles are
  * round_up(@len * 8, word-size). Otherwise, details TBD.
  *
- * If this routine fails, all subsequent calls to spi_exec_xfer() and
+ * If this routine fails, all subsequent calls to spi_exec_cmds() and
  * spi_add_*() routines will fail until spi_clear_cmds() is called.
  *
  * Return: 0 on success, negative error code otherwise.
@@ -131,7 +131,7 @@ int spi_add_data_xfer_cmd(struct spi_dev* dev,
  * This routine builds a command to assert chip select with
  * specified device.
  *
- * If this routine fails, all subsequent calls to spi_exec_xfer() and
+ * If this routine fails, all subsequent calls to spi_exec_cmds() and
  * spi_add_*() routines will fail until spi_clear_cmds() is called.
  *
  * Return: 0 on success, negative error code otherwise.
@@ -145,11 +145,31 @@ int spi_add_cs_assert_cmd(struct spi_dev* dev);
  * This routine builds a command to deassert chip select with
  * specified device.
  *
- * If this routine fails, all subsequent calls to spi_exec_xfer() and
+ * If this routine fails, all subsequent calls to spi_exec_cmds() and
  * spi_add_*() routines will fail until spi_clear_cmds() is called.
  *
  * Return: 0 on success, negative error code otherwise.
  */
 int spi_add_cs_deassert_cmd(struct spi_dev* dev);
+
+/**
+ * spi_add_set_clk_cmd() - configure SPI set clock speed command
+ * @dev:        handle of SPI device previously opened with spi_dev_open()
+ * @clk_hz_in:  requested SPI clock speed, in Hz
+ * @clk_hz_out: output pointer to actual SPI clock speed that was set, in Hz.
+ *              Value is set after spi_exec_cmds() returns. Clients can pass
+ *              %NULL if they don't need to know the actual clock rate used.
+ *              Actual clock rate must be @clk_hz_in or less.
+ *
+ * This routine builds a command to set clock speed for specified device.
+ *
+ * If this routine fails, all subsequent calls to spi_exec_cmds() and
+ * spi_add_*() routines will fail until spi_clear_cmds() is called.
+ *
+ * Return: 0 on success, or negative error code otherwise.
+ */
+int spi_add_set_clk_cmd(struct spi_dev* dev,
+                        uint64_t clk_hz_in,
+                        uint64_t** clk_hz_out);
 
 __END_CDECLS

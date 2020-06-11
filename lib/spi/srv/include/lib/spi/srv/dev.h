@@ -70,6 +70,26 @@ struct spi_dev_ctx;
 bool spi_is_bus_shared(struct spi_dev_ctx* dev);
 
 /**
+ * spi_req_set_clk() - set SPI clock speed for specified SPI device
+ * @dev:    SPI device to configure
+ * @clk_hz: pointer to SPI clock speed, in Hz
+ *
+ * Called by SPI master service to set SPI clock speed. Upon successful setting
+ * of the clock, or after calculating what that clock rate will be, @clk_hz is
+ * expected to point to the real clock speed that the device was configured to.
+ * That real clock speed must be equal or less than requested clock speed.
+ *
+ * SPI driver should set the value of @clk_hz using WRITE_ONCE() macro.
+ *
+ * SPI driver implementation may choose to either (1) execute the request
+ * immediately or (2) place the request in a batch that will later be committed
+ * by spi_seq_commit().
+ *
+ * Return: 0 on success, or negative error code otherwise.
+ */
+int spi_req_set_clk(struct spi_dev_ctx* dev, uint64_t* clk_hz);
+
+/**
  * spi_req_cs_assert() - assert chip select (CS) for specified SPI device
  * @dev: SPI device to assert CS for
  *

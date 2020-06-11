@@ -269,6 +269,10 @@ static int validate_batch_resp(struct spi_batch_resp* batch_resp,
         case SPI_CMD_SHM_OP_CS_ASSERT:
         case SPI_CMD_SHM_OP_CS_DEASSERT:
             break;
+        case SPI_CMD_SHM_OP_SET_CLK:
+            /* skip spi_clk_args */
+            mb_advance_pos(shm, sizeof(struct spi_clk_args));
+            break;
         default:
             TLOGE("cmd 0x%x: unknown command\n", shm_hdr_cmd);
             return ERR_CMD_UNKNOWN;
@@ -445,4 +449,25 @@ int spi_add_cs_assert_cmd(struct spi_dev* dev) {
 
 int spi_add_cs_deassert_cmd(struct spi_dev* dev) {
     return spi_add_cmd(dev, SPI_CMD_SHM_OP_CS_DEASSERT, NULL, 0, NULL, 0);
+}
+
+int spi_add_set_clk_cmd(struct spi_dev* dev,
+                        uint64_t clk_hz_in,
+                        uint64_t** clk_hz_out) {
+    int rc;
+    struct spi_clk_args* args;
+
+    rc = spi_add_cmd(dev, SPI_CMD_SHM_OP_SET_CLK, (void**)&args, sizeof(*args),
+                     NULL, 0);
+    if (rc != NO_ERROR) {
+        return rc;
+    }
+
+    WRITE_ONCE(args->clk_hz, clk_hz_in);
+
+    if (clk_hz_out) {
+        *clk_hz_out = &args->clk_hz;
+    }
+
+    return NO_ERROR;
 }
