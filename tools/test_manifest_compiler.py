@@ -665,7 +665,7 @@ class TestManifest(unittest.TestCase):
         log = manifest_compiler.Log()
         mgmt_flags = manifest_compiler.parse_mgmt_flags(
             mgmt_flags_data, constants, log)
-        self.assertTrue(log.error_occurred())
+        self.assertFalse(log.error_occurred())
         self.assertIsNone(mgmt_flags.restart_on_exit)
         self.assertTrue(mgmt_flags.deferred_start)
 
@@ -679,7 +679,7 @@ class TestManifest(unittest.TestCase):
         log = manifest_compiler.Log()
         mgmt_flags = manifest_compiler.parse_mgmt_flags(
             mgmt_flags_data, constants, log)
-        self.assertTrue(log.error_occurred())
+        self.assertFalse(log.error_occurred())
         self.assertIsNone(mgmt_flags.restart_on_exit)
         self.assertIsNone(mgmt_flags.deferred_start)
 

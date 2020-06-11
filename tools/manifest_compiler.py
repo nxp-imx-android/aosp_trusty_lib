@@ -479,8 +479,8 @@ def parse_mgmt_flags(flags, constants, log):
         return None
 
     mgmt_flags = MgmtFlags(
-            get_boolean(flags, MGMT_FLAG_RESTART_ON_EXIT, constants, log),
-            get_boolean(flags, MGMT_FLAG_DEFERRED_START, constants, log))
+            get_boolean(flags, MGMT_FLAG_RESTART_ON_EXIT, constants, log, optional=True),
+            get_boolean(flags, MGMT_FLAG_DEFERRED_START, constants, log, optional=True))
 
     if flags:
         log.error("Unknown atributes in mgmt_flags entries in manifest: {} "
