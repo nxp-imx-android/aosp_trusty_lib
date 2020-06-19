@@ -14,6 +14,7 @@
 #
 
 include trusty/user/app/keymaster/usertests-inc.mk
+include trusty/user/app/storage/usertests-inc.mk
 include trusty/user/app/sample/usertests-inc.mk
 
 TRUSTY_ALL_USER_TASKS += \
