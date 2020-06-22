@@ -13,10 +13,23 @@
 # limitations under the License.
 #
 
-include trusty/user/app/keymaster/usertests-inc.mk
-include trusty/user/app/storage/usertests-inc.mk
-include trusty/user/app/sample/usertests-inc.mk
+LOCAL_DIR := $(GET_LOCAL_DIR)
 
-TRUSTY_ALL_USER_TASKS += \
-	trusty/user/base/lib/smc/tests \
-	trusty/user/base/lib/libc-trusty/test \
+MODULE := $(LOCAL_DIR)
+
+MANIFEST := $(LOCAL_DIR)/manifest.json
+
+MODULE_SRCS += \
+	$(LOCAL_DIR)/libc_test.c \
+
+MODULE_DEPS += \
+	trusty/user/base/lib/libc-trusty \
+	trusty/user/base/lib/unittest \
+
+# We're doing some strange things like exhausting memory with malloc and passing
+# bad format strings to printf. The compiler can interfere with these tests, so
+# prevent it from making assumptions about function names. This also prevents
+# rewriting like printf => puts.
+MODULE_COMPILEFLAGS := -ffreestanding -Wno-format-invalid-specifier
+
+include make/module.mk

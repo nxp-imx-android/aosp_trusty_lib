@@ -19,4 +19,5 @@
     include("trusty/user/app/sample/build-config-usertests"),
 
     porttest("com.android.trusty.smc.test"),
+    porttest("com.android.libctest"),
 ]
