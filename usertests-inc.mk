@@ -20,3 +20,4 @@ include trusty/user/app/sample/usertests-inc.mk
 TRUSTY_ALL_USER_TASKS += \
 	trusty/user/base/lib/smc/tests \
 	trusty/user/base/lib/libc-trusty/test \
+	trusty/user/base/lib/uirq/test \
