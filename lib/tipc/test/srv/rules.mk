@@ -1,4 +1,4 @@
-# Copyright (C) 2019 The Android Open Source Project
+# Copyright (C) 2014-2015 The Android Open Source Project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,13 +13,21 @@
 # limitations under the License.
 #
 
-include trusty/user/app/keymaster/usertests-inc.mk
-include trusty/user/app/sample/usertests-inc.mk
-include trusty/user/app/storage/usertests-inc.mk
+LOCAL_DIR := $(GET_LOCAL_DIR)
 
-TRUSTY_ALL_USER_TASKS += \
-        trusty/user/base/lib/libc-trusty/test \
-	trusty/user/base/lib/smc/tests \
-	trusty/user/base/lib/tipc/test/main \
-	trusty/user/base/lib/tipc/test/srv \
-	trusty/user/base/lib/uirq/test \
+MODULE := $(LOCAL_DIR)
+
+MANIFEST := $(LOCAL_DIR)/manifest.json
+
+CONSTANTS := $(LOCAL_DIR)/../include/app/ipc_unittest/ipc_unittest_uuid_consts.json
+
+MODULE_INCLUDES += \
+	$(LOCAL_DIR)/../include \
+
+MODULE_SRCS += \
+	$(LOCAL_DIR)/srv.c \
+
+MODULE_DEPS += \
+	trusty/user/base/lib/libc-trusty \
+
+include make/module.mk

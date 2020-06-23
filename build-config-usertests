@@ -18,7 +18,8 @@
     include("trusty/user/app/keymaster/build-config-usertests"),
     include("trusty/user/app/sample/build-config-usertests"),
 
-    porttest("com.android.trusty.smc.test"),
+    porttest("com.android.ipc-unittest.ctrl"),
     porttest("com.android.libctest"),
+    porttest("com.android.trusty.smc.test"),
     porttest("com.android.uirq-unittest"),
 ]
