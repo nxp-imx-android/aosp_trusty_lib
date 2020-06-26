@@ -66,6 +66,26 @@ static inline size_t mb_curr_pos(struct mem_buf* mb) {
 }
 
 /**
+ * mb_size() - get current size of memory buffer
+ * @mb: pointer to memory buffer - see &struct mem_buf
+ *
+ * return: size of @mb
+ */
+static inline size_t mb_size(struct mem_buf* mb) {
+    return mb->curr_size;
+}
+
+/**
+ * mb_space_left() - get number of bytes available in memory buffer
+ * @mb: pointer to memory buffer - see &struct mem_buf
+ *
+ * return: amount of space available in @mb
+ */
+static inline size_t mb_space_left(struct mem_buf* mb) {
+    return mb_size(mb) - mb_curr_pos(mb);
+}
+
+/**
  * mb_rewind_pos() - rewind position of memory buffer back to zero
  * @mb: pointer to memory buffer - see &struct mem_buf
  */
