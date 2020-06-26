@@ -19,9 +19,11 @@
     include("trusty/user/app/sample/build-config-usertests"),
     include("trusty/user/app/storage/build-config-usertests"),
 
+    # userspace tests that don't use storage
     porttest("com.android.ipc-unittest.ctrl"),
     porttest("com.android.libctest"),
     porttest("com.android.libcxxtest"),
+    porttest("com.android.trusty.crashtest"),
     porttest("com.android.trusty.smc.test"),
     porttest("com.android.uirq-unittest"),
 ]
