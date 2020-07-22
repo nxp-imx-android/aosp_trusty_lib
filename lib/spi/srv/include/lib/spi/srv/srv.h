@@ -22,7 +22,7 @@
 __BEGIN_CDECLS
 
 /**
- * add_spimaster_service() - Add new SPI master service to service set
+ * add_spi_service() - Add new SPI service to service set
  * @hset:      pointer to handle set to add service to
  * @ports:     an array of &struct tipc_port describing ports for this
  *             service
@@ -37,8 +37,8 @@ __BEGIN_CDECLS
  *
  * Return: 0 on success, negative error code otherwise
  */
-int add_spimaster_service(struct tipc_hset* hset,
-                          const struct tipc_port* ports,
-                          size_t num_ports);
+int add_spi_service(struct tipc_hset* hset,
+                    const struct tipc_port* ports,
+                    size_t num_ports);
 
 __END_CDECLS

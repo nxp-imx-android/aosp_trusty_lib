@@ -25,7 +25,7 @@
 #include <uapi/err.h>
 #include <uapi/mm.h>
 
-#define TLOG_TAG "spi-master-srv"
+#define TLOG_TAG "spi-srv"
 #include <trusty_log.h>
 
 /**
@@ -474,9 +474,9 @@ static const struct tipc_srv_ops spi_dev_ops = {
         .on_channel_cleanup = on_channel_cleanup,
 };
 
-int add_spimaster_service(struct tipc_hset* hset,
-                          const struct tipc_port* ports,
-                          size_t num_ports) {
+int add_spi_service(struct tipc_hset* hset,
+                    const struct tipc_port* ports,
+                    size_t num_ports) {
     int rc;
 
     for (size_t i = 0; i < num_ports; i++) {

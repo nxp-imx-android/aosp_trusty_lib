@@ -26,9 +26,9 @@ __BEGIN_CDECLS
 /**
  *  DOC: API notes
  *
- *  This module defines an API for implementing hardware-specific SPI master
- *  device driver. It is expected that it will be working in conjunction with
- *  higher level service (spimaster) that will make calls described here.
+ *  This module defines an API for implementing hardware-specific SPI controller
+ *  driver. It is expected that it will be working in conjunction with higher
+ *  level service that will make calls described here.
  */
 
 /**
@@ -40,8 +40,8 @@ __BEGIN_CDECLS
  * hardware configuration parameters required to talk to the above device.
  *
  * &struct spi_dev_ctx must be allocated by the SPI driver and provided to SPI
- * master service via add_spimaster_service() API as port-specific private data
- * in @priv field of &struct tipc_port.
+ * service via add_spi_service() API as port-specific private data in @priv
+ * field of &struct tipc_port.
  *
  * Multiple SPI devices might be connected to the same physical SPI bus. Only
  * one device can be active at a time. Only one client can be connected to a
@@ -74,10 +74,10 @@ bool spi_is_bus_shared(struct spi_dev_ctx* dev);
  * @dev:    SPI device to configure
  * @clk_hz: pointer to SPI clock speed, in Hz
  *
- * Called by SPI master service to set SPI clock speed. Upon successful setting
- * of the clock, or after calculating what that clock rate will be, @clk_hz is
- * expected to point to the real clock speed that the device was configured to.
- * That real clock speed must be equal or less than requested clock speed.
+ * Called by SPI library to set SPI clock speed. Upon successful setting of the
+ * clock, or after calculating what that clock rate will be, @clk_hz is expected
+ * to point to the real clock speed that the device was configured to. That
+ * real clock speed must be equal or less than requested clock speed.
  *
  * SPI driver should set the value of @clk_hz using WRITE_ONCE() macro.
  *
@@ -93,7 +93,7 @@ int spi_req_set_clk(struct spi_dev_ctx* dev, uint64_t* clk_hz);
  * spi_req_cs_assert() - assert chip select (CS) for specified SPI device
  * @dev: SPI device to assert CS for
  *
- * Called by SPI master service to assert CS and start a SPI transaction. A SPI
+ * Called by SPI library to assert CS and start a SPI transaction. A SPI
  * transaction is defined as a series of transfers with asserted CS. While SPI
  * transaction is active no other transaction can become active on the same
  * physical SPI bus. These transactions must remain active until CS is
@@ -114,7 +114,7 @@ int spi_req_cs_assert(struct spi_dev_ctx* dev);
  * spi_req_cs_deassert() - deassert chip select (CS) for specified SPI device
  * @dev: SPI device to deassert CS for
  *
- * Called by SPI master service to deassert CS and stop ongoing SPI transaction.
+ * Called by SPI library to deassert CS and stop ongoing SPI transaction.
  *
  * Stopping SPI transaction for a device that is not currently in active
  * transaction state must result in an error.
@@ -137,9 +137,9 @@ int spi_req_cs_deassert(struct spi_dev_ctx* dev);
  *       discarded.
  * @len: number of bytes to transmit. It could be 0.
  *
- * Called by SPI master service to send/receive data consisting of specified
- * array of bytes in device-specific on wire bit order. Either or both @rx and
- * @tx could be NULL. Both @tx and @rx could point to the same memory location.
+ * Called by SPI library to send/receive data consisting of specified array of
+ * bytes in device-specific on wire bit order. Either or both @rx and @tx could
+ * be NULL. Both @tx and @rx could point to the same memory location.
  *
  * @len also controls the number of clock cycles sent the SPI bus. If the
  * word-size is a multiple of 8 bits, the number of SPI clock cycles should be
@@ -158,7 +158,7 @@ int spi_req_xfer(struct spi_dev_ctx* dev, void* tx, void* rx, size_t len);
  * @dev:      SPI device to begin sequence of commands for
  * @num_cmds: number of SPI commands the upcoming sequence
  *
- * Called by SPI master service to begin a sequence of SPI requests.
+ * Called by SPI library to begin a sequence of SPI requests.
  *
  * Return: 0 on success, negative error code otherwise
  */
@@ -168,7 +168,7 @@ int spi_seq_begin(struct spi_dev_ctx* dev, size_t num_cmds);
  * spi_seq_commit() - commit a sequence of SPI requests for specified SPI device
  * @dev: SPI device to commit sequence of commands for
  *
- * Called by SPI master service to commit a sequence of SPI requests. SPI driver
+ * Called by SPI library to commit a sequence of SPI requests. SPI driver
  * implementations that batch SPI requests must execute the batch at this point.
  *
  * Return: 0 if all command were successful, negative error code otherwise
@@ -179,9 +179,8 @@ int spi_seq_commit(struct spi_dev_ctx* dev);
  * spi_seq_abort() - abort a sequence of SPI requests in progress
  * @dev: SPI device to abort sequence of commands for
  *
- * Called by SPI master service to abort a sequence of SPI requests. This
- * routine must restore the state of CS to the state before the sequence has
- * begun.
+ * Called by SPI library to abort a sequence of SPI requests. This routine must
+ * restore the state of CS to the state before the sequence has begun.
  */
 void spi_seq_abort(struct spi_dev_ctx* dev);
 
