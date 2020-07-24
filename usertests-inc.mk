@@ -33,3 +33,9 @@ TRUSTY_ALL_USER_TASKS += \
 	trusty/user/base/lib/sancov/test/srv \
 
 endif
+
+ifeq (true,$(call TOBOOL,$(USER_HWASAN_ENABLED)))
+TRUSTY_ALL_USER_TASKS += \
+	trusty/user/base/lib/hwasan/test \
+
+endif
