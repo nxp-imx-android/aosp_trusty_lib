@@ -1491,6 +1491,9 @@ DLMALLOC_EXPORT int mspace_mallopt(int, int);
 extern void*     sbrk(ptrdiff_t);
 #endif /* FreeBSD etc */
 #endif /* LACKS_UNISTD_H */
+#ifdef HWASAN_ENABLED
+#include <lib/hwasan/hwasan_shadow.h>
+#endif /* HWASAN_ENABLED */
 
 /* Declarations for locking */
 #if USE_LOCKS
@@ -2217,8 +2220,16 @@ typedef unsigned int flag_t;           /* The type of various bit flag sets */
   ((MCHUNK_SIZE + CHUNK_ALIGN_MASK) & ~CHUNK_ALIGN_MASK)
 
 /* conversion from malloc headers to user pointers, and back */
-#define chunk2mem(p)        ((void*)((char*)(p)       + TWO_SIZE_T_SIZES))
-#define mem2chunk(mem)      ((mchunkptr)((char*)(mem) - TWO_SIZE_T_SIZES))
+#define _chunk2mem(p)       ((void*)((char*)(p)       + TWO_SIZE_T_SIZES))
+#define _mem2chunk(mem)     ((mchunkptr)((char*)(mem) - TWO_SIZE_T_SIZES))
+#ifdef HWASAN_ENABLED
+/* TODO: sanitize malloc chunks */
+#define chunk2mem(p)        (void*)hwasan_remove_ptr_tag(_chunk2mem(p))
+#define mem2chunk(mem)      (mchunkptr)hwasan_remove_ptr_tag(_mem2chunk(mem))
+#else
+#define chunk2mem(p)        _chunk2mem(p)
+#define mem2chunk(mem)      _mem2chunk(mem)
+#endif
 /* chunk associated with aligned address A */
 #define align_as_chunk(A)   (mchunkptr)((A) + align_offset(chunk2mem(A)))
 
@@ -4670,7 +4681,11 @@ void* dlmalloc(size_t bytes) {
 
   postaction:
     POSTACTION(gm);
+#ifdef HWASAN_ENABLED
+    return hwasan_tag_memory(mem, bytes);
+#else
     return mem;
+#endif
   }
 
   return 0;
@@ -4687,6 +4702,10 @@ void dlfree(void* mem) {
 
   if (mem != 0) {
     mchunkptr p  = mem2chunk(mem);
+#ifdef HWASAN_ENABLED
+    hwasan_untag_memory(mem, chunksize(p));
+    mem = hwasan_remove_ptr_tag(mem);
+#endif
 #if FOOTERS
     mstate fm = get_mstate_for(p);
     if (!ok_magic(fm)) {
@@ -4906,6 +4925,10 @@ static void* internal_memalign(mstate m, size_t alignment, size_t bytes) {
     mem = internal_malloc(m, req);
     if (mem != 0) {
       mchunkptr p = mem2chunk(mem);
+#ifdef HWASAN_ENABLED
+      hwasan_untag_memory(mem, chunksize(p));
+      mem = hwasan_remove_ptr_tag(mem);
+#endif
       if (PREACTION(m))
         return 0;
       if ((((size_t)(mem)) & (alignment - 1)) != 0) { /* misaligned */
@@ -4957,6 +4980,9 @@ static void* internal_memalign(mstate m, size_t alignment, size_t bytes) {
       POSTACTION(m);
     }
   }
+#ifdef HWASAN_ENABLED
+  mem = hwasan_tag_memory(mem, bytes);
+#endif
   return mem;
 }
 
@@ -5197,6 +5223,10 @@ void* dlrealloc(void* oldmem, size_t bytes) {
   else {
     size_t nb = request2size(bytes);
     mchunkptr oldp = mem2chunk(oldmem);
+#ifdef HWASAN_ENABLED
+    hwasan_untag_memory(oldmem, chunksize(oldp));
+    oldmem = hwasan_remove_ptr_tag(oldmem);
+#endif
 #if ! FOOTERS
     mstate m = gm;
 #else /* FOOTERS */
@@ -5223,7 +5253,11 @@ void* dlrealloc(void* oldmem, size_t bytes) {
       }
     }
   }
+#ifdef HWASAN_ENABLED
+  return hwasan_tag_memory(mem, bytes);
+#else
   return mem;
+#endif
 }
 
 void* dlrealloc_in_place(void* oldmem, size_t bytes) {
