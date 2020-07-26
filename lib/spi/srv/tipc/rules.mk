@@ -17,12 +17,12 @@ LOCAL_DIR := $(GET_LOCAL_DIR)
 MODULE := $(LOCAL_DIR)
 
 MODULE_SRCS += \
-    $(LOCAL_DIR)/srv.c \
+    $(LOCAL_DIR)/tipc.c \
 
 MODULE_DEPS += \
     trusty/user/base/interface/spi \
     trusty/user/base/lib/spi/common \
-    trusty/user/base/lib/spi/srv/tipc \
+    trusty/user/base/lib/tipc \
 
 MODULE_INCLUDES += \
     trusty/user/base/lib/spi/srv/common/include \

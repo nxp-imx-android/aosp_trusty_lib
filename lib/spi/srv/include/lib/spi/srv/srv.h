@@ -16,29 +16,5 @@
 
 #pragma once
 
-#include <lib/tipc/tipc_srv.h>
-#include <lk/compiler.h>
-
-__BEGIN_CDECLS
-
-/**
- * add_spi_service() - Add new SPI service to service set
- * @hset:      pointer to handle set to add service to
- * @ports:     an array of &struct tipc_port describing ports for this
- *             service
- * @num_ports: number of ports in array pointed by @ports
- *
- * Caller must provide a pointer to &struct spi_dev_ctx as port-specific private
- * data in @priv field of &struct tipc_port.
- *
- * This routine can be called multiple times to register multiple services.
- *
- * Each port in @ports may have at most one active connection.
- *
- * Return: 0 on success, negative error code otherwise
- */
-int add_spi_service(struct tipc_hset* hset,
-                    const struct tipc_port* ports,
-                    size_t num_ports);
-
-__END_CDECLS
+/* Expose tipc.h functions to clients of lib/spi/srv */
+#include <lib/spi/srv/tipc/tipc.h>
