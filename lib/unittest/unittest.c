@@ -116,7 +116,7 @@ int unittest_main(struct unittest** tests, size_t test_count) {
             .event = ~0U,
     };
     struct unittest* test;
-    uuid_t dummy_uuid;
+    uuid_t unused_uuid;
 
     ret = handle_set_create();
     if (ret < 0) {
@@ -157,7 +157,7 @@ int unittest_main(struct unittest** tests, size_t test_count) {
             break;
         if (evt.event & IPC_HANDLE_POLL_READY) {
             /* get connection request */
-            ret = accept(evt.handle, &dummy_uuid);
+            ret = accept(evt.handle, &unused_uuid);
             TLOGI("accept returned %d\n", ret);
             if (ret >= 0) {
                 char tx_buffer[1];

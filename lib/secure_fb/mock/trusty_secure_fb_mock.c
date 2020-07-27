@@ -52,7 +52,7 @@ trusty_secure_fb_error trusty_secure_fb_display_next(
         return TTUI_ERROR_NO_FRAMEBUFFER;
     (void)copy;
     /*
-     * We just return the same buffer again. This is just a dummy anyway.
+     * We just return the same buffer again. This is just a stub anyway.
      */
     *fb_info = s_fb_info;
     return TTUI_ERROR_OK;

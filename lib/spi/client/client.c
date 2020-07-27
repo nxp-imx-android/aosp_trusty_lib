@@ -317,14 +317,14 @@ static int handle_batch_resp(struct spi_dev* dev, size_t* failed) {
 
 int spi_exec_cmds(struct spi_dev* dev, size_t* failed) {
     int rc;
-    size_t dummy_failed;
+    size_t fake_failed;
 
     if (!is_initialized(dev)) {
         return ERR_INVALID_ARGS;
     }
 
     if (!failed) {
-        failed = &dummy_failed;
+        failed = &fake_failed;
     }
     *failed = 0;
 

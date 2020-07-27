@@ -54,10 +54,10 @@ test_abort:
     global_count = 0;
 }
 
-class Dummy {};
+class Stub {};
 
 TEST_F(libcxx, new_and_delete) {
-    Dummy* tmp = new Dummy();
+    Stub* tmp = new Stub();
     ASSERT_NE(nullptr, tmp);
     delete tmp;
 test_abort:;
@@ -70,14 +70,14 @@ test_abort:;
  * and that all required ABI functions are provided. Thread safety is outside
  * the scope of this test.
  */
-static Dummy* static_dummy_getter() {
-    static Dummy* d = new Dummy();
+static Stub* static_stub_getter() {
+    static Stub* d = new Stub();
     return d;
 }
 
 TEST_F(libcxx, safe_static) {
-    ASSERT_NE(nullptr, static_dummy_getter());
-    ASSERT_EQ(static_dummy_getter(), static_dummy_getter());
+    ASSERT_NE(nullptr, static_stub_getter());
+    ASSERT_EQ(static_stub_getter(), static_stub_getter());
 
 test_abort:;
 }

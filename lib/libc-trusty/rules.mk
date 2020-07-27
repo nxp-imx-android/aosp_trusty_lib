@@ -8,7 +8,7 @@ MODULE := $(LOCAL_DIR)
 # the strong symbol in the .o files and references will always resolve to that
 # strong symbol. By turning libc into a static library, the strong symbols will
 # be pulled into the link only if they are explicitly referenced. This allows
-# a weak symbol to provide a dummy implementation unless there is an explicit
+# a weak symbol to provide a baseline implementation unless there is an explicit
 # dependancy on the symbol somewhere else in the binary.
 MODULE_STATIC_LIB := true
 
