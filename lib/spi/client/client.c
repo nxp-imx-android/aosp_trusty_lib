@@ -243,6 +243,14 @@ static int validate_batch_resp(struct spi_batch_resp* batch_resp,
     struct spi_xfer_args* xfer_resp;
     uint32_t xfer_resp_len;
 
+    /*
+     * length of the response in shared memory must be equal to that of the
+     * request
+     */
+    if (batch_resp->len != mb_curr_pos(shm)) {
+        return ERR_BAD_STATE;
+    }
+
     mb_rewind_pos(shm);
 
     while (mb_curr_pos(shm) < batch_resp->len) {
