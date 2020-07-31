@@ -109,7 +109,7 @@ TEST_F(libc, memcmp_test) {
     buf2[127] = 127;
     ASSERT_GT(0, memcmp(buf1, buf2, sizeof(buf1)));
 
-    /* Sanity check, make them identical again. */
+    /* Buffers are identical again. */
     memcpy(buf2, buf1, sizeof(buf1));
     ASSERT_EQ(0, memcmp(buf1, buf2, sizeof(buf1)));
 
