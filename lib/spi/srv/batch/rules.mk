@@ -17,10 +17,13 @@ LOCAL_DIR := $(GET_LOCAL_DIR)
 MODULE := $(LOCAL_DIR)
 
 MODULE_SRCS += \
-    $(LOCAL_DIR)/srv.c \
+    $(LOCAL_DIR)/batch.c \
 
 MODULE_DEPS += \
-    trusty/user/base/lib/spi/srv/batch \
-    trusty/user/base/lib/spi/srv/tipc \
+    trusty/user/base/interface/spi \
+    trusty/user/base/lib/spi/common \
+
+MODULE_INCLUDES += \
+    trusty/user/base/lib/spi/srv/common/include \
 
 include make/module.mk
