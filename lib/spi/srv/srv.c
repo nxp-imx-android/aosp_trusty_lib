@@ -444,18 +444,35 @@ static int on_message(const struct tipc_port* port,
 static void on_disconnect(const struct tipc_port* port,
                           handle_t chan,
                           void* _ctx) {
+    int rc;
     struct spi_dev_ctx* spi = (struct spi_dev_ctx*)port->priv;
     struct chan_ctx* ctx = (struct chan_ctx*)_ctx;
+    struct spi_shm_hdr hdr;
+    struct mem_buf mb;
+    struct spi_batch_req req;
+    struct spi_batch_state state;
 
     /* make sure CS is deasserted */
     if (!ctx->cs) {
         return;
     }
 
-    spi_seq_begin(spi, 1);
-    spi_req_cs_deassert(spi);
+    /* Construct a batch with a single deassert command to recover CS state */
+    hdr.cmd = SPI_CMD_SHM_OP_CS_DEASSERT;
+
+    /* Deassert commands are header only */
+    mb_init(&mb, &hdr, sizeof(hdr), SPI_CMD_SHM_ALIGN);
+    mb_resize(&mb, sizeof(hdr));
+
+    req.len = sizeof(hdr);
+    req.num_cmds = 1;
+
+    state.cs = true;
+    state.num_cmds = 0;
+
+    rc = handle_shm_batch_req(spi, &mb, &req, &state);
     /* CS state will be out of sync. This is an unrecoverable error. */
-    assert(spi_seq_commit(spi) == NO_ERROR);
+    assert(rc == NO_ERROR);
 
     ctx->cs = false;
 }
