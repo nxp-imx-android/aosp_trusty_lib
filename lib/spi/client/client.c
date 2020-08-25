@@ -281,6 +281,10 @@ static int validate_batch_resp(struct spi_batch_resp* batch_resp,
             /* skip spi_clk_args */
             mb_advance_pos(shm, sizeof(struct spi_clk_args));
             break;
+        case SPI_CMD_SHM_OP_DELAY:
+            /* skip spi_delay_args */
+            mb_advance_pos(shm, sizeof(struct spi_delay_args));
+            break;
         default:
             TLOGE("cmd 0x%x: unknown command\n", shm_hdr_cmd);
             return ERR_CMD_UNKNOWN;
@@ -476,6 +480,21 @@ int spi_add_set_clk_cmd(struct spi_dev* dev,
     if (clk_hz_out) {
         *clk_hz_out = &args->clk_hz;
     }
+
+    return NO_ERROR;
+}
+
+int spi_add_delay_cmd(struct spi_dev* dev, uint64_t delay_ns) {
+    int rc;
+    struct spi_delay_args* args;
+
+    rc = spi_add_cmd(dev, SPI_CMD_SHM_OP_DELAY, (void**)&args, sizeof(*args),
+                     NULL, 0);
+    if (rc != NO_ERROR) {
+        return rc;
+    }
+
+    WRITE_ONCE(args->delay_ns, delay_ns);
 
     return NO_ERROR;
 }

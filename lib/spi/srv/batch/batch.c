@@ -84,6 +84,25 @@ static int handle_clk_args(struct spi_dev_ctx* spi, struct mem_buf* shm) {
     return rc;
 }
 
+static int handle_delay_args(struct spi_dev_ctx* spi, struct mem_buf* shm) {
+    int rc = 0;
+    struct spi_delay_args* delay_args;
+
+    delay_args = mb_advance_pos(shm, sizeof(*delay_args));
+    if (!delay_args) {
+        TLOGE("failed to read delay request arguments from shared memory\n");
+        return ERR_NO_MEMORY;
+    }
+
+    rc = spi_req_delay(spi, delay_args->delay_ns);
+    if (rc != NO_ERROR) {
+        TLOGE("failed (%d) to request delay\n", rc);
+    }
+
+    delay_args->delay_ns = 0;
+    return rc;
+}
+
 static int unpack_shm(struct spi_dev_ctx* spi,
                       struct mem_buf* shm,
                       size_t len,
@@ -135,6 +154,10 @@ static int unpack_shm(struct spi_dev_ctx* spi,
 
         case SPI_CMD_SHM_OP_SET_CLK:
             rc = handle_clk_args(spi, shm);
+            break;
+
+        case SPI_CMD_SHM_OP_DELAY:
+            rc = handle_delay_args(spi, shm);
             break;
 
         default:

@@ -78,12 +78,14 @@ enum spi_cmd_msg {
  * @SPI_CMD_SHM_OP_CS_ASSERT:   operation code for chip select assert
  * @SPI_CMD_SHM_OP_CS_DEASSERT: operation code for chip select deassert
  * @SPI_CMD_SHM_OP_SET_CLK:     operation code for setting SPI clock
+ * @SPI_CMD_SHM_OP_DELAY:       operation code for delays between commands
  */
 enum spi_cmd_shm {
     SPI_CMD_SHM_OP_XFER = (0x1u << SPI_CMD_OP_SHIFT),
     SPI_CMD_SHM_OP_CS_ASSERT = (0x2u << SPI_CMD_OP_SHIFT),
     SPI_CMD_SHM_OP_CS_DEASSERT = (0x3u << SPI_CMD_OP_SHIFT),
     SPI_CMD_SHM_OP_SET_CLK = (0x4u << SPI_CMD_OP_SHIFT),
+    SPI_CMD_SHM_OP_DELAY = (0x5u << SPI_CMD_OP_SHIFT),
 };
 
 /**
@@ -184,4 +186,13 @@ struct spi_clk_args {
     uint64_t clk_hz;
 };
 
+/**
+ * struct spi_clk_args - arguments for %SPI_CMD_SHM_OP_DELAY request and
+ *                       response
+ * @delay_ns: delay, in ns. Request contains amount of delay time requested by
+ *            the client. Response must be zero.
+ */
+struct spi_delay_args {
+    uint64_t delay_ns;
+};
 __END_CDECLS

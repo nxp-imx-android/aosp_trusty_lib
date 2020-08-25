@@ -172,4 +172,24 @@ int spi_add_set_clk_cmd(struct spi_dev* dev,
                         uint64_t clk_hz_in,
                         uint64_t** clk_hz_out);
 
+/**
+ * spi_add_set_delay_cmd() - configure SPI delay command
+ * @dev:      handle of SPI device previously opened with spi_dev_open()
+ * @delay_ns: amount of time to delay remaining SPI requests by, in ns
+ *
+ * This routine builds a command to delay remaining SPI requests for specified
+ * device.
+ *
+ * There is no way to guarantee exact delays due to scheduling constraints.
+ * Execution of this command is done on a best-effort basis. Actual delay time
+ * must be larger than @delay_ns. If a SPI sequence fails due to unsatisfied
+ * timing requirements, clients may retry.
+ *
+ * If this routine fails, all subsequent calls to spi_exec_cmds() and
+ * spi_add_*() routines will fail until spi_clear_cmds() is called.
+ *
+ * Return: 0 on success, or negative error code otherwise.
+ */
+int spi_add_delay_cmd(struct spi_dev* dev, uint64_t delay_ns);
+
 __END_CDECLS

@@ -154,6 +154,26 @@ int spi_req_cs_deassert(struct spi_dev_ctx* dev);
 int spi_req_xfer(struct spi_dev_ctx* dev, void* tx, void* rx, size_t len);
 
 /**
+ * spi_req_delay() - delay remaining SPI requests for specified SPI device
+ * @dev:      SPI device to configure
+ * @delay_ns: amount of time to delay remaining SPI requests by, in ns
+ *
+ * Called by SPI library to insert a delay between SPI requests.
+ *
+ * This command is expected to produce delay times as close as possible to
+ * @delay_ns on a best-effort basis. Actual delay time must be larger than
+ * @delay_ns. If a SPI sequence fails due to unsatisfied timing requirements,
+ * clients may retry.
+ *
+ * SPI driver implementation may choose to either (1) execute the request
+ * immediately or (2) place the request in a batch that will later be committed
+ * by spi_seq_commit().
+ *
+ * Return: 0 on success, or negative error code otherwise.
+ */
+int spi_req_delay(struct spi_dev_ctx* dev, uint64_t delay_ns);
+
+/**
  * spi_seq_begin() - begin a sequence of SPI requests for specified SPI device
  * @dev:      SPI device to begin sequence of commands for
  * @num_cmds: number of SPI commands the upcoming sequence
