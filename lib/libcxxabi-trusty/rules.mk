@@ -2,8 +2,6 @@ LOCAL_DIR := $(GET_LOCAL_DIR)
 
 MODULE := $(LOCAL_DIR)
 
-MODULE_STATIC_LIB := true
-
 LIBCXXABI_DIR = external/libcxxabi
 
 GLOBAL_INCLUDES += $(LIBCXXABI_DIR)/include

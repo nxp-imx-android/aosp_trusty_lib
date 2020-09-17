@@ -2,16 +2,6 @@ LOCAL_DIR := $(GET_LOCAL_DIR)
 
 MODULE := $(LOCAL_DIR)
 
-# Musl plays tricks with weak symbols to assist dead code elimination.
-# By default this build system will "partially link" modules, however, and this
-# reduces the effectiveness of weak symbols. Specifically, the linker will see
-# the strong symbol in the .o files and references will always resolve to that
-# strong symbol. By turning libc into a static library, the strong symbols will
-# be pulled into the link only if they are explicitly referenced. This allows
-# a weak symbol to provide a baseline implementation unless there is an explicit
-# dependancy on the symbol somewhere else in the binary.
-MODULE_STATIC_LIB := true
-
 MUSL_DIR := external/trusty/musl
 
 # This eliminate /usr/local/include and /usr/include from includepaths.
@@ -109,9 +99,9 @@ MODULE_SRCS += \
 	$(LOCAL_DIR)/trusty_uio.c \
 
 ifeq ($(ASLR),false)
-    MODULE_SRCS += $(MUSL_DIR)/crt/crt1.c
+MODULE_SRCS_FIRST := $(MUSL_DIR)/crt/crt1.c
 else
-    MODULE_SRCS += $(MUSL_DIR)/crt/rcrt1.c
+MODULE_SRCS_FIRST := $(MUSL_DIR)/crt/rcrt1.c
 endif
 
 # Musl

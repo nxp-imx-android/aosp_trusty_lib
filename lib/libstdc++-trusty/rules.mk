@@ -2,9 +2,6 @@ LOCAL_DIR := $(GET_LOCAL_DIR)
 
 MODULE := $(LOCAL_DIR)
 
-# Needed to assist dead code elimination.
-MODULE_STATIC_LIB := true
-
 LIBCXX_DIR = external/libcxx
 
 GLOBAL_INCLUDES += $(LIBCXX_DIR)/include
