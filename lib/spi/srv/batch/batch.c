@@ -21,7 +21,7 @@
 #include <lk/compiler.h>
 #include <uapi/err.h>
 
-#ifdef USER_TASK
+#ifdef TRUSTY_USERSPACE
 #define TLOG_TAG "spi-srv-batch"
 #include <trusty_log.h>
 #else
