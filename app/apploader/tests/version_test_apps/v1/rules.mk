@@ -22,7 +22,7 @@ MANIFEST := $(LOCAL_DIR)/manifest.json
 MODULE_SRCS += \
 	$(LOCAL_DIR)/../version_test_app.c \
 
-MODULE_DEPS += \
+MODULE_LIBRARY_DEPS += \
 	trusty/user/base/lib/libc-trusty \
 
-include make/module.mk
+include make/trusted_app.mk

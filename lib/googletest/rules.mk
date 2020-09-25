@@ -5,7 +5,7 @@ MODULE := $(LOCAL_DIR)
 GTEST_DIR := external/googletest/googletest
 
 # Export gtest headers.
-GLOBAL_INCLUDES += $(GTEST_DIR)/include
+MODULE_EXPORT_INCLUDES += $(GTEST_DIR)/include
 
 # gtest has internal includes relative to its root directory.
 MODULE_INCLUDES += $(GTEST_DIR)
@@ -46,7 +46,7 @@ MODULE_SRCS := \
 	$(GTEST_DIR)/src/gtest-test-part.cc \
 	$(GTEST_DIR)/src/gtest-typed-test.cc \
 
-MODULE_DEPS := \
+MODULE_LIBRARY_DEPS += \
         trusty/user/base/lib/libstdc++-trusty \
 
-include make/module.mk
+include make/library.mk

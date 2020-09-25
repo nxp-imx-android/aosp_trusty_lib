@@ -25,7 +25,7 @@ MODULE_SRCS += \
 	$(LOCAL_DIR)/app_version.cpp \
 	$(LOCAL_DIR)/cose.cpp \
 
-MODULE_DEPS += \
+MODULE_LIBRARY_DEPS += \
 	trusty/kernel/lib/app_manifest \
 	trusty/user/base/lib/libc-trusty \
 	trusty/user/base/lib/libstdc++-trusty \
@@ -44,4 +44,4 @@ ifeq (true,$(call TOBOOL,$(APPLOADER_ALLOW_NS_CONNECT)))
 MODULE_COMPILEFLAGS += -DAPPLOADER_ALLOW_NS_CONNECT
 endif
 
-include make/module.mk
+include make/trusted_app.mk

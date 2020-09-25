@@ -7,7 +7,8 @@ MODULE_SRCS := \
 	$(LOCAL_DIR)/bio.c \
 	$(LOCAL_DIR)/rand.c \
 
-MODULE_DEPS := \
-	trusty/user/base/lib/rng
+MODULE_LIBRARY_DEPS += \
+	trusty/user/base/lib/rng \
+	external/boringssl \
 
-include make/module.mk
+include make/library.mk

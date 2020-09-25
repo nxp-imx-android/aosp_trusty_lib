@@ -23,7 +23,7 @@ MODULE_SRCS += \
 	$(LOCAL_DIR)/libc_test.c \
 	$(LOCAL_DIR)/libc_test_$(ARCH).S \
 
-MODULE_DEPS += \
+MODULE_LIBRARY_DEPS += \
 	trusty/user/base/lib/libc-trusty \
 	trusty/user/base/lib/unittest \
 
@@ -33,4 +33,4 @@ MODULE_DEPS += \
 # rewriting like printf => puts.
 MODULE_COMPILEFLAGS := -ffreestanding -Wno-format-invalid-specifier
 
-include make/module.mk
+include make/trusted_app.mk

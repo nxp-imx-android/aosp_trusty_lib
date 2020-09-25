@@ -4,7 +4,7 @@ MODULE := $(LOCAL_DIR)
 
 LIBCXXABI_DIR = external/libcxxabi
 
-GLOBAL_INCLUDES += $(LIBCXXABI_DIR)/include
+MODULE_EXPORT_INCLUDES += $(LIBCXXABI_DIR)/include
 
 # Internal libcxxabi build requires std::unexpected_handler to be defined, even
 # though it is removed as of C++17. Building with LIBCPP_BUILDING_LIBRARY
@@ -50,4 +50,7 @@ MODULE_SRCS += \
 # Files that do not compile without RTTI
 # $(LIBCXXABI_DIR)/src/private_typeinfo.cpp \
 
-include make/module.mk
+MODULE_LIBRARY_DEPS := \
+	trusty/user/base/lib/libstdc++-trusty
+
+include make/library.mk

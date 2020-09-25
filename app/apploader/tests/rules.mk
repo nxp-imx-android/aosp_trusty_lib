@@ -23,16 +23,16 @@ MODULE_SRCS += \
 	$(LOCAL_DIR)/apploader_test.c \
 	$(LOCAL_DIR)/test_apps.S \
 
-MODULE_DEPS += \
+MODULE_LIBRARY_DEPS += \
 	trusty/user/base/lib/libc-trusty \
 	trusty/user/base/lib/tipc \
 	trusty/user/base/lib/unittest \
 	trusty/user/base/interface/apploader \
 
 VERSION_TEST_APP_V1 := \
-	$(abspath $(BUILDDIR)/version_test_apps/v1/v1.app)
+	$(abspath $(TRUSTY_APP_BUILDDIR)/trusty/user/base/app/apploader/tests/version_test_apps/v1/v1.app)
 VERSION_TEST_APP_V2 := \
-	$(abspath $(BUILDDIR)/version_test_apps/v2/v2.app)
+	$(abspath $(TRUSTY_APP_BUILDDIR)/trusty/user/base/app/apploader/tests/version_test_apps/v2/v2.app)
 
 MODULE_ASMFLAGS += \
        -DVERSION_TEST_APP_V1=\"$(VERSION_TEST_APP_V1)\" \
@@ -42,4 +42,4 @@ MODULE_SRCDEPS += \
        $(VERSION_TEST_APP_V1) \
        $(VERSION_TEST_APP_V2) \
 
-include make/module.mk
+include make/trusted_app.mk

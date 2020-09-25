@@ -21,12 +21,11 @@ MODULE_STATIC_LIB := true
 MODULE_SRCS := \
 	$(LOCAL_DIR)/sancov.c \
 
-MODULE_DEPS := \
-	trusty/user/base/interface/coverage \
+MODULE_LIBRARY_DEPS := \
 	trusty/user/base/lib/coverage/common \
 	trusty/user/base/lib/libc-trusty \
 	trusty/user/base/lib/tipc \
 
 MODULE_DISABLE_LTO := true
 
-include make/module.mk
+include make/library.mk

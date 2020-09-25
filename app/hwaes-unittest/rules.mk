@@ -19,14 +19,15 @@ MODULE := $(LOCAL_DIR)
 
 MANIFEST := $(LOCAL_DIR)/manifest.json
 
+MODULE_INCLUDES += $(LOCAL_DIR)/include/
+
 MODULE_SRCS += \
 	$(LOCAL_DIR)/hwaes-test.c \
 
-MODULE_DEPS += \
+MODULE_LIBRARY_DEPS += \
 	trusty/user/base/lib/libc-trusty \
 	trusty/user/base/lib/hwaes \
 	trusty/user/base/lib/hwkey \
 	trusty/user/base/lib/unittest \
 
-include make/module.mk
-
+include make/trusted_app.mk

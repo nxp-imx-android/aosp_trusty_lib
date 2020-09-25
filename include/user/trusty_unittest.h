@@ -25,6 +25,6 @@
 
 #include <lk/trusty_unittest.h>
 
-#ifdef USER_TASK
+#ifdef TRUSTY_USERSPACE
 #include <lib/unittest/unittest.h>
 #endif

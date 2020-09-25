@@ -17,14 +17,14 @@ MUSL_DIR := external/trusty/musl
 # to the intrinsics for now.
 # Also note that the builtin directory will shadow the contents of sysroot.
 # To be 100% correct, the libc headers should be in a real sysroot.
-GLOBAL_COMPILEFLAGS += --sysroot=fake_sysroot
+MODULE_EXPORT_COMPILEFLAGS += --sysroot=fake_sysroot
 
 # Using -isystem instead of -I has two effects. First, these paths will be
 # searched after -I.  Second, warnings for these header files will be
 # suppressed. Musl's header files are not designed to be warning clean,
 # particularly when -Wall is enabled enabled.  Because we're using -Werror,
 # we must either patch the header files or use -isystem.
-GLOBAL_COMPILEFLAGS += \
+MODULE_EXPORT_COMPILEFLAGS += \
 	-isystem $(MUSL_DIR)/arch/$(STANDARD_ARCH_NAME) \
 	-isystem $(MUSL_DIR)/arch/generic \
 	-isystem $(MUSL_DIR)/include \
@@ -34,12 +34,14 @@ MODULE_INCLUDES += \
 	$(MUSL_DIR)/src/internal \
 	$(MUSL_DIR)/src/include \
 
+MODULE_EXPORT_INCLUDES += $(LOCAL_DIR)/include
+
 # Musl is scrupulous about exposing prototypes and defines based on what
 # standard is requested. When compiling C++ code, however, Clang defines
 # _GNU_SOURCE because libcxx's header files depend on prototypes that are only
 # available with _GNU_SOURCE specified. To avoid skew where prototypes are
 # defined for C++ but not C, turn everything on always.
-GLOBAL_COMPILEFLAGS += -D_ALL_SOURCE
+MODULE_EXPORT_COMPILEFLAGS += -D_ALL_SOURCE
 
 # Musl declares global variables with names like "index" that can conflict with
 # function names when _ALL_SOURCE is turned on. Compile Musl as it expects to be
@@ -616,15 +618,18 @@ MODULE_DISABLE_SCS := true
 # protector for most of libc.
 MODULE_DISABLE_STACK_PROTECTOR := true
 
+# Do not include implicit dependencies to avoid recursively depending on libc
+MODULE_ADD_IMPLICIT_DEPS := false
+
 # Defined by kernel/lib/ubsan/enable.mk if in use for the build
 ifeq ($(UBSAN_ENABLED), true)
-MODULE_DEPS += trusty/kernel/lib/ubsan
+MODULE_LIBRARY_DEPS += trusty/kernel/lib/ubsan
 endif
 
 # Add Trusty libc extensions (separated due to use both in the kernel and here)
-MODULE_DEPS += trusty/kernel/lib/libc-ext
+MODULE_LIBRARY_EXPORTED_DEPS += trusty/kernel/lib/libc-ext
 
 # Add syscall-stubs
 include trusty/user/base/lib/libc-trusty/syscall-stubs.mk
 
-include make/module.mk
+include make/library.mk

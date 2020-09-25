@@ -20,10 +20,10 @@ MODULE := $(LOCAL_DIR)
 MODULE_SRCS := \
 	$(LOCAL_DIR)/storage.c
 
-GLOBAL_INCLUDES += $(LOCAL_DIR)/include/
+MODULE_EXPORT_INCLUDES += $(LOCAL_DIR)/include/
 
-MODULE_DEPS += \
+MODULE_LIBRARY_EXPORTED_DEPS += \
 	trusty/user/base/interface/storage
 
-include make/module.mk
+include make/library.mk
 

@@ -18,6 +18,7 @@ LOCAL_DIR := $(GET_LOCAL_DIR)
 MODULE := $(LOCAL_DIR)
 
 LIBTEEUI_ROOT := $(TRUSTY_TOP)/system/teeui/libteeui
+FREETYPE_ROOT := $(TRUSTY_TOP)/external/freetype
 
 # Use the default layouts unless we have a vendor specific layout defined.
 CONFIRMATIONUI_LAYOUTS ?= $(LOCAL_DIR)/layouts
@@ -33,7 +34,7 @@ MODULE_SRCS += \
 	$(LIBTEEUI_ROOT)/src/utils.cpp \
 
 
-GLOBAL_INCLUDES += \
+MODULE_EXPORT_INCLUDES += \
 	$(LIBTEEUI_ROOT)/include \
 	$(LIBTEEUI_ROOT)/prebuilt/localization/include \
 
@@ -42,9 +43,10 @@ MODULE_CPPFLAGS += -fno-threadsafe-statics -fno-rtti -DNDEBUG
 
 MODULE_COMPILEFLAGS := -U__ANDROID__
 
-MODULE_DEPS += \
+MODULE_LIBRARY_DEPS += \
 	trusty/user/base/lib/libc-trusty \
 	trusty/user/base/lib/libstdc++-trusty \
 	trusty/user/base/lib/freetype-stub \
+	$(FREETYPE_ROOT)/devel-teeui \
 
-include make/module.mk
+include make/library.mk

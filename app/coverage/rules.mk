@@ -24,10 +24,10 @@ MODULE_SRCS := \
 	$(LOCAL_DIR)/disable_sancov.c \
 	$(LOCAL_DIR)/main.c \
 
-MODULE_DEPS += \
+MODULE_LIBRARY_DEPS += \
 	trusty/user/base/interface/coverage \
 	trusty/user/base/lib/coverage/common \
 	trusty/user/base/lib/libc-trusty \
 	trusty/user/base/lib/tipc \
 
-include make/module.mk
+include make/trusted_app.mk

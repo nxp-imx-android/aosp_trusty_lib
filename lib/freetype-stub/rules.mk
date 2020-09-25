@@ -24,8 +24,8 @@ MODULE_SRCS += \
 
 MODULE_COMPILEFLAGS := -U__ANDROID__
 
-MODULE_DEPS += \
+MODULE_LIBRARY_DEPS += \
 	trusty/user/base/lib/libc-trusty \
 	$(FREETYPE_ROOT)/devel-teeui \
 
-include make/module.mk
+include make/library.mk

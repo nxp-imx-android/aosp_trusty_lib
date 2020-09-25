@@ -14,13 +14,13 @@
 
 LOCAL_DIR := $(GET_LOCAL_DIR)
 
-GLOBAL_INCLUDE += $(LOCAL_DIR)/include
+MODULE_EXPORT_INCLUDES += $(LOCAL_DIR)/include
 
 MODULE := $(LOCAL_DIR)
 
 MODULE_SRCS := $(LOCAL_DIR)/uirq.c
 
-MODULE_DEPS := \
+MODULE_LIBRARY_DEPS := \
 	trusty/user/base/lib/libc-trusty \
 
-include make/module.mk
+include make/library.mk

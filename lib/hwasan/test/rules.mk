@@ -21,8 +21,8 @@ MANIFEST := $(LOCAL_DIR)/manifest.json
 MODULE_SRCS += \
 	$(LOCAL_DIR)/hwasan_test.c \
 
-MODULE_DEPS += \
+MODULE_LIBRARY_DEPS += \
 	trusty/user/base/lib/libc-trusty \
 	trusty/user/base/lib/unittest \
 
-include make/module.mk
+include make/library.mk

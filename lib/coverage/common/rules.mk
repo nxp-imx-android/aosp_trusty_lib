@@ -20,9 +20,14 @@ MODULE_SRCS := \
 	$(LOCAL_DIR)/ipc.c \
 	$(LOCAL_DIR)/shm.c \
 
-MODULE_DEPS := \
-	trusty/user/base/interface/coverage \
+MODULE_EXPORT_INCLUDES := \
+	$(LOCAL_DIR)/include \
+
+MODULE_LIBRARY_DEPS := \
 	trusty/user/base/lib/libc-trusty \
 	trusty/user/base/lib/tipc \
 
-include make/module.mk
+MODULE_LIBRARY_EXPORTED_DEPS := \
+	trusty/user/base/interface/coverage \
+
+include make/library.mk

@@ -25,9 +25,9 @@ MODULE_SRCS := \
 	$(LOCAL_DIR)/metrics.c \
 	$(LOCAL_DIR)/main.c \
 
-MODULE_DEPS += \
+MODULE_LIBRARY_DEPS += \
 	trusty/user/base/interface/metrics \
 	trusty/user/base/lib/libc-trusty \
 	trusty/user/base/lib/tipc \
 
-include make/module.mk
+include make/trusted_app.mk

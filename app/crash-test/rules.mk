@@ -17,6 +17,8 @@ LOCAL_DIR := $(GET_LOCAL_DIR)
 
 MODULE := $(LOCAL_DIR)
 
+MODULE_INCLUDES += $(LOCAL_DIR)/include
+
 MANIFEST := $(LOCAL_DIR)/manifest.json
 
 CONSTANTS := $(LOCAL_DIR)/include/crasher_consts.json
@@ -24,9 +26,9 @@ CONSTANTS := $(LOCAL_DIR)/include/crasher_consts.json
 MODULE_SRCS += \
 	$(LOCAL_DIR)/crash-test.c \
 
-MODULE_DEPS += \
+MODULE_LIBRARY_DEPS += \
 	trusty/user/base/lib/libc-trusty \
 	trusty/user/base/lib/tipc \
 	trusty/user/base/lib/unittest \
 
-include make/module.mk
+include make/trusted_app.mk

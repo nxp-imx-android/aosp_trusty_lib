@@ -21,8 +21,9 @@ MANIFEST := $(LOCAL_DIR)/manifest.json
 MODULE_SRCS := \
 	$(LOCAL_DIR)/main.c \
 
-MODULE_DEPS += \
-	trusty/user/base/lib/libc-trusty \
+MODULE_LIBRARY_DEPS += \
+	trusty/user/base/lib/coverage/common \
 	trusty/user/base/lib/tipc \
+	trusty/user/base/interface/secure_fb
 
-include make/module.mk
+include make/trusted_app.mk

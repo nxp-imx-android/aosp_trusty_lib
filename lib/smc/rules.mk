@@ -16,11 +16,15 @@ LOCAL_DIR := $(GET_LOCAL_DIR)
 
 MODULE := $(LOCAL_DIR)
 
+MODULE_EXPORT_INCLUDES += $(LOCAL_DIR)/include
+
 MODULE_SRCS := $(LOCAL_DIR)/smc.c
 
-MODULE_DEPS := \
-	trusty/user/base/interface/smc \
+MODULE_LIBRARY_DEPS := \
 	trusty/user/base/lib/libc-trusty \
 	trusty/user/base/lib/tipc \
 
-include make/module.mk
+MODULE_LIBRARY_EXPORTED_DEPS := \
+	trusty/user/base/interface/smc \
+
+include make/library.mk

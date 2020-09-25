@@ -21,9 +21,9 @@ MODULE_STATIC_LIB := true
 MODULE_SRCS := \
 	$(LOCAL_DIR)/hwasan.c \
 
-MODULE_DEPS := \
+MODULE_LIBRARY_DEPS := \
 	trusty/user/base/lib/libc-trusty \
 
 include $(LOCAL_DIR)/arch/$(ARCH)/rules.mk
 
-include make/module.mk
+include make/library.mk

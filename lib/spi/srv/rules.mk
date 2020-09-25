@@ -16,11 +16,14 @@ LOCAL_DIR := $(GET_LOCAL_DIR)
 
 MODULE := $(LOCAL_DIR)
 
+MODULE_EXPORT_INCLUDES += $(LOCAL_DIR)/include
+
 MODULE_SRCS += \
     $(LOCAL_DIR)/srv.c \
 
-MODULE_DEPS += \
+MODULE_LIBRARY_DEPS += \
     trusty/user/base/lib/spi/srv/batch \
     trusty/user/base/lib/spi/srv/tipc \
+    trusty/user/base/lib/tipc \
 
-include make/module.mk
+include make/library.mk

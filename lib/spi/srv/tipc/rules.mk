@@ -16,15 +16,18 @@ LOCAL_DIR := $(GET_LOCAL_DIR)
 
 MODULE := $(LOCAL_DIR)
 
+MODULE_EXPORT_INCLUDES += $(LOCAL_DIR)/include
+
 MODULE_SRCS += \
     $(LOCAL_DIR)/tipc.c \
 
-MODULE_DEPS += \
+MODULE_LIBRARY_DEPS += \
     trusty/user/base/interface/spi \
     trusty/user/base/lib/spi/common \
     trusty/user/base/lib/tipc \
+    trusty/user/base/lib/spi/srv/tipc \
 
 MODULE_INCLUDES += \
     trusty/user/base/lib/spi/srv/common/include \
 
-include make/module.mk
+include make/library.mk

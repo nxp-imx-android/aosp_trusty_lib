@@ -49,13 +49,13 @@ MODULE_SRCS := \
 
 MODULE_CPPFLAGS := -Wno-sign-compare
 
-MODULE_DEPS := \
+MODULE_LIBRARY_DEPS := \
 	trusty/user/base/lib/libc-trusty \
 	trusty/user/base/lib/libstdc++-trusty \
 
 MODULE_INCLUDES := $(LOCAL_DIR)
 
-GLOBAL_INCLUDES += \
+MODULE_EXPORT_INCLUDES += \
 	$(PROTOBUF) \
 
-include make/module.mk
+include make/library.mk

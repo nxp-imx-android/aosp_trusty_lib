@@ -19,9 +19,11 @@ MODULE := $(LOCAL_DIR)
 MODULE_SRCS := \
     $(LOCAL_DIR)/client.c \
 
-MODULE_DEPS := \
-    trusty/user/base/interface/spi \
+MODULE_LIBRARY_DEPS += \
     trusty/user/base/lib/spi/common \
     trusty/user/base/lib/tipc \
+    trusty/user/base/lib/spi/srv/tipc \
 
-include make/module.mk
+MODULE_EXPORT_INCLUDES += $(LOCAL_DIR)/include
+
+include make/library.mk

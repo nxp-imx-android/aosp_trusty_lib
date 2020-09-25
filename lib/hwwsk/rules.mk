@@ -18,14 +18,16 @@ LOCAL_DIR := $(GET_LOCAL_DIR)
 
 MODULE := $(LOCAL_DIR)
 
-GLOBAL_INCLUDES += \
+MODULE_EXPORT_INCLUDES += \
     $(LOCAL_DIR)/include \
 
 MODULE_SRCS := \
     $(LOCAL_DIR)/client.c \
 
-MODULE_DEPS := \
+MODULE_LIBRARY_DEPS := \
     trusty/user/base/lib/tipc \
+
+MODULE_LIBRARY_EXPORTED_DEPS := \
     trusty/user/base/interface/hwwsk \
 
-include make/module.mk
+include make/library.mk

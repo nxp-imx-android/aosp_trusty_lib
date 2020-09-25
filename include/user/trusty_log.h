@@ -36,7 +36,7 @@
 
 __BEGIN_CDECLS
 
-#ifdef USER_TASK
+#ifdef TRUSTY_USERSPACE
 
 /* Defined in libc and libunittest, whichever is statically linked first will be
  * used, so libunittest must always come before libc in the link order. */

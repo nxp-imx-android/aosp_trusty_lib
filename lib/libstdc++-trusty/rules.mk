@@ -4,7 +4,8 @@ MODULE := $(LOCAL_DIR)
 
 LIBCXX_DIR = external/libcxx
 
-GLOBAL_INCLUDES += $(LIBCXX_DIR)/include
+MODULE_EXPORT_INCLUDES += $(LIBCXX_DIR)/include
+MODULE_EXPORT_INCLUDES += $(LOCAL_DIR)/include
 
 # The header files change if they're being used to build the library.
 # For example, adding "public" methods that are only used internally.
@@ -17,7 +18,7 @@ MODULE_CPPFLAGS += -DLIBCXX_BUILDING_LIBCXXABI
 # _LIBCPP_BUILD_STATIC is obviously an issue because it can eliminate a virtual
 # function and lead to a missing vtable entry. The others are made global out of
 # caution.
-GLOBAL_CPPFLAGS += -D_LIBCPP_BUILD_STATIC -D_LIBCPP_HAS_MUSL_LIBC
+MODULE_EXPORT_CPPFLAGS += -D_LIBCPP_BUILD_STATIC -D_LIBCPP_HAS_MUSL_LIBC
 
 MODULE_SRCS := \
         $(LIBCXX_DIR)/src/algorithm.cpp \
@@ -52,8 +53,8 @@ MODULE_SRCS := \
 
 # TODO add src/random.cpp when there is support for getting entropy.
 
-
-MODULE_DEPS := \
+MODULE_LIBRARY_DEPS += \
         trusty/user/base/lib/libcxxabi-trusty \
+        trusty/user/base/lib/libc-trusty \
 
-include make/module.mk
+include make/library.mk

@@ -17,10 +17,14 @@ LOCAL_DIR := $(GET_LOCAL_DIR)
 
 MODULE := $(LOCAL_DIR)
 
+MODULE_EXPORT_INCLUDES += $(LOCAL_DIR)/include
+
 MODULE_SRCS := $(LOCAL_DIR)/system_state.c
 
-MODULE_DEPS := \
-	trusty/user/base/interface/system_state \
+MODULE_LIBRARY_DEPS := \
 	trusty/user/base/lib/tipc \
 
-include make/module.mk
+MODULE_LIBRARY_EXPORTED_DEPS := \
+	trusty/user/base/interface/system_state \
+
+include make/library.mk
