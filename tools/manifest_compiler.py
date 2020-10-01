@@ -35,7 +35,8 @@ USAGE:
         "min_stack": 4096,
         "mem_map": [{"id": 1, "addr": "0x70000000", "size": "0x1000"}, \
                 {"id": 2, "addr": "0x70010000", "size": "0x100"}, \
-                {"id": 3, "addr": "0x70020000", "size": "0x4"}],
+                {"id": 3, "addr": "0x70020000", "size": "0x4",
+                 "type": "uncached_device", "non_secure": false}],
         "mgmt_flags": {"restart_on_exit": true, \
                 "deferred_start": false, \
                 "non_critical_app": false},
@@ -76,6 +77,11 @@ MEM_MAP = "mem_map"
 MEM_MAP_ID = "id"
 MEM_MAP_ADDR = "addr"
 MEM_MAP_SIZE = "size"
+MEM_MAP_TYPE = "type"
+MEM_MAP_TYPE_CACHED = "cached"
+MEM_MAP_TYPE_UNCACHED = "uncached"
+MEM_MAP_TYPE_UNCACHED_DEVICE = "uncached_device"
+MEM_MAP_NON_SECURE = "non_secure"
 MGMT_FLAGS = "mgmt_flags"
 MGMT_FLAG_RESTART_ON_EXIT = "restart_on_exit"
 MGMT_FLAG_DEFERRED_START = "deferred_start"
@@ -105,6 +111,14 @@ TRUSTY_APP_CONFIG_KEY_MIN_HEAP_SIZE = 2
 TRUSTY_APP_CONFIG_KEY_MAP_MEM = 3
 TRUSTY_APP_CONFIG_KEY_MGMT_FLAGS = 4
 TRUSTY_APP_CONFIG_KEY_START_PORT = 5
+
+# MEM_MAP ARCH_MMU_FLAGS
+# These values need to be kept in sync with external/lk/include/arch/mmu.h
+ARCH_MMU_FLAG_CACHED = 0 << 0
+ARCH_MMU_FLAG_UNCACHED = 1 << 0
+ARCH_MMU_FLAG_UNCACHED_DEVICE = 2 << 0
+ARCH_MMU_FLAG_CACHE_MASK = 3 << 0
+ARCH_MMU_FLAG_NS = 1 << 5
 
 # MGMT FLAGS
 # These values need to be kept in sync with uapi/trusty_app_manifest_types.h
@@ -150,10 +164,12 @@ class StartPort(object):
 
 
 class MemIOMap(object):
-    def __init__(self, id_, addr, size):
+    def __init__(self, id_, addr, size, type, non_secure):
         self.id = id_
         self.addr = addr
         self.size = size
+        self.type = type
+        self.non_secure = non_secure
 
 
 class MgmtFlags(object):
@@ -458,6 +474,16 @@ def parse_memory_size(memory_size, log):
     return memory_size
 
 
+def parse_mem_map_type(mem_map_type, log):
+    if mem_map_type not in {MEM_MAP_TYPE_CACHED,
+                            MEM_MAP_TYPE_UNCACHED,
+                            MEM_MAP_TYPE_UNCACHED_DEVICE}:
+        log.error("Unknown mem_map.type entry in manifest: {} "
+                  .format(mem_map_type))
+
+    return mem_map_type
+
+
 def parse_mem_map(mem_maps, key, constants, log):
     if mem_maps is None:
         return None
@@ -470,7 +496,14 @@ def parse_mem_map(mem_maps, key, constants, log):
         mem_map = MemIOMap(
                 get_int(mem_map_entry, MEM_MAP_ID, constants, log),
                 get_int(mem_map_entry, MEM_MAP_ADDR, constants, log),
-                get_int(mem_map_entry, MEM_MAP_SIZE, constants, log))
+                get_int(mem_map_entry, MEM_MAP_SIZE, constants, log),
+                parse_mem_map_type(
+                        get_string(mem_map_entry, MEM_MAP_TYPE, constants, log,
+                                   optional=True,
+                                   default=MEM_MAP_TYPE_UNCACHED_DEVICE), log),
+                get_boolean(mem_map_entry, MEM_MAP_NON_SECURE, constants, log,
+                            optional=True)
+                )
         if mem_map_entry:
             log.error("Unknown atributes in mem_map entries in manifest: {} "
                       .format(mem_map_entry))
@@ -588,6 +621,22 @@ def swap_uuid_bytes(uuid):
     return uuid[3::-1] + uuid[5:3:-1] + uuid[7:5:-1] + uuid[8:]
 
 
+def pack_mem_map_arch_mmu_flags(mem_map):
+    arch_mmu_flags = 0
+
+    if mem_map.type == MEM_MAP_TYPE_CACHED:
+        arch_mmu_flags |= ARCH_MMU_FLAG_CACHED
+    elif mem_map.type == MEM_MAP_TYPE_UNCACHED:
+        arch_mmu_flags |= ARCH_MMU_FLAG_UNCACHED
+    elif mem_map.type == MEM_MAP_TYPE_UNCACHED_DEVICE:
+        arch_mmu_flags |= ARCH_MMU_FLAG_UNCACHED_DEVICE
+
+    if mem_map.non_secure:
+        arch_mmu_flags |= ARCH_MMU_FLAG_NS
+
+    return arch_mmu_flags
+
+
 def pack_mgmt_flags(mgmt_flags):
     flags = TRUSTY_APP_MGMT_FLAGS_NONE
     if mgmt_flags.restart_on_exit:
@@ -651,11 +700,12 @@ def pack_manifest_data(manifest, log):
                               manifest.min_stack))
 
     for memio_map in manifest.mem_io_maps:
-        out.write(struct.pack("IIII",
+        out.write(struct.pack("IIQQI",
                               TRUSTY_APP_CONFIG_KEY_MAP_MEM,
                               memio_map.id,
                               memio_map.addr,
-                              memio_map.size))
+                              memio_map.size,
+                              pack_mem_map_arch_mmu_flags(memio_map)))
 
     if manifest.mgmt_flags is not None:
         out.write(struct.pack("II",
@@ -722,12 +772,21 @@ def unpack_binary_manifest_to_data(packed_data):
             (id_,), packed_data = struct.unpack(
                     "I", packed_data[:4]), packed_data[4:]
             (addr,), packed_data = struct.unpack(
-                    "I", packed_data[:4]), packed_data[4:]
+                    "Q", packed_data[:8]), packed_data[8:]
             (size,), packed_data = struct.unpack(
+                    "Q", packed_data[:8]), packed_data[8:]
+            (arch_mmu_flags,), packed_data = struct.unpack(
                     "I", packed_data[:4]), packed_data[4:]
             mem_map_entry[MEM_MAP_ID] = id_
             mem_map_entry[MEM_MAP_ADDR] = hex(addr)
             mem_map_entry[MEM_MAP_SIZE] = hex(size)
+            mem_map_entry[MEM_MAP_TYPE] = {
+                    ARCH_MMU_FLAG_CACHED: MEM_MAP_TYPE_CACHED,
+                    ARCH_MMU_FLAG_UNCACHED: MEM_MAP_TYPE_UNCACHED,
+                    ARCH_MMU_FLAG_UNCACHED_DEVICE: MEM_MAP_TYPE_UNCACHED_DEVICE,
+                    }[arch_mmu_flags & ARCH_MMU_FLAG_CACHE_MASK]
+            mem_map_entry[MEM_MAP_NON_SECURE] = bool(arch_mmu_flags &
+                                                     ARCH_MMU_FLAG_NS)
             manifest[MEM_MAP].append(mem_map_entry)
         elif tag == TRUSTY_APP_CONFIG_KEY_MGMT_FLAGS:
             (flag,), packed_data = struct.unpack(

@@ -1252,9 +1252,12 @@ class TestManifest(unittest.TestCase):
                 manifest_compiler.MIN_HEAP: 8192,
                 manifest_compiler.MIN_STACK: 4096,
                 manifest_compiler.MEM_MAP: [
-                        {"id": 1, "addr": "0x70000000", "size": "0x1000"},
-                        {"id": 2, "addr": "0x70010000", "size": "0x100"},
-                        {"id": 3, "addr": "0x70020000", "size": "0x4"}],
+                        {"id": 1, "addr": "0x70000000", "size": "0x1000",
+                         "type": "cached", "non_secure": False},
+                        {"id": 2, "addr": "0x70010000", "size": "0x100",
+                         "type": "uncached", "non_secure": True},
+                        {"id": 3, "addr": "0x70020000", "size": "0x4",
+                         "type": "uncached_device", "non_secure": False}],
                 manifest_compiler.MGMT_FLAGS: {
                         manifest_compiler.MGMT_FLAG_RESTART_ON_EXIT: False,
                         manifest_compiler.MGMT_FLAG_DEFERRED_START: False,
@@ -1268,8 +1271,10 @@ class TestManifest(unittest.TestCase):
                 manifest_compiler.MIN_HEAP: 8192,
                 manifest_compiler.MIN_STACK: 4096,
                 manifest_compiler.MEM_MAP: [
-                        {"id": 1, "addr": "0x70000000", "size": "0x1000"},
-                        {"id": 2, "addr": "0x70010000", "size": "0x100"},
+                        {"id": 1, "addr": "0x70000000", "size": "0x1000",
+                         "type": "cached", "non_secure": False},
+                        {"id": 2, "addr": "0x70010000", "size": "0x100",
+                         "type": "uncached", "non_secure": True},
                         {"id": 3, "addr": "0x70020000", "size": "0x4"}]
         }
 
