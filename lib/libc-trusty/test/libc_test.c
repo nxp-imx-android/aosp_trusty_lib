@@ -305,7 +305,7 @@ test_abort:;
  * Note this isn't a static function. We're trying to game the optimizer and
  * ensure it doesn't change the calling convention.
  */
-__attribute__((__noinline__)) uintptr_t frame_ptr() {
+__attribute__((__noinline__)) uintptr_t frame_ptr(void) {
     return (uintptr_t)__builtin_frame_address(0);
 }
 
