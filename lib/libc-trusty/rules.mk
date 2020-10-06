@@ -2,6 +2,12 @@ LOCAL_DIR := $(GET_LOCAL_DIR)
 
 MODULE := $(LOCAL_DIR)
 
+# Clang currently generates incorrect code when it simplifies calls to libc
+# and then inlines them.  The simplification pass does not set a calling
+# convention on the new call, leading to problems when inlining.
+# Avoid this bug by disabling LTO for libc.  See: b/161257552
+MODULE_DISABLE_LTO := true
+
 MUSL_DIR := external/trusty/musl
 
 # This eliminate /usr/local/include and /usr/include from includepaths.
