@@ -98,6 +98,9 @@ endif
 # Add any common flags to the module
 include make/common_flags.mk
 
+ifneq ($(INCMODULES),)
+$(error $(MODULE) should only be included from other userspace modules that use library.mk. One of the following modules needs to be updated to use the new library system: $(LIB_SAVED_MODULE) $(ALLMODULES))
+endif
 ifneq ($(GLOBAL_OPTFLAGS),)
 $(error $(MODULE) has modified GLOBAL_OPTFLAGS, this variable is deprecated)
 endif
@@ -129,6 +132,18 @@ endif
 
 ifneq ($(strip $(MODULE_DEPS)),)
 $(warning $(MODULE) is a userspace library module but has deprecated MODULE_DEPS: $(MODULE_DEPS).)
+endif
+
+# ALLMODULES is only used for the legacy dependency system, so if a library is
+# included in it, something must have gone wrong.
+ifneq ($(filter $(MODULE),$(ALLMODULES)),)
+ifeq ($(LIB_SAVED_MODULE),)
+# We don't know who our parent was because it was a legacy module, so we can't
+# give a very good error message here.
+$(error Please move $(MODULE) from MODULE_DEPS into MODULE_LIBRARY_DEPS)
+else
+$(error MODULE $(LIB_SAVED_MODULE) depends on $(MODULE) via MODULE_DEPS, but $(MODULE) is only compatible with MODULE_LIBRARY_DEPS)
+endif
 endif
 
 ifneq ($(CONSTANTS),)
@@ -255,12 +270,14 @@ endif
 
 # Save our current module because module.mk clears it.
 LIB_SAVED_MODULE := $(MODULE)
+LIB_SAVED_MODULE_LIBRARY_DEPS := $(MODULE_LIBRARY_DEPS)
 
 # Save the rust flags for use in trusted_app.mk. userspace_recurse.mk will clean
 # up after us.
 LIB_SAVED_MODULE_RUSTFLAGS := $(MODULE_RUSTFLAGS)
 
 ALLMODULE_OBJS :=
+MODULE_LIBRARY_DEPS :=
 
 $(MODULE_RSOBJS): ARCH_RUSTFLAGS := $(ARCH_$(ARCH)_RUSTFLAGS)
 $(MODULE_RSOBJS): GLOBAL_RUSTFLAGS := $(GLOBAL_SHARED_RUSTFLAGS) $(GLOBAL_USER_RUSTFLAGS)
@@ -270,6 +287,7 @@ include make/module.mk
 # Handle any MODULE_DEPS
 include make/recurse.mk
 
+MODULE_LIBRARY_DEPS := $(LIB_SAVED_MODULE_LIBRARY_DEPS)
 MODULE := $(LIB_SAVED_MODULE)
 MODULE_RUSTFLAGS := $(LIB_SAVED_MODULE_RUSTFLAGS)
 
