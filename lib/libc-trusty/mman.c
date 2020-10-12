@@ -20,6 +20,9 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <trusty_syscalls.h>
+#ifdef HWASAN_ENABLED
+#include <lib/hwasan/hwasan_shadow.h>
+#endif /* HWASAN_ENABLED */
 
 void* mmap(void* uaddr,
            size_t size,
@@ -43,10 +46,22 @@ void* mmap(void* uaddr,
     if (IS_ERR(result)) {
         return MAP_FAILED;
     }
+#ifdef HWASAN_ENABLED
+    /*
+     * Assume _trusty_mmap() call above gives us a valid region of memory that
+     * is mapped into user address space. For such regions hwasan_tag_memory()
+     * can not fail.
+     */
+    result = hwasan_tag_memory(result, size);
+#endif
     return result;
 }
 
 int munmap(void* uaddr, size_t size) {
+#ifdef HWASAN_ENABLED
+    /* HWASan memory will be unmapped. No need to worry about untagging it. */
+    uaddr = hwasan_remove_ptr_tag(uaddr);
+#endif
     return _trusty_munmap(uaddr, size);
 }
 
@@ -54,9 +69,15 @@ int prepare_dma(void* uaddr,
                 uint32_t size,
                 uint32_t flags,
                 struct dma_pmem* pmem) {
+#ifdef HWASAN_ENABLED
+    uaddr = hwasan_remove_ptr_tag(uaddr);
+#endif
     return _trusty_prepare_dma(uaddr, size, flags, pmem);
 }
 
 int finish_dma(void* uaddr, uint32_t size, uint32_t flags) {
+#ifdef HWASAN_ENABLED
+    uaddr = hwasan_remove_ptr_tag(uaddr);
+#endif
     return _trusty_finish_dma(uaddr, size, flags);
 }
