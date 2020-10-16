@@ -20,8 +20,8 @@ include trusty/user/app/storage/usertests-inc.mk
 TRUSTY_ALL_USER_TASKS += \
 	trusty/user/base/app/crash-test \
 	trusty/user/base/app/crash-test/crasher \
-        trusty/user/base/lib/libc-trusty/test \
-        trusty/user/base/lib/libstdc++-trusty/test \
+	trusty/user/base/lib/libc-trusty/test \
+	trusty/user/base/lib/libstdc++-trusty/test \
 	trusty/user/base/lib/smc/tests \
 	trusty/user/base/lib/tipc/test/main \
 	trusty/user/base/lib/tipc/test/srv \
