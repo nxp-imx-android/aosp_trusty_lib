@@ -25,10 +25,10 @@
 #include <lib/hwaes/hwaes.h>
 #include <lib/hwkey/hwkey.h>
 #include <lk/compiler.h>
-#include <memref.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <sys/mman.h>
+#include <trusty/memref.h>
 #include <trusty_log.h>
 #include <uapi/err.h>
 #include <optional>

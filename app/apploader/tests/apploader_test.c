@@ -20,10 +20,10 @@
 #include <lib/system_state/system_state.h>
 #include <lib/tipc/tipc.h>
 #include <lib/unittest/unittest.h>
-#include <memref.h>
 #include <stdlib.h>
 #include <sys/auxv.h>
 #include <sys/mman.h>
+#include <trusty/memref.h>
 #include <trusty/string.h>
 #include <trusty_unittest.h>
 #include <uapi/err.h>

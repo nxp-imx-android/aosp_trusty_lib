@@ -21,9 +21,9 @@
 
 #include <lib/hwaes/hwaes.h>
 #include <lib/hwkey/hwkey.h>
-#include <memref.h>
 #include <sys/auxv.h>
 #include <sys/mman.h>
+#include <trusty/memref.h>
 #include <trusty_unittest.h>
 #include <uapi/err.h>
 

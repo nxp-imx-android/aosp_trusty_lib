@@ -19,7 +19,7 @@
 #include <lib/tipc/tipc.h>
 #include <lib/unittest/unittest.h>
 
-#include <time.h>
+#include <trusty/time.h>
 #include <trusty_unittest.h>
 
 #include <crasher.h>

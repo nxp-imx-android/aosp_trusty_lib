@@ -19,11 +19,11 @@
 #include <lib/tipc/tipc.h>
 #include <lk/compiler.h>
 #include <lk/macros.h>
-#include <memref.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/auxv.h>
+#include <trusty/memref.h>
 #include <uapi/err.h>
 #include <uapi/mm.h>
 

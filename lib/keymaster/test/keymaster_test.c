@@ -19,7 +19,7 @@
 #include <trusty_unittest.h>
 
 #include <endian.h>
-#include <time.h>
+#include <trusty/time.h>
 #include <trusty_unittest.h>
 
 #include <lib/keymaster/keymaster.h>

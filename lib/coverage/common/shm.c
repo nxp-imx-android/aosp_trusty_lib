@@ -19,10 +19,10 @@
 #include <assert.h>
 #include <lib/coverage/common/shm.h>
 #include <lk/macros.h>
-#include <memref.h>
 #include <stdlib.h>
 #include <sys/auxv.h>
 #include <sys/mman.h>
+#include <trusty/memref.h>
 #include <trusty_log.h>
 #include <uapi/err.h>
 

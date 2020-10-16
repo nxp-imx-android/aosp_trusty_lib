@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-#include <time.h>
-
 #include <assert.h>
 #include <errno.h>
+#include <trusty/time.h>
 #include <trusty_syscalls.h>
 
 #define NS_PER_SEC 1000000000

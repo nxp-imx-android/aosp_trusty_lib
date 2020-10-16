@@ -22,8 +22,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/auxv.h>
-#include <time.h>
 #include <trusty/string.h>
+#include <trusty/time.h>
 #include <trusty/uuid.h>
 #include <trusty_unittest.h>
 #include <unistd.h>
