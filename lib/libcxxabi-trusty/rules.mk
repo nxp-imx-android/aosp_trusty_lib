@@ -6,6 +6,15 @@ LIBCXXABI_DIR = external/libcxxabi
 
 GLOBAL_INCLUDES += $(LIBCXXABI_DIR)/include
 
+# Internal libcxxabi build requires std::unexpected_handler to be defined, even
+# though it is removed as of C++17. Building with LIBCPP_BUILDING_LIBRARY
+# includes this required non-spec definition in the build.
+MODULE_CPPFLAGS += -D_LIBCPP_BUILDING_LIBRARY
+
+# The way we define LIBCPP_BUILDING_LIBRARY above conflicts with a definition in
+# the fallback allocator. The resulting error is safe to ignore.
+MODULE_COMPILEFLAGS += -Wno-macro-redefined
+
 MODULE_COMPILEFLAGS += -D_LIBCXXABI_BUILDING_LIBRARY -D_LIBCXXABI_HAS_NO_THREADS
 
 # Required if compiling without exceptions.
