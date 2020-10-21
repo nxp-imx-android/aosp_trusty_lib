@@ -606,6 +606,9 @@ MODULE_SRCS += \
 # Fake pthreads
 MODULE_SRCS += $(LOCAL_DIR)/pthreads.c
 
+# TODO opt out of shadow call stack at a more granular level using the
+# __attribute__((no_sanitize("shadow-call-stack"))) on function declarations.
+MODULE_DISABLE_SCS := true
 
 # TODO extract the early startup code from this module and turn on the stack
 # protector for most of libc.

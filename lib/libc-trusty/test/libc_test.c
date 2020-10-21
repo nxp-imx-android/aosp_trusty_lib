@@ -332,6 +332,31 @@ TEST_F(libc, stack_cookies) {
 test_abort:;
 }
 
+#if __has_feature(shadow_call_stack)
+void** guard_region_ptr(void);
+
+TEST_F(libc, shadow_call_stack) {
+    /*
+     * Leaf functions keep return address in the link register but the call
+     * to guard_region_ptr will not get inlined which makes this a non-leaf
+     * function -> return address of this function goes on the shadow stack
+     */
+    void** guard_region_top = guard_region_ptr();
+    ASSERT_NE(0, guard_region_top);
+
+    /* Get return address from stack */
+    void* ret_addr = __builtin_return_address(0);
+    /*
+     * Guard region top points to next free word so the
+     * shadow copy of the return address is right below
+     */
+    void* shadow_ret_addr = *(guard_region_top - 1);
+    ASSERT_EQ(ret_addr, shadow_ret_addr);
+
+test_abort:;
+}
+#endif /* __has_feature(shadow_call_stack) */
+
 #define SCNPRINTF_TEST_BUF_LEN 8
 TEST_F(libc, scnprintf) {
     char buf[SCNPRINTF_TEST_BUF_LEN];

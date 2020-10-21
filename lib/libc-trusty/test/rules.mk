@@ -21,6 +21,7 @@ MANIFEST := $(LOCAL_DIR)/manifest.json
 
 MODULE_SRCS += \
 	$(LOCAL_DIR)/libc_test.c \
+	$(LOCAL_DIR)/libc_test_$(ARCH).S \
 
 MODULE_DEPS += \
 	trusty/user/base/lib/libc-trusty \
