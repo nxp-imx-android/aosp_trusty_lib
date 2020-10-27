@@ -91,6 +91,7 @@ START_PORT_FLAGS = "flags"
 START_PORT_NAME = "name"
 START_PORT_ALLOW_TA_CONNECT = "allow_ta_connect"
 START_PORT_ALLOW_NS_CONNECT = "allow_ns_connect"
+APP_NAME = "app_name"
 
 # constants configs
 CONSTANTS = "constants"
@@ -186,6 +187,7 @@ class Manifest(object):
     def __init__(
             self,
             uuid,
+            app_name,
             min_heap,
             min_stack,
             mem_io_maps,
@@ -193,6 +195,7 @@ class Manifest(object):
             start_ports
     ):
         self.uuid = uuid
+        self.app_name = app_name
         self.min_heap = min_heap
         self.min_stack = min_stack
         self.mem_io_maps = mem_io_maps
@@ -562,10 +565,21 @@ def parse_app_start_ports(start_port_list, key, constants, log):
     return start_ports
 
 
+def parse_app_name(app_name, log):
+    if app_name is None:
+        return None
+
+    if not app_name:
+        log.error("empty app-name is not allowed in manifest")
+        return None
+
+    return app_name.strip()
+
+
 '''
 validate the manifest config and extract key, values
 '''
-def parse_manifest_config(manifest_dict, constants, log):
+def parse_manifest_config(manifest_dict, constants, default_app_name, log):
     # UUID
     uuid = get_uuid(manifest_dict, UUID, constants, log)
 
@@ -600,6 +614,11 @@ def parse_manifest_config(manifest_dict, constants, log):
             constants,
             log)
 
+    #APP_NAME
+    app_name = parse_app_name(
+            get_string(manifest_dict, APP_NAME, constants, log,
+                       optional=True, default=default_app_name), log)
+
     # look for any extra attributes
     if manifest_dict:
         log.error("Unknown atributes in manifest: {} ".format(manifest_dict))
@@ -607,7 +626,7 @@ def parse_manifest_config(manifest_dict, constants, log):
     if log.error_occurred():
         return None
 
-    return Manifest(uuid, min_heap, min_stack, mem_io_maps, mgmt_flags,
+    return Manifest(uuid, app_name, min_heap, min_stack, mem_io_maps, mgmt_flags,
                     start_ports)
 
 
@@ -678,7 +697,7 @@ Writes the packed data to binary file
 '''
 def pack_manifest_data(manifest, log):
     # PACK {
-    #        uuid,
+    #        uuid, app_name_size, app_name,
     #        TRUSTY_APP_CONFIG_KEY_MIN_HEAP_SIZE, min_heap,
     #        TRUSTY_APP_CONFIG_KEY_MIN_STACK_SIZE, min_stack,
     #        TRUSTY_APP_CONFIG_KEY_MAP_MEM, id, addr, size,
@@ -690,6 +709,8 @@ def pack_manifest_data(manifest, log):
 
     uuid = swap_uuid_bytes(manifest.uuid)
     out.write(uuid)
+
+    out.write(pack_inline_string(manifest.app_name))
 
     if manifest.min_heap is not None:
         out.write(struct.pack("II",TRUSTY_APP_CONFIG_KEY_MIN_HEAP_SIZE,
@@ -751,6 +772,18 @@ def unpack_binary_manifest_to_data(packed_data):
             + uuid[20:]
 
     manifest[UUID] = uuid
+
+    # Extract APP_NAME
+    # read size of the name, this includes a null character
+    (name_size,), packed_data = struct.unpack(
+            "I", packed_data[:4]), packed_data[4:]
+    # read the name without a trailing null character
+    manifest[APP_NAME], packed_data = \
+            packed_data[:name_size-1], packed_data[name_size-1:]
+    # discard trailing null characters
+    # it includes trailing null character of a string and null padding
+    pad_len = 1 + 3 - (name_size + 3) % 4
+    packed_data = packed_data[pad_len:]
 
     # Extract remaining app configurations
     while len(packed_data) > 0:
@@ -1104,8 +1137,12 @@ def main(argv):
     if log.error_occurred():
         return 1
 
+    # By default app directory name will be used as app-name
+    default_app_name = os.path.basename(os.path.dirname(args.input_filename))
+
     # parse the manifest config
-    manifest = parse_manifest_config(manifest_dict, constants, log)
+    manifest = parse_manifest_config(manifest_dict, constants, default_app_name,
+                                     log)
     if log.error_occurred():
         return 1
 

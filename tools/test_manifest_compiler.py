@@ -871,6 +871,25 @@ class TestManifest(unittest.TestCase):
                 constants, log)
         self.assertTrue(log.error_occurred())
 
+    def test_validate_app_name_1(self):
+        log = manifest_compiler.Log()
+        data = manifest_compiler.parse_app_name("", log)
+        self.assertTrue(log.error_occurred())
+
+    def test_validate_app_name_2(self):
+        log = manifest_compiler.Log()
+        app_name = "test-app-name"
+        data = manifest_compiler.parse_app_name(app_name, log)
+        self.assertFalse(log.error_occurred())
+        self.assertEqual(data, app_name)
+
+    def test_validate_app_name_3(self):
+        log = manifest_compiler.Log()
+        app_name = "   test-app-name  "
+        data = manifest_compiler.parse_app_name(app_name, log)
+        self.assertFalse(log.error_occurred())
+        self.assertEqual(data, app_name.strip())
+
     '''
     Test with valid UUID with hex values and
     valid values for min_heap and min_stack.
@@ -883,6 +902,7 @@ class TestManifest(unittest.TestCase):
         id_ = 1
         addr = "0x70000000"
         size = "0x1000"
+        default_app_name = "test_app"
         mem_map_data = [{"id": id_, "addr": addr, "size": size}]
         log = manifest_compiler.Log()
 
@@ -893,12 +913,15 @@ class TestManifest(unittest.TestCase):
                 "mem_map": mem_map_data
         }
         manifest = manifest_compiler.parse_manifest_config(config_data,
-                                                           constants, log)
+                                                           constants,
+                                                           default_app_name,
+                                                           log)
         self.assertFalse(log.error_occurred())
         self.assertIsNotNone(manifest)
         self.assertEqual(manifest.uuid.encode("hex"), uuid_in.replace("-", ""))
         self.assertEqual(manifest.min_heap, min_heap)
         self.assertEqual(manifest.min_stack, min_stack)
+        self.assertEqual(manifest.app_name, default_app_name)
         for memio_map in manifest.mem_io_maps:
             self.assertEqual(memio_map.id, id_)
             self.assertEqual(memio_map.addr, int(addr, 0))
@@ -914,9 +937,13 @@ class TestManifest(unittest.TestCase):
     def test_manifest_invalid_dict_2(self):
         constants = {}
         log = manifest_compiler.Log()
-        config_data  = {"uuid": 123, "min_heap": "4096", "min_stack": "8192"}
+        default_app_name = "test"
+        config_data  = {"uuid": 123, "app_name":"test", "min_heap": "4096",
+                        "min_stack": "8192"}
         manifest = manifest_compiler.parse_manifest_config(config_data,
-                                                           constants, log)
+                                                           constants,
+                                                           default_app_name,
+                                                           log)
         self.assertEqual(len(config_data), 0)
         self.assertTrue(log.error_occurred())
         self.assertIsNone(manifest)
@@ -928,8 +955,11 @@ class TestManifest(unittest.TestCase):
         constants = {}
         log = manifest_compiler.Log()
         config_data  = {}
+        default_app_name = "test"
         manifest = manifest_compiler.parse_manifest_config(config_data,
-                                                           constants, log)
+                                                           constants,
+                                                           default_app_name,
+                                                           log)
         self.assertTrue(log.error_occurred())
         self.assertIsNone(manifest)
 
@@ -941,8 +971,11 @@ class TestManifest(unittest.TestCase):
         log = manifest_compiler.Log()
         config_data  = {"uuid": "5f902ace-5e5c-4cd8-ae54-87b88c22ddaf",
                          "min_heap": 4096, "min_stack": 4096, "max_heap": 234}
+        default_app_name = "test"
         manifest = manifest_compiler.parse_manifest_config(config_data,
-                                                           constants, log)
+                                                           constants,
+                                                           default_app_name,
+                                                           log)
         self.assertNotEqual(len(config_data), 0)
         self.assertTrue(log.error_occurred())
         self.assertIsNone(manifest)
@@ -1207,6 +1240,7 @@ class TestManifest(unittest.TestCase):
         # Reference JSON manifest data structure
         config_ref_data  = {
                 manifest_compiler.UUID: "5f902ace-5e5c-4cd8-ae54-87b88c22ddaf",
+                manifest_compiler.APP_NAME: "test-app-name",
                 manifest_compiler.MIN_HEAP: 8192,
                 manifest_compiler.MIN_STACK: 4096,
                 manifest_compiler.MGMT_FLAGS: {
@@ -1219,6 +1253,7 @@ class TestManifest(unittest.TestCase):
         # JSON manifest data structure
         config_data  = {
                 manifest_compiler.UUID: "5f902ace-5e5c-4cd8-ae54-87b88c22ddaf",
+                manifest_compiler.APP_NAME: "test-app-name",
                 manifest_compiler.MIN_HEAP: 8192,
                 manifest_compiler.MIN_STACK: 4096
         }
@@ -1249,6 +1284,7 @@ class TestManifest(unittest.TestCase):
         # Reference JSON manifest data structure
         ref_config_data  = {
                 manifest_compiler.UUID: "5f902ace-5e5c-4cd8-ae54-87b88c22ddaf",
+                manifest_compiler.APP_NAME: "test",
                 manifest_compiler.MIN_HEAP: 8192,
                 manifest_compiler.MIN_STACK: 4096,
                 manifest_compiler.MEM_MAP: [
@@ -1304,6 +1340,7 @@ class TestManifest(unittest.TestCase):
         # JSON manifest data structure
         config_data  = {
                 manifest_compiler.UUID: "5f902ace-5e5c-4cd8-ae54-87b88c22ddaf",
+                manifest_compiler.APP_NAME: "test",
                 manifest_compiler.MIN_HEAP: 8192,
                 manifest_compiler.MIN_STACK: 4096,
                 manifest_compiler.MGMT_FLAGS: {
@@ -1340,6 +1377,7 @@ class TestManifest(unittest.TestCase):
         # Reference manifest data structure
         ref_config_data  = {
                 manifest_compiler.UUID: "5f902ace-5e5c-4cd8-ae54-87b88c22ddaf",
+                manifest_compiler.APP_NAME: "test",
                 manifest_compiler.MIN_HEAP: 8192,
                 manifest_compiler.MIN_STACK: 4096,
                 manifest_compiler.START_PORTS: [
@@ -1420,6 +1458,7 @@ class TestManifest(unittest.TestCase):
         # Reference manifest data structure
         ref_config_data  = {
                 manifest_compiler.UUID: "5f902ace-5e5c-4cd8-ae54-87b88c22ddaf",
+                manifest_compiler.APP_NAME: "test",
                 manifest_compiler.MIN_HEAP: 8192,
                 manifest_compiler.MIN_STACK: 4096,
                 manifest_compiler.START_PORTS: [
@@ -1473,8 +1512,9 @@ class TestManifest(unittest.TestCase):
 
 def pack_manifest_config_data(self, config_data, log, constants):
     # parse manifest JSON data
+    default_app_name = "test"
     manifest = manifest_compiler.parse_manifest_config(config_data, constants,
-                                                       log)
+                                                       default_app_name, log)
     self.assertFalse(log.error_occurred())
 
     # pack manifest config data
