@@ -26,3 +26,9 @@ TRUSTY_ALL_USER_TASKS += \
 	trusty/user/base/lib/tipc/test/main \
 	trusty/user/base/lib/tipc/test/srv \
 	trusty/user/base/lib/uirq/test \
+
+ifeq (true,$(call TOBOOL,$(USER_COVERAGE_ENABLED)))
+TRUSTY_ALL_USER_TASKS += \
+	trusty/user/base/lib/sancov/test/srv \
+
+endif
