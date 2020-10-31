@@ -603,6 +603,9 @@ MODULE_SRCS += \
 #	$(MUSL_DIR)/src/locale/setlocale.c \
 #	$(MUSL_DIR)/src/locale/uselocale.c \
 
+# Fake pthreads
+MODULE_SRCS += $(LOCAL_DIR)/pthreads.c
+
 
 # Turn on the stack protector, except in libc.
 # TODO extract the early startup code from this module and turn on the stack

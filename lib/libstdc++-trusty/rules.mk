@@ -17,7 +17,7 @@ MODULE_CPPFLAGS += -DLIBCXX_BUILDING_LIBCXXABI
 # _LIBCPP_BUILD_STATIC is obviously an issue because it can eliminate a virtual
 # function and lead to a missing vtable entry. The others are made global out of
 # caution.
-GLOBAL_CPPFLAGS += -D_LIBCPP_BUILD_STATIC -D_LIBCPP_HAS_NO_THREADS -D_LIBCPP_HAS_MUSL_LIBC
+GLOBAL_CPPFLAGS += -D_LIBCPP_BUILD_STATIC -D_LIBCPP_HAS_MUSL_LIBC
 
 MODULE_SRCS := \
         $(LIBCXX_DIR)/src/algorithm.cpp \
