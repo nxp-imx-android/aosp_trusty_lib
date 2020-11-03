@@ -20,6 +20,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #include <trusty_unittest.h>
@@ -312,6 +313,27 @@ test_abort:;
 // Make sure a simple use of cout can compile and run.
 TEST_F(libcxx, iostream_smoke_test) {
     std::cout << "Hello, world. " << 123 << "!" << std::endl;
+}
+
+class Parent {};
+
+class Child : Parent {};
+
+class Stranger {};
+
+// Do we have full C++17 support?
+TEST_F(libcxx, is_base_of_v) {
+    // Extra parentheses needed because templates create lexical ambiguity for
+    // preprocessor.
+    EXPECT_EQ(true, (std::is_base_of_v<Parent, Parent>));
+    EXPECT_EQ(true, (std::is_base_of_v<Child, Child>));
+    EXPECT_EQ(true, (std::is_base_of_v<Stranger, Stranger>));
+    EXPECT_EQ(true, (std::is_base_of_v<Parent, Child>));
+    EXPECT_EQ(false, (std::is_base_of_v<Child, Parent>));
+    EXPECT_EQ(false, (std::is_base_of_v<Parent, Stranger>));
+    EXPECT_EQ(false, (std::is_base_of_v<Stranger, Parent>));
+    EXPECT_EQ(false, (std::is_base_of_v<Child, Stranger>));
+    EXPECT_EQ(false, (std::is_base_of_v<Stranger, Child>));
 }
 
 PORT_TEST(libcxx, "com.android.libcxxtest");
