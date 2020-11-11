@@ -22,6 +22,9 @@
  * Storage port names
  * @STORAGE_CLIENT_TD_PORT:     Port used by clients that require tamper and
  *                              rollback detection.
+ * @STORAGE_CLIENT_TDP_PORT:    Port used by clients that require tamper and
+ *                              rollback detection. Data will be preserved
+ *                              during a normal device wipe.
  * @STORAGE_CLIENT_TDEA_PORT:   Port used by clients that require storage before
  *                              the non-secure os has booted.
  * @STORAGE_CLIENT_TP_PORT:     Port used by clients that require tamper proof
@@ -31,6 +34,7 @@
  * @STORAGE_DISK_PROXY_PORT:    Port used by non-secure proxy server
  */
 #define STORAGE_CLIENT_TD_PORT "com.android.trusty.storage.client.td"
+#define STORAGE_CLIENT_TDP_PORT "com.android.trusty.storage.client.tdp"
 #define STORAGE_CLIENT_TDEA_PORT "com.android.trusty.storage.client.tdea"
 #define STORAGE_CLIENT_TP_PORT "com.android.trusty.storage.client.tp"
 #define STORAGE_DISK_PROXY_PORT "com.android.trusty.storage.proxy"
