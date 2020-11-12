@@ -19,6 +19,7 @@
 #include <assert.h>
 #include <interface/coverage/aggregator.h>
 #include <lib/coverage/common/ipc.h>
+#include <lib/coverage/common/record.h>
 #include <lib/coverage/common/shm.h>
 #include <lib/tipc/tipc.h>
 #include <lk/macros.h>
@@ -38,7 +39,11 @@ struct sancov_ctx {
     size_t idx;
     struct shm mailbox;
     struct shm data;
+    volatile struct coverage_record_header* headers;
+    volatile counter_t* counters;
+    volatile uintptr_t* pcs;
     size_t record_len;
+    size_t num_counters;
 };
 
 static bool in_sancov = false;
@@ -51,7 +56,44 @@ static bool in_sancov = false;
 
 #define SANCOV_FINISH in_sancov = false;
 
-static int init(struct sancov_ctx* ctx, size_t record_len) {
+static size_t header_len() {
+    return sizeof(struct coverage_record_header) + /* COV_START */
+           sizeof(struct coverage_record_header) + /* COV_8BIT_COUNTERS */
+           sizeof(struct coverage_record_header) + /* COV_INSTR_PCS */
+           sizeof(struct coverage_record_header);  /* COV_TOTAL_LENGTH */
+}
+
+static size_t counters_data_len(size_t num_counters) {
+    return sizeof(counter_t) * num_counters;
+}
+
+static size_t pcs_data_len(size_t num_counters) {
+    return sizeof(uintptr_t) * num_counters;
+}
+
+static size_t record_len(size_t num_counters) {
+    return header_len() + counters_data_len(num_counters) +
+           pcs_data_len(num_counters);
+}
+
+static void initialize_header(volatile struct coverage_record_header* headers,
+                              size_t num_counters) {
+    uint32_t offset = header_len();
+    headers[1].type = COV_8BIT_COUNTERS;
+    headers[1].offset = offset;
+    offset += sizeof(counter_t) * num_counters;
+    headers[2].type = COV_INSTR_PCS;
+    headers[2].offset = offset;
+    offset += sizeof(uintptr_t) * num_counters;
+    headers[3].type = COV_TOTAL_LENGTH;
+    headers[3].offset = offset;
+
+    /* Mark the header as finished */
+    headers[0].offset = 0;
+    headers[0].type = COV_START;
+}
+
+static int init(struct sancov_ctx* ctx, size_t num_counters) {
     int rc;
     handle_t chan;
     handle_t memref;
@@ -65,7 +107,7 @@ static int init(struct sancov_ctx* ctx, size_t record_len) {
     }
 
     req.hdr.cmd = COVERAGE_AGGREGATOR_CMD_REGISTER;
-    req.register_args.record_len = record_len;
+    req.register_args.record_len = record_len(num_counters);
 
     rc = coverage_aggregator_rpc(chan, &req, NULL, &resp, &memref);
     if (rc != NO_ERROR) {
@@ -79,9 +121,10 @@ static int init(struct sancov_ctx* ctx, size_t record_len) {
         goto err_mmap;
     }
 
+    ctx->num_counters = num_counters;
+    ctx->record_len = record_len(num_counters);
     ctx->coverage_srv = chan;
     ctx->idx = resp.register_args.idx;
-    ctx->record_len = record_len;
 
     close(memref);
     return NO_ERROR;
@@ -99,6 +142,12 @@ static int get_record(struct sancov_ctx* ctx) {
     struct coverage_aggregator_req req;
     struct coverage_aggregator_resp resp;
     size_t shm_len;
+
+    if (shm_is_mapped(&ctx->data)) {
+        shm_munmap(&ctx->data);
+    }
+    ctx->counters = NULL;
+    ctx->pcs = NULL;
 
     req.hdr.cmd = COVERAGE_AGGREGATOR_CMD_GET_RECORD;
 
@@ -122,6 +171,12 @@ static int get_record(struct sancov_ctx* ctx) {
         goto out;
     }
 
+    ctx->headers = ctx->data.base;
+    initialize_header(ctx->headers, ctx->num_counters);
+
+    ctx->counters = ctx->data.base + header_len();
+    ctx->pcs = ctx->data.base + header_len() +
+               counters_data_len(ctx->num_counters);
     rc = NO_ERROR;
 
 out:
@@ -129,9 +184,12 @@ out:
     return rc;
 }
 
-static void update_record(struct sancov_ctx* ctx, size_t idx) {
-    volatile counter_t* counters = ctx->data.base;
-    counters[idx]++;
+static void update_record(struct sancov_ctx* ctx, size_t idx, uintptr_t pc) {
+    assert(idx < ctx->num_counters);
+    ctx->counters[idx]++;
+    if (!ctx->pcs[idx]) {
+        ctx->pcs[idx] = pc - getauxval(AT_BASE);
+    }
 }
 
 static int get_event(struct sancov_ctx* ctx) {
@@ -182,10 +240,6 @@ void __sanitizer_cov_trace_pc_guard(uint32_t* guard) {
         break;
 
     case COVERAGE_MAILBOX_RECORD_READY:
-        if (shm_is_mapped(&ctx.data)) {
-            shm_munmap(&ctx.data);
-        }
-
         rc = get_record(&ctx);
         assert(rc == NO_ERROR);
         break;
@@ -196,7 +250,17 @@ void __sanitizer_cov_trace_pc_guard(uint32_t* guard) {
     }
 
     if (shm_is_mapped(&ctx.data)) {
-        update_record(&ctx, idx);
+        uintptr_t ret_address = (uintptr_t)__builtin_return_address(0);
+        /* The sancov tool expects the address of the instruction before the
+         * call to this function on ARM and AArch64. */
+#if defined(__aarch64__)
+        ret_address -= 4;
+#elif defined(__arm__)
+        ret_address = (ret_address - 3) & (~1);
+#else
+#error Only ARM and AArch64 are supported by the Trusty sancov runtime
+#endif
+        update_record(&ctx, idx, ret_address);
     }
 
     SANCOV_FINISH;
