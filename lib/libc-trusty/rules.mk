@@ -607,11 +607,13 @@ MODULE_SRCS += \
 MODULE_SRCS += $(LOCAL_DIR)/pthreads.c
 
 
-# Turn on the stack protector, except in libc.
 # TODO extract the early startup code from this module and turn on the stack
 # protector for most of libc.
 MODULE_DISABLE_STACK_PROTECTOR := true
+
+ifeq (true,$(call TOBOOL,$(USER_STACK_PROTECTOR)))
 MODULE_SRCS += $(MUSL_DIR)/src/env/__stack_chk_fail.c
+endif
 
 # Defined by kernel/lib/ubsan/enable.mk if in use for the build
 ifeq ($(UBSAN_ENABLED), true)
