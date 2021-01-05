@@ -21,6 +21,11 @@
 
 __BEGIN_CDECLS
 
+struct secure_dpu_buf_info {
+    void* addr;
+    size_t len;
+};
+
 /**
  * add_secure_dpu_service() - Add secure_dpu service.
  * @hset: pointer to the tipc hset.
@@ -38,21 +43,22 @@ int add_secure_dpu_service(struct tipc_hset* hset, handle_t* chan);
 /**
  * secure_dpu_allocate_buffer() - Allocate framebuffer.
  * @chan: channel handle
- * @buffer_ptr: The physical address of the allocated buffer
- * @buffer_len: The requested size / The size of the allocated buffer
+ * @buffer_len: requested length of the buffer
+ * @buf_info: information of the allocated buffer.
  *
  * Return: 0 on success, or an error code < 0 on failure.
  */
-int secure_dpu_allocate_buffer(handle_t chan, void** buffer_ptr, size_t* buffer_len);
+int secure_dpu_allocate_buffer(handle_t chan,
+                               size_t buffer_len,
+                               struct secure_dpu_buf_info* buf_info);
 
 /**
- * secure_dpu_free_buffer() - free framebuffer.
- * @chan: channel handle
- * @buffer_ptr: pointer to buffer to be freed
+ * secure_dpu_release_buffer() - release framebuffer.
+ * @buf_info: information of the buffer to be freed
  *
  * Return: 0 on success, or an error code < 0 on failure.
  */
-int secure_dpu_free_buffer(handle_t chan, void* buffer_ptr);
+int secure_dpu_release_buffer(struct secure_dpu_buf_info* buf_info);
 
 /**
  * secure_dpu_start_secure_display() - notify DPU driver to start secure display

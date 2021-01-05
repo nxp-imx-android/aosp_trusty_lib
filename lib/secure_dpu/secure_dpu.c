@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/auxv.h>
+#include <sys/mman.h>
 #include <trusty_ipc.h>
 #include <trusty_log.h>
 #include <uapi/err.h>
@@ -37,7 +38,6 @@ struct secure_dpu_ctx {
      * Update this pointer when connecting / disconnecting.
      */
     handle_t* chan;
-    void* fb_buf_ptr;
 };
 
 static struct secure_dpu_ctx ctx;
@@ -53,8 +53,98 @@ static struct tipc_port port = {
     .priv = &ctx,
 };
 
-int secure_dpu_allocate_buffer(handle_t chan, void** buffer_ptr, size_t* buffer_len) {
-    if (!buffer_ptr || !buffer_len) {
+static int handle_allocate_buffer_resp(handle_t chan,
+                                       size_t buffer_len,
+                                       struct secure_dpu_buf_info* buf_info) {
+    int rc = NO_ERROR;
+    struct uevent evt;
+    struct secure_dpu_resp hdr;
+    struct secure_dpu_allocate_buffer_resp resp;
+    handle_t buf_handle;
+
+    struct iovec iov[] = {
+        {
+            .iov_base = &hdr,
+            .iov_len = sizeof(hdr),
+        },
+        {
+            .iov_base = &resp,
+            .iov_len = sizeof(resp),
+        },
+    };
+
+    struct ipc_msg msg = {
+            .iov = iov,
+            .num_iov = countof(iov),
+            .handles = &buf_handle,
+            .num_handles = 1,
+    };
+
+    rc = wait(chan, &evt, INFINITE_TIME);
+    if (rc != NO_ERROR) {
+        TLOGE("Error waiting for response (%d)\n", rc);
+        return rc;
+    }
+
+    struct ipc_msg_info msg_inf;
+    rc = get_msg(chan, &msg_inf);
+    if (rc) {
+        return rc;
+    }
+
+    if (msg_inf.num_handles != 1) {
+        TLOGE("Message had no handles\n");
+        return ERR_INVALID_ARGS;
+    }
+
+    rc = read_msg(chan, msg_inf.id, 0, &msg);
+    put_msg(chan, msg_inf.id);
+    if (rc != (int)(sizeof(hdr) + sizeof(resp))) {
+        TLOGE("Read length does not match\n");
+        close(buf_handle);
+        return ERR_BAD_LEN;
+    }
+
+    if (hdr.cmd != (SECURE_DPU_CMD_ALLOCATE_BUFFER | SECURE_DPU_CMD_RESP_BIT)) {
+        close(buf_handle);
+        return ERR_CMD_UNKNOWN;
+    }
+
+    if (hdr.status != SECURE_DPU_ERROR_OK) {
+        TLOGE("Failed SECURE_DPU_CMD_ALLOCATE_BUFFER (%d)\n", hdr.status);
+        close(buf_handle);
+        return ERR_GENERIC;
+    }
+
+    if ((size_t)resp.buffer_len < buffer_len) {
+        TLOGE("Not allocated enough buffer length, "
+              "requested (%zu), allocated (%zu)\n", (size_t)buffer_len,
+                                                    (size_t)resp.buffer_len);
+        close(buf_handle);
+        return ERR_NOT_ENOUGH_BUFFER;
+    }
+
+    void* out = mmap(0, (size_t)resp.buffer_len, PROT_READ | PROT_WRITE, 0,
+                     buf_handle, 0);
+    if (!out) {
+        TLOGE("Error when calling mmap()\n");
+        return ERR_BAD_HANDLE;
+    }
+    close(buf_handle);
+    buf_info->addr = (void*)out;
+    buf_info->len = (size_t)resp.buffer_len;
+
+    return NO_ERROR;
+}
+
+int secure_dpu_allocate_buffer(handle_t chan,
+                               size_t buffer_len,
+                               struct secure_dpu_buf_info* buf_info) {
+
+    int rc;
+    struct secure_dpu_req hdr;
+    struct secure_dpu_allocate_buffer_req args;
+    if (!buf_info) {
         TLOGE("Invalid arguments to allocate DPU buffer\n");
         return ERR_INVALID_ARGS;
     }
@@ -63,26 +153,35 @@ int secure_dpu_allocate_buffer(handle_t chan, void** buffer_ptr, size_t* buffer_
         return ERR_NOT_READY;
     }
 
-    /* TODO: allocate buffer from NS */
-    if (!ctx.fb_buf_ptr) {
-        ctx.fb_buf_ptr = memalign(getauxval(AT_PAGESZ), *buffer_len);
-    }
-    if (!ctx.fb_buf_ptr) {
-        return ERR_NO_MEMORY;
-    }
-    *buffer_ptr = ctx.fb_buf_ptr;
+    hdr.cmd = SECURE_DPU_CMD_ALLOCATE_BUFFER;
+    args.buffer_len = (uint64_t)buffer_len;
 
-    return NO_ERROR;
+    rc = tipc_send2(chan, &hdr, sizeof(hdr), &args, sizeof(args));
+    if (rc != (int)(sizeof(hdr) + sizeof(args))) {
+        TLOGE("Failed to send SECURE_DPU_CMD_ALLOCATE_BUFFER request (%d)\n", rc);
+        return rc;
+    }
+
+    rc = handle_allocate_buffer_resp(chan, buffer_len, buf_info);
+    if (rc < 0) {
+        TLOGE("Failed to handle allocate buffer\n");
+        return rc;
+    }
+    return rc;
 }
 
-int secure_dpu_free_buffer(handle_t chan, void* buffer_ptr) {
-
-    if (chan == INVALID_IPC_HANDLE) {
-        TLOGE("Channel is not ready\n");
-        return ERR_NOT_READY;
+int secure_dpu_release_buffer(struct secure_dpu_buf_info* buf_info) {
+    if (!buf_info) {
+        TLOGE("Invalid arguments to release DPU buffer\n");
+        return ERR_INVALID_ARGS;
     }
 
-    /* TODO: free buffer from NS */
+    int rc = munmap(buf_info->addr, buf_info->len);
+    if (rc < 0) {
+        TLOGE("Failed to do munmap\n");
+        return rc;
+    }
+
     return NO_ERROR;
 }
 
@@ -98,7 +197,7 @@ static int handle_start_secure_display_resp(handle_t chan) {
     }
 
     rc = tipc_recv1(chan, sizeof(hdr), &hdr, sizeof(hdr));
-    if (rc < 0) {
+    if (rc != sizeof(hdr)) {
         TLOGE("Failed to receive SECURE_DPU_CMD_START_SECURE_DISPLAY response (%d)\n", rc);
         return rc;
     }
@@ -147,7 +246,7 @@ static int handle_stop_secure_display_resp(handle_t chan) {
     }
 
     rc = tipc_recv1(chan, sizeof(hdr), &hdr, sizeof(hdr));
-    if (rc < 0) {
+    if (rc != sizeof(hdr)) {
         TLOGE("Failed to receive SECURE_DPU_CMD_STOP_SECURE_DISPLAY response (%d)\n", rc);
         return rc;
     }
