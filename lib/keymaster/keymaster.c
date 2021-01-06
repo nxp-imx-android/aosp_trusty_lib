@@ -16,15 +16,20 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <trusty_ipc.h>
 #include <uapi/err.h>
 
 #include <interface/keymaster/keymaster.h>
 #include <lib/keymaster/keymaster.h>
 
+#include <openssl/hmac.h>
+
 #define LOG_TAG "libkeymaster"
 #define TLOGE(fmt, ...) \
     fprintf(stderr, "%s: %d: " fmt, LOG_TAG, __LINE__, ##__VA_ARGS__)
+
+#define HMAC_LEN (sizeof(((hw_auth_token_t*)0)->hmac))
 
 static long send_req(keymaster_session_t session, uint32_t cmd) {
     struct keymaster_message msg = {
@@ -164,4 +169,83 @@ err_bad_read:
     free(key_buf);
     TLOGE("%s: failed read_msg (%ld)", __func__, rc);
     return rc;
+}
+
+static int mint_hmac(uint8_t* key,
+                     size_t key_size,
+                     uint8_t* message,
+                     size_t message_size,
+                     uint8_t* hmac) {
+    unsigned int tok_size;
+    unsigned char* ret;
+    memset(hmac, 0, HMAC_LEN);
+    ret = HMAC(EVP_sha256(), (void*)key, key_size, message, message_size, hmac,
+               &tok_size);
+    if (ret == NULL || tok_size != HMAC_LEN) {
+        TLOGE("Failed to execute HMAC()!\n");
+        return ERR_FAULT;
+    }
+
+    return NO_ERROR;
+}
+
+int keymaster_sign_auth_token(keymaster_session_t session,
+                              hw_auth_token_t* token) {
+    int ret = NO_ERROR;
+
+    if (token == NULL) {
+        TLOGE("Invalid token!\n");
+        return ERR_NOT_VALID;
+    }
+
+    uint8_t* key_buf;
+    uint32_t key_buf_size;
+    ret = keymaster_get_auth_token_key(session, &key_buf, &key_buf_size);
+    if (ret) {
+        return ret;
+    }
+
+    /* Initialize the token and message size */
+    size_t message_size = sizeof(hw_auth_token_t) - sizeof(token->hmac);
+    /* Mint the token key with the given HMAC key and message */
+    ret = mint_hmac(key_buf, key_buf_size, (uint8_t*)token, message_size,
+                    token->hmac);
+
+free_mem:
+    free(key_buf);
+    return ret;
+}
+
+int keymaster_validate_auth_token(keymaster_session_t session,
+                                  hw_auth_token_t* token) {
+    int ret = NO_ERROR;
+
+    if (token == NULL) {
+        TLOGE("Invalid token!\n");
+        return ERR_NOT_VALID;
+    }
+
+    uint8_t* key_buf;
+    uint32_t key_buf_size;
+    ret = keymaster_get_auth_token_key(session, &key_buf, &key_buf_size);
+    if (ret) {
+        return ret;
+    }
+
+    /* compute the expected token hmac */
+    uint8_t expected_hmac[HMAC_LEN];
+    size_t message_size = sizeof(hw_auth_token_t) - sizeof(token->hmac);
+
+    ret = mint_hmac(key_buf, key_buf_size, (uint8_t*)token, message_size,
+                    expected_hmac);
+    if (ret) {
+        goto free_mem;
+    }
+
+    /* Compare the expected hmac with the provided hmac */
+    ret = memcmp(expected_hmac, token->hmac, sizeof(expected_hmac));
+
+free_mem:
+    free(key_buf);
+    return ret;
 }

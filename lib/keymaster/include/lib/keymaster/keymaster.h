@@ -19,6 +19,7 @@
 #include <lk/compiler.h>
 #include <trusty_ipc.h>
 
+#include <hardware/hw_auth_token.h>
 __BEGIN_CDECLS
 
 typedef handle_t keymaster_session_t;
@@ -39,6 +40,8 @@ int keymaster_open(void);
 void keymaster_close(keymaster_session_t session);
 
 /**
+ * Deprecated; use the appropriate token specific functions below if possible.
+ *
  * keymaster_get_auth_token_key() - Retrieves the auth token signature key
  * @session: the keymaster_session_t to close.
  * @key_buf_p: pointer to buffer pointer to be allocated and filled with auth
@@ -50,5 +53,27 @@ void keymaster_close(keymaster_session_t session);
 int keymaster_get_auth_token_key(keymaster_session_t session,
                                  uint8_t** key_buf_p,
                                  uint32_t* size_p);
+
+/**
+ * keymaster_sign_auth_token() - Sign the 'token' by populating the HMAC field
+ *                                using the keymaster auth token.
+ * @session: An open keymaster_session_t.
+ * @token: The token for signing
+ *
+ * @return: NO_ERROR if token was signed successfully
+ */
+int keymaster_sign_auth_token(keymaster_session_t session,
+                              hw_auth_token_t* token);
+
+/**
+ * keymaster_validate_auth_token() - Validate the incoming token against the
+ *                                keymaster auth token.
+ * @session: An open keymaster_session_t.
+ * @token: The token to validate
+ *
+ * @return: NO_ERROR if the token is trusted, otherwise rejection reason.
+ */
+int keymaster_validate_auth_token(keymaster_session_t session,
+                                  hw_auth_token_t* token);
 
 __END_CDECLS

@@ -1,4 +1,4 @@
-# Copyright (C) 2014-2015 The Android Open Source Project
+# Copyright (C) 2021 The Android Open Source Project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,20 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
 
 LOCAL_DIR := $(GET_LOCAL_DIR)
 
 MODULE := $(LOCAL_DIR)
 
-MODULE_SRCS := $(LOCAL_DIR)/keymaster.c
+MANIFEST := $(LOCAL_DIR)/manifest.json
 
-GLOBAL_INCLUDES += $(LOCAL_DIR)/include/ \
-		   $(TRUSTY_TOP)/hardware/libhardware/include
+MODULE_SRCS += \
+	$(LOCAL_DIR)/keymaster_test.c
 
-MODULE_DEPS := \
-	trusty/user/base/interface/keymaster \
+MODULE_DEPS += \
 	trusty/user/base/lib/libc-trusty \
-	external/boringssl \
+	trusty/user/base/lib/keymaster \
+	trusty/user/base/lib/unittest
 
 include make/module.mk
