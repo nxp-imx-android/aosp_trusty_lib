@@ -24,7 +24,7 @@
     porttest("com.android.libctest"),
     porttest("com.android.libcxxtest"),
     porttest("com.android.trusty.crashtest"),
-    porttest("com.android.trusty.secure_fb.test"),
+    porttest("com.android.trusty.secure_fb.test").needs(android=True),
     porttest("com.android.trusty.smc.test"),
     porttest("com.android.uirq-unittest"),
 ]
