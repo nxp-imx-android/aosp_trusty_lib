@@ -212,7 +212,7 @@ static int on_message(const struct tipc_port* port,
     union spi_msg_req_args args;
     struct spi_dev_ctx* spi = (struct spi_dev_ctx*)port->priv;
     struct chan_ctx* ctx = (struct chan_ctx*)chan_ctx;
-    handle_t h;
+    handle_t h = INVALID_IPC_HANDLE;
 
     rc = recv_msg(chan, &req, &args, &h);
     if (rc != NO_ERROR) {
