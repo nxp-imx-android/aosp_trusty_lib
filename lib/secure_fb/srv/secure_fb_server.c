@@ -133,8 +133,9 @@ static int handle_display_fb(handle_t chan,
     if (rc != (int)sizeof(hdr)) {
         TLOGE("Failed to send SECURE_FB_CMD_DISPLAY_FB response (%d)\n", rc);
         if (rc >= 0) {
-            return ERR_BAD_LEN;
+            rc = ERR_BAD_LEN;
         }
+        return rc;
     }
 
     return NO_ERROR;

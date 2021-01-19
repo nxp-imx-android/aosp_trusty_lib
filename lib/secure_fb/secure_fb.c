@@ -281,7 +281,7 @@ secure_fb_error secure_fb_open(secure_fb_handle_t* session,
     }
 
     s = new_connected_session();
-    if (session == NULL) {
+    if (s == NULL) {
         return TTUI_ERROR_MEMORY_ALLOCATION_FAILED;
     }
 
