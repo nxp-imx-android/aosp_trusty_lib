@@ -44,11 +44,11 @@ static struct tipc_port crasher_port = {
 };
 
 __SECTION(".rodata") __NO_INLINE static void crasher_rodata_func(void) {
-    TLOGE("function in rodata ran\n");
+    TLOG("function in rodata ran\n");
 };
 
 __SECTION(".data") __NO_INLINE static void crasher_data_func(void) {
-    TLOGE("function in data ran\n");
+    TLOG("function in data ran\n");
 };
 
 static int __attribute__((no_sanitize("undefined")))
