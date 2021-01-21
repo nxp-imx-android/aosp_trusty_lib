@@ -115,6 +115,7 @@ MODULE_SRCS += \
 	$(MUSL_DIR)/src/env/__environ.c \
 	$(MUSL_DIR)/src/env/__init_tls.c \
 	$(MUSL_DIR)/src/env/__libc_start_main.c \
+	$(MUSL_DIR)/src/env/__stack_chk_fail.c \
 	$(MUSL_DIR)/src/env/getenv.c \
 	$(MUSL_DIR)/src/internal/defsysinfo.c \
 	$(MUSL_DIR)/src/internal/floatscan.c \
@@ -613,10 +614,6 @@ MODULE_DISABLE_SCS := true
 # TODO extract the early startup code from this module and turn on the stack
 # protector for most of libc.
 MODULE_DISABLE_STACK_PROTECTOR := true
-
-ifeq (true,$(call TOBOOL,$(USER_STACK_PROTECTOR)))
-MODULE_SRCS += $(MUSL_DIR)/src/env/__stack_chk_fail.c
-endif
 
 # Defined by kernel/lib/ubsan/enable.mk if in use for the build
 ifeq ($(UBSAN_ENABLED), true)
