@@ -33,30 +33,56 @@ USAGE:
         "uuid": "SECURE_STORAGE_SERVER_APP_UUID",
         "min_heap": 4096,
         "min_stack": 4096,
-        "mem_map": [{"id": 1, "addr": "0x70000000", "size": "0x1000"}, \
-                {"id": 2, "addr": "0x70010000", "size": "0x100"}, \
-                {"id": 3, "addr": "0x70020000", "size": "0x4",
-                 "type": "uncached_device", "non_secure": false}],
-        "mgmt_flags": {"restart_on_exit": true, \
-                "deferred_start": false, \
-                "non_critical_app": false},
-        "start_ports": [{"name": "LOADABLE_START_PORT", \
-                "flags": {"allow_ta_connect": true, "allow_ns_connect": false}}]
+        "mem_map": [
+            {
+                "id": 1,
+                "addr": "0x70000000",
+                "size": "0x1000"
+            },
+            {
+                "id": 2,
+                "addr": "0x70010000",
+                "size": "0x100"
+            },
+            {
+                "id": 3,
+                "addr": "0x70020000",
+                "size": "0x4",
+                "type": "uncached_device",
+                "non_secure": false
+            }
+        ],
+        "mgmt_flags": {
+            "restart_on_exit": true,
+            "deferred_start": false,
+            "non_critical_app": false
+        },
+        "start_ports": [
+            {
+                "name": "LOADABLE_START_PORT",
+                "flags": {
+                    "allow_ta_connect": true,
+                    "allow_ns_connect": false
+                }
+            }
+        ]
    }
 
    JSON manifest constant config -
    {
         "header": "storage_constants.h",
-        "constants": [{
-            "name": "LOADABLE_START_PORT",
-            "value": "com.android.trusty.appmgmt.loadable.start",
-            "type": "port"
-        },
-        {
-            "name": "SECURE_STORAGE_SERVER_APP_UUID",
-            "value": "eca48f94-00aa-560e-8f8c-d94b50d484f3",
-            "type": "uuid"
-        }]
+        "constants": [
+            {
+                "name": "LOADABLE_START_PORT",
+                "value": "com.android.trusty.appmgmt.loadable.start",
+                "type": "port"
+            },
+            {
+                "name": "SECURE_STORAGE_SERVER_APP_UUID",
+                "value": "eca48f94-00aa-560e-8f8c-d94b50d484f3",
+                "type": "uuid"
+            }
+        ]
     }
 '''
 
