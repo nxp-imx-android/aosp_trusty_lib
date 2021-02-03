@@ -14,9 +14,11 @@
  * limitations under the License.
  */
 
+#include <cppbor.h>
 #include <endian.h>
 #include <fcntl.h>
 #include <getopt.h>
+#include <interface/apploader/apploader_package.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -27,13 +29,6 @@
 #include <sstream>
 #include <string>
 #include <vector>
-
-/* TODO: these will go away after the COSE/CBOR format is added */
-#define APPLOADER_PACKAGE_MAGIC "TrustyAp"
-#define APPLOADER_PACKAGE_MAGIC_SIZE 8
-#define APPLOADER_RECORD_TYPE_SHIFT 48
-#define APPLOADER_RECORD_TYPE_ELF 0UL
-#define APPLOADER_RECORD_TYPE_MANIFEST 1UL
 
 enum class Mode {
     UNKNOWN,
@@ -118,52 +113,46 @@ static std::string read_entire_file(const char* file_name) {
     return ss.str();
 }
 
-static void write_to_fd(int fd, const uint8_t* data, size_t len) {
-    for (size_t off = 0; off < len;) {
-        ssize_t num = write(fd, data + off, len - off);
-        if (num < 0) {
-            if (errno == EINTR) {
-                continue;
-            }
+static void write_entire_file(const char* file_name,
+                              const std::vector<uint8_t>& data) {
+    /*
+     * Disable synchronization between C++ streams and FILE* functions for a
+     * performance boost
+     */
+    std::ios::sync_with_stdio(false);
 
-            fprintf(stderr, "Failed to write to file: %s\n", strerror(errno));
-            exit(EXIT_FAILURE);
-        }
-        off += num;
+    std::ofstream ofs(file_name,
+                      std::ios::out | std::ios::binary | std::ios::trunc);
+    if (!ofs || !ofs.is_open()) {
+        fprintf(stderr, "Failed to create file '%s'\n", file_name);
+        exit(EXIT_FAILURE);
+    }
+
+    ofs.write(reinterpret_cast<const char*>(data.data()), data.size());
+    if (!ofs) {
+        fprintf(stderr, "Failed to write to file '%s'\n", file_name);
+        exit(EXIT_FAILURE);
     }
 }
 
 static void build_package(const char* output_path,
                           const char* elf_path,
                           const char* manifest_path) {
-    int fd = creat(output_path, 0644);
-    if (fd < 0) {
-        fprintf(stderr, "Failed to create file '%s': %s\n", output_path,
-                strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-
-    /* TODO: rewrite these to use the new COSE/CBOR format */
-    write_to_fd(fd, reinterpret_cast<const uint8_t*>(APPLOADER_PACKAGE_MAGIC),
-                APPLOADER_PACKAGE_MAGIC_SIZE);
-
     auto elf = read_entire_file(elf_path);
-    uint64_t elf_tl =
-            htobe64((APPLOADER_RECORD_TYPE_ELF << APPLOADER_RECORD_TYPE_SHIFT) |
-                    elf.size());
-    write_to_fd(fd, reinterpret_cast<const uint8_t*>(&elf_tl), sizeof(elf_tl));
-    write_to_fd(fd, reinterpret_cast<const uint8_t*>(elf.data()), elf.size());
-
     auto manifest = read_entire_file(manifest_path);
-    uint64_t manifest_tl = htobe64(
-            (APPLOADER_RECORD_TYPE_MANIFEST << APPLOADER_RECORD_TYPE_SHIFT) |
-            manifest.size());
-    write_to_fd(fd, reinterpret_cast<const uint8_t*>(&manifest_tl),
-                sizeof(manifest_tl));
-    write_to_fd(fd, reinterpret_cast<const uint8_t*>(manifest.data()),
-                manifest.size());
 
-    close(fd);
+    cppbor::Map headers{};
+
+    cppbor::Array untagged_package;
+    untagged_package.add(APPLOADER_PACKAGE_FORMAT_VERSION_CURRENT);
+    untagged_package.add(std::move(headers));
+    untagged_package.add(cppbor::Bstr(std::move(elf)));
+    untagged_package.add(cppbor::Bstr(std::move(manifest)));
+
+    cppbor::SemanticTag tagged_package(APPLOADER_PACKAGE_CBOR_TAG_APP,
+                                       std::move(untagged_package));
+    auto encoded_package = tagged_package.encode();
+    write_entire_file(output_path, encoded_package);
 }
 
 int main(int argc, char** argv) {

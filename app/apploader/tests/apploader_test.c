@@ -27,8 +27,6 @@
 #include <trusty_unittest.h>
 #include <uapi/err.h>
 
-#include "../apploader_package.h"
-
 #define TLOG_TAG "apploader-unittest"
 
 static uint32_t make_request(handle_t channel,
@@ -252,22 +250,22 @@ test_abort:
     }
 }
 
-TEST_F(apploader_user, BadLoadCmdPackageMagic) {
+static void send_cbor_package(handle_t chan,
+                              const char* cbor,
+                              size_t cbor_size) {
     handle_t handle = INVALID_IPC_HANDLE;
-    void* package = get_memory_buffer_from_malloc(
-            sizeof(struct apploader_package_header), &handle);
+    void* package = get_memory_buffer_from_malloc(cbor_size, &handle);
     ASSERT_EQ(false, HasFailure());
     ASSERT_NE(handle, INVALID_IPC_HANDLE);
     ASSERT_NE(package, NULL);
 
-    /* Write invalid bytes in the magic field (and the rest of the buffer) */
-    memset(package, 0x5a, sizeof(struct apploader_package_header));
+    memcpy(package, cbor, cbor_size);
 
     uint32_t error;
     struct apploader_load_app_req req = {
-            .package_size = sizeof(struct apploader_package_header),
+            .package_size = cbor_size,
     };
-    error = make_request(_state->channel, APPLOADER_CMD_LOAD_APPLICATION, &req,
+    error = make_request(chan, APPLOADER_CMD_LOAD_APPLICATION, &req,
                          sizeof(req), handle, NULL, 0);
     ASSERT_EQ(false, HasFailure());
     EXPECT_EQ(error, APPLOADER_ERR_VERIFICATION_FAILED);
@@ -279,6 +277,55 @@ test_abort:
     if (handle != INVALID_IPC_HANDLE) {
         close(handle);
     }
+}
+
+TEST_F(apploader_user, BadLoadCmdPackageCBORTag) {
+    /* Write an untagged UInt */
+    const char bad_tag_cbor[] = {
+            /* UInt: 0 */
+            0x00,
+    };
+    send_cbor_package(_state->channel, bad_tag_cbor, sizeof(bad_tag_cbor));
+}
+
+TEST_F(apploader_user, BadLoadCmdPackageCBORLength) {
+    /* Send an incomplete message */
+    const char bad_length_cbor[] = {
+            /* UInt followed by missing byte */
+            0x18,
+    };
+    send_cbor_package(_state->channel, bad_length_cbor,
+                      sizeof(bad_length_cbor));
+}
+
+TEST_F(apploader_user, BadLoadCmdPackageCBORType) {
+    /* Write a tagged UInt */
+    const char bad_type_cbor[] = {
+            /* CBOR tag: 65536 */
+            0xda,
+            0x00,
+            0x01,
+            0x00,
+            0x00,
+            /* UInt: 0 */
+            0x00,
+    };
+    send_cbor_package(_state->channel, bad_type_cbor, sizeof(bad_type_cbor));
+}
+
+TEST_F(apploader_user, BadLoadCmdPackageCBORMap) {
+    /* Write a tagged empty map */
+    const char bad_map_cbor[] = {
+            /* CBOR tag: 65536 */
+            0xda,
+            0x00,
+            0x01,
+            0x00,
+            0x00,
+            /* Map: empty */
+            0xa0,
+    };
+    send_cbor_package(_state->channel, bad_map_cbor, sizeof(bad_map_cbor));
 }
 
 typedef struct apploader_service {

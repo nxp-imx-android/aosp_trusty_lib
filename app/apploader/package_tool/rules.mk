@@ -15,12 +15,28 @@
 
 LOCAL_DIR := $(GET_LOCAL_DIR)
 
+LIBCPPBOR_DIR := $(TRUSTY_TOP)/external/libcppbor
+
 HOST_TOOL_NAME := apploader_package_tool
 
 HOST_SRCS := \
 	$(LOCAL_DIR)/apploader_package_tool.cpp \
+	$(LIBCPPBOR_DIR)/src/cppbor.cpp \
+	$(LIBCPPBOR_DIR)/src/cppbor_parse.cpp \
 
-HOST_LIBS += \
+HOST_INCLUDE_DIRS := \
+	trusty/user/base/interface/apploader/include \
+	external/libcppbor/include/cppbor \
+
+# libcppbor checks if __TRUSTY__ is defined to determine whether it's linked
+# into Android or Trusty; the library uses some Android-specific logging and
+# other APIs that host tools don't provide, so we define __TRUSTY__ here to
+# disable all the Android-specific code in libcppbor.
+HOST_FLAGS := -D__TRUSTY__
+
+HOST_LIBS := \
 	stdc++ \
+	crypto \
+	ssl \
 
 include make/host_tool.mk

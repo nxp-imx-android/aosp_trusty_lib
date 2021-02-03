@@ -364,13 +364,6 @@ static int apploader_handle_cmd_load_app(handle_t chan,
         goto err_invalid_req_handle;
     }
 
-    struct apploader_package_header pkg;
-    if (req->package_size < sizeof(pkg)) {
-        TLOGE("Package too small: %" PRIu64 " bytes\n", req->package_size);
-        resp_error = APPLOADER_ERR_VERIFICATION_FAILED;
-        goto err_package_too_small;
-    }
-
     uint64_t page_size = getauxval(AT_PAGESZ);
     uint64_t aligned_size = round_up(req->package_size, page_size);
     TLOGD("Loading %" PRIu64 " bytes package, %" PRIu64 " aligned\n",
@@ -395,10 +388,9 @@ static int apploader_handle_cmd_load_app(handle_t chan,
     }
 
     struct apploader_package_metadata pkg_meta = {0};
-    if (!apploader_parse_package_metadata(
-                &pkg_meta, (struct apploader_package_header*)package,
-                req->package_size)) {
-        TLOGE("Failed to parse application package metadata\n");
+    if (!apploader_parse_package_metadata(package, req->package_size,
+                                          &pkg_meta)) {
+        TLOGE("Failed to parse application package\n");
         resp_error = APPLOADER_ERR_VERIFICATION_FAILED;
         goto err_invalid_package;
     }

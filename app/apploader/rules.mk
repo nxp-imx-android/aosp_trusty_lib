@@ -21,12 +21,15 @@ MANIFEST := $(LOCAL_DIR)/manifest.json
 
 MODULE_SRCS += \
 	$(LOCAL_DIR)/apploader.c \
-	$(LOCAL_DIR)/apploader_package.c \
+	$(LOCAL_DIR)/apploader_package.cpp \
 
 MODULE_DEPS += \
 	trusty/user/base/lib/libc-trusty \
+	trusty/user/base/lib/libstdc++-trusty \
 	trusty/user/base/lib/tipc \
 	trusty/user/base/interface/apploader \
+	external/boringssl \
+	external/libcppbor \
 
 # Enabling APPLOADER_ALLOW_NS_CONNECT will allow apploader connections from the
 # non-secure world.
