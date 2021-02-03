@@ -22,6 +22,7 @@
 #include <lk/compiler.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <string.h>
 
 #include "apploader_package.h"
 
@@ -57,23 +58,23 @@ bool apploader_parse_package_metadata(
 
     uintptr_t p = records_start;
     while (p < records_end) {
-        /*
-         * Type to use to read the type-length field as a volatile unaligned
-         * value; this needs a typedef because the compiler refuses to parse
-         * the type without it
-         */
-        typedef volatile __ALIGNED(1) uint64_t apploader_type_length_t;
-        _Static_assert(__alignof(apploader_type_length_t) == 1,
-                       "Invalid alignment for type_length_t");
-
         uint64_t type_length;
-        type_length = be64toh(*(apploader_type_length_t*)p);
-        p += sizeof(type_length);
+        uintptr_t next_p;
+        if (__builtin_add_overflow(p, sizeof(type_length), &next_p)) {
+            return false;
+        }
+        if (next_p > records_end) {
+            /* The record overflows the package */
+            return false;
+        }
+
+        memcpy(&type_length, (void*)p, sizeof(type_length));
+        p = next_p;
+        type_length = be64toh(type_length);
 
         uint64_t type = type_length >> APPLOADER_RECORD_TYPE_SHIFT;
         uint64_t length = type_length ^ (type << APPLOADER_RECORD_TYPE_SHIFT);
 
-        uintptr_t next_p;
         if (__builtin_add_overflow(p, length, &next_p)) {
             return false;
         }
@@ -84,12 +85,12 @@ bool apploader_parse_package_metadata(
 
         switch (type) {
         case APPLOADER_RECORD_TYPE_ELF:
-            metadata->elf_start = (void*)p;
+            metadata->elf_start = (uint8_t*)p;
             metadata->elf_size = length;
             break;
 
         case APPLOADER_RECORD_TYPE_MANIFEST:
-            metadata->manifest_start = (void*)p;
+            metadata->manifest_start = (uint8_t*)p;
             metadata->manifest_size = length;
             break;
 

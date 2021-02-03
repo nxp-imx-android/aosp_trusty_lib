@@ -227,14 +227,29 @@ TEST_F(apploader_user, BadLoadCmdHandle) {
 }
 
 TEST_F(apploader_user, LoadCmdPackageTooSmall) {
+    const int package_size = 2;
+    handle_t handle = INVALID_IPC_HANDLE;
+    void* package = get_memory_buffer_from_malloc(package_size, &handle);
+    ASSERT_EQ(false, HasFailure());
+    ASSERT_NE(handle, INVALID_IPC_HANDLE);
+    ASSERT_NE(package, NULL);
+
     uint32_t error;
     struct apploader_load_app_req req = {
-            .package_size = 2,
+            .package_size = package_size,
     };
     error = make_request(_state->channel, APPLOADER_CMD_LOAD_APPLICATION, &req,
-                         sizeof(req), _state->channel, NULL, 0);
+                         sizeof(req), handle, NULL, 0);
     EXPECT_EQ(false, HasFailure());
     EXPECT_EQ(error, APPLOADER_ERR_VERIFICATION_FAILED);
+
+test_abort:
+    if (package) {
+        free(package);
+    }
+    if (handle != INVALID_IPC_HANDLE) {
+        close(handle);
+    }
 }
 
 TEST_F(apploader_user, BadLoadCmdPackageMagic) {
@@ -254,11 +269,13 @@ TEST_F(apploader_user, BadLoadCmdPackageMagic) {
     };
     error = make_request(_state->channel, APPLOADER_CMD_LOAD_APPLICATION, &req,
                          sizeof(req), handle, NULL, 0);
+    ASSERT_EQ(false, HasFailure());
     EXPECT_EQ(error, APPLOADER_ERR_VERIFICATION_FAILED);
 
-    free(package);
-
 test_abort:
+    if (package) {
+        free(package);
+    }
     if (handle != INVALID_IPC_HANDLE) {
         close(handle);
     }

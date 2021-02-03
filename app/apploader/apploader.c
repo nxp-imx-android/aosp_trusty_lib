@@ -215,17 +215,17 @@ static uint32_t apploader_send_secure_get_memory_command(
 
 static uint32_t apploader_send_secure_load_command(
         handle_t secure_chan,
-        uint64_t pkg_manifest_size,
-        uint64_t aligned_manifest_size,
-        uint64_t aligned_pkg_size) {
+        ptrdiff_t elf_offset,
+        ptrdiff_t manifest_offset,
+        struct apploader_package_metadata* pkg_meta) {
     struct apploader_secure_header hdr = {
             .cmd = APPLOADER_SECURE_CMD_LOAD_APPLICATION,
     };
     struct apploader_secure_load_app_req req = {
-            .manifest_start = 0,
-            .manifest_end = pkg_manifest_size,
-            .img_start = aligned_manifest_size,
-            .img_end = aligned_pkg_size,
+            .manifest_start = manifest_offset,
+            .manifest_end = manifest_offset + pkg_meta->manifest_size,
+            .img_start = elf_offset,
+            .img_end = elf_offset + pkg_meta->elf_size,
     };
     int rc = tipc_send2(secure_chan, &hdr, sizeof(hdr), &req, sizeof(req));
     if (rc != sizeof(hdr) + sizeof(req)) {
@@ -262,32 +262,15 @@ static uint32_t apploader_send_secure_load_command(
     return APPLOADER_NO_ERROR;
 }
 
-static int apploader_load_package(struct apploader_package_metadata* pkg_meta) {
+static uint32_t apploader_copy_package(handle_t req_handle,
+                                       handle_t secure_chan,
+                                       uint64_t aligned_size,
+                                       uint8_t** out_package) {
     uint32_t resp_error;
-
-    uint64_t page_size = getauxval(AT_PAGESZ);
-    uint64_t aligned_manifest_size =
-            round_up(pkg_meta->manifest_size, page_size);
-    uint64_t aligned_elf_size = round_up(pkg_meta->elf_size, page_size);
-    uint64_t aligned_pkg_size;
-    if (__builtin_add_overflow(aligned_manifest_size, aligned_elf_size,
-                               &aligned_pkg_size)) {
-        TLOGE("Overflow when computing aligned package size\n");
-        resp_error = APPLOADER_ERR_VERIFICATION_FAILED;
-        goto err_package_size_overflow;
-    }
-
-    handle_t secure_chan;
-    int rc = tipc_connect(&secure_chan, APPLOADER_SECURE_PORT);
-    if (rc < 0) {
-        TLOGE("Failed to connect to service (%d)\n", rc);
-        resp_error = apploader_translate_error(rc);
-        goto err_connect_secure;
-    }
 
     handle_t secure_mem_handle;
     uint32_t get_memory_error = apploader_send_secure_get_memory_command(
-            secure_chan, aligned_pkg_size, &secure_mem_handle);
+            secure_chan, aligned_size, &secure_mem_handle);
     if (get_memory_error != APPLOADER_NO_ERROR) {
         TLOGE("Failed to get memory from service (%" PRIu32 ")\n",
               get_memory_error);
@@ -301,46 +284,73 @@ static int apploader_load_package(struct apploader_package_metadata* pkg_meta) {
         goto err_invalid_secure_mem_handle;
     }
 
-    char* secure_package = mmap(NULL, aligned_pkg_size, PROT_READ | PROT_WRITE,
-                                0, secure_mem_handle, 0);
-    if (secure_package == MAP_FAILED) {
+    void* req_package = mmap(NULL, aligned_size, PROT_READ, 0, req_handle, 0);
+    if (req_package == MAP_FAILED) {
+        TLOGE("Failed to map the request handle\n");
+        resp_error = APPLOADER_ERR_NO_MEMORY;
+        goto err_req_mmap;
+    }
+
+    void* resp_package = mmap(NULL, aligned_size, PROT_READ | PROT_WRITE, 0,
+                              secure_mem_handle, 0);
+    if (resp_package == MAP_FAILED) {
         TLOGE("Failed to map the handle from service\n");
         resp_error = APPLOADER_ERR_NO_MEMORY;
         goto err_resp_mmap;
     }
 
-    uint64_t aligned_manifest_offset = 0;
-    uint64_t aligned_elf_offset = aligned_manifest_size;
-    memcpy(secure_package + aligned_manifest_offset, pkg_meta->manifest_start,
-           pkg_meta->manifest_size);
-    memcpy(secure_package + aligned_elf_offset, pkg_meta->elf_start,
-           pkg_meta->elf_size);
-
-    munmap(secure_package, aligned_pkg_size);
-    close(secure_mem_handle);
-
-    /*
-     * Finalize the loading by sending a LOAD_APPLICATION request.
-     */
-    resp_error = apploader_send_secure_load_command(
-            secure_chan, pkg_meta->manifest_size, aligned_manifest_size,
-            aligned_pkg_size);
-    if (resp_error != APPLOADER_NO_ERROR) {
-        TLOGE("Service failed to load application (%" PRIu32 ")\n", resp_error);
-    }
-
-    close(secure_chan);
-
-    return resp_error;
+    assert(out_package);
+    memcpy(resp_package, req_package, aligned_size);
+    *out_package = resp_package;
+    resp_error = APPLOADER_NO_ERROR;
 
 err_resp_mmap:
+    munmap(req_package, aligned_size);
+err_req_mmap:
     close(secure_mem_handle);
 err_invalid_secure_mem_handle:
 err_send_get_memory:
-    close(secure_chan);
-err_connect_secure:
-err_package_size_overflow:
     return resp_error;
+}
+
+static bool apploader_relocate_package(
+        uint8_t* package,
+        struct apploader_package_metadata* pkg_meta) {
+    if (pkg_meta->elf_start > pkg_meta->manifest_start) {
+        /*
+         * For now, we only support input files where the ELF precedes
+         * the manifest. The current file format follows this rule.
+         */
+        return false;
+    }
+
+    uint64_t unaligned_elf_size = pkg_meta->elf_size;
+    uint64_t page_size = getauxval(AT_PAGESZ);
+    /* ELF comes first, move it to offset 0 */
+    memmove(package, pkg_meta->elf_start, unaligned_elf_size);
+    pkg_meta->elf_start = package;
+    pkg_meta->elf_size = round_up(unaligned_elf_size, page_size);
+
+    if (pkg_meta->elf_size > unaligned_elf_size) {
+        /*
+         * There is a gap between ELF and manifest, zero it because it will
+         * probably be used for .bss
+         */
+        memset(package + unaligned_elf_size, 0,
+               pkg_meta->elf_size - unaligned_elf_size);
+    }
+
+    /*
+     * Then move the manifest just after; the manifest starts
+     * on the page immediately after the ELF file (elf_size is page-aligned
+     * by the round_up call above), so the two never share a page
+     */
+    uint8_t* new_manifest_start = package + pkg_meta->elf_size;
+    memmove(new_manifest_start, pkg_meta->manifest_start,
+            pkg_meta->manifest_size);
+    pkg_meta->manifest_start = new_manifest_start;
+
+    return true;
 }
 
 static int apploader_handle_cmd_load_app(handle_t chan,
@@ -366,16 +376,28 @@ static int apploader_handle_cmd_load_app(handle_t chan,
     TLOGD("Loading %" PRIu64 " bytes package, %" PRIu64 " aligned\n",
           req->package_size, aligned_size);
 
-    void* req_package = mmap(NULL, aligned_size, PROT_READ, 0, req_handle, 0);
-    if (req_package == MAP_FAILED) {
-        TLOGE("Failed to map the request handle\n");
-        resp_error = APPLOADER_ERR_NO_MEMORY;
-        goto err_req_mmap;
+    handle_t secure_chan;
+    int rc = tipc_connect(&secure_chan, APPLOADER_SECURE_PORT);
+    if (rc < 0) {
+        TLOGE("Failed to connect to service (%d)\n", rc);
+        resp_error = apploader_translate_error(rc);
+        goto err_connect_secure;
+    }
+
+    uint32_t copy_error;
+    uint8_t* package;
+    copy_error = apploader_copy_package(req_handle, secure_chan, aligned_size,
+                                        &package);
+    if (copy_error != APPLOADER_NO_ERROR) {
+        TLOGE("Failed to copy package from client\n");
+        resp_error = copy_error;
+        goto err_copy_package;
     }
 
     struct apploader_package_metadata pkg_meta = {0};
-    if (!apploader_parse_package_metadata(&pkg_meta, req_package,
-                                          req->package_size)) {
+    if (!apploader_parse_package_metadata(
+                &pkg_meta, (struct apploader_package_header*)package,
+                req->package_size)) {
         TLOGE("Failed to parse application package metadata\n");
         resp_error = APPLOADER_ERR_VERIFICATION_FAILED;
         goto err_invalid_package;
@@ -393,16 +415,40 @@ static int apploader_handle_cmd_load_app(handle_t chan,
         goto err_elf_not_found;
     }
 
-    resp_error = apploader_load_package(&pkg_meta);
+    if (!apploader_relocate_package(package, &pkg_meta)) {
+        TLOGE("Failed to relocate package contents in memory\n");
+        resp_error = APPLOADER_ERR_VERIFICATION_FAILED;
+        goto err_relocate_package;
+    }
+
+    ptrdiff_t elf_offset = pkg_meta.elf_start - package;
+    ptrdiff_t manifest_offset = pkg_meta.manifest_start - package;
+    munmap(package, aligned_size);
+    package = NULL;
+
+    /* Validate the relocated offsets */
+    assert(elf_offset >= 0);
+    assert(elf_offset + pkg_meta.elf_size <= aligned_size);
+    assert(manifest_offset >= 0);
+    assert(manifest_offset + pkg_meta.manifest_size <= aligned_size);
+
+    /* Finalize the loading by sending a LOAD_APPLICATION request */
+    resp_error = apploader_send_secure_load_command(secure_chan, elf_offset,
+                                                    manifest_offset, &pkg_meta);
     if (resp_error != APPLOADER_NO_ERROR) {
         TLOGE("Failed to load application (%" PRIu32 ")\n", resp_error);
     }
 
+err_relocate_package:
 err_elf_not_found:
 err_manifest_not_found:
 err_invalid_package:
-    munmap(req_package, aligned_size);
-err_req_mmap:
+    if (package) {
+        munmap(package, aligned_size);
+    }
+err_copy_package:
+    close(secure_chan);
+err_connect_secure:
 err_package_too_small:
 err_invalid_req_handle:
 err_invalid_num_handles:

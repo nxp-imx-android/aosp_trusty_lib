@@ -73,10 +73,10 @@ enum apploader_record_type : uint64_t {
  */
 struct apploader_package_metadata {
     uint64_t elf_size;
-    void* elf_start;
+    uint8_t* elf_start;
 
     uint64_t manifest_size;
-    void* manifest_start;
+    uint8_t* manifest_start;
 };
 
 bool apploader_parse_package_metadata(
