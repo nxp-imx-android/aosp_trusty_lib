@@ -65,7 +65,8 @@ USAGE:
                     "allow_ns_connect": false
                 }
             }
-        ]
+        ],
+        "pinned_cpu": 3
    }
 
    JSON manifest constant config -
@@ -118,6 +119,7 @@ START_PORT_NAME = "name"
 START_PORT_ALLOW_TA_CONNECT = "allow_ta_connect"
 START_PORT_ALLOW_NS_CONNECT = "allow_ns_connect"
 APP_NAME = "app_name"
+PINNED_CPU = "pinned_cpu"
 
 # constants configs
 CONSTANTS = "constants"
@@ -138,6 +140,7 @@ TRUSTY_APP_CONFIG_KEY_MIN_HEAP_SIZE = 2
 TRUSTY_APP_CONFIG_KEY_MAP_MEM = 3
 TRUSTY_APP_CONFIG_KEY_MGMT_FLAGS = 4
 TRUSTY_APP_CONFIG_KEY_START_PORT = 5
+TRUSTY_APP_CONFIG_KEY_PINNED_CPU = 6
 
 # MEM_MAP ARCH_MMU_FLAGS
 # These values need to be kept in sync with external/lk/include/arch/mmu.h
@@ -218,7 +221,8 @@ class Manifest(object):
             min_stack,
             mem_io_maps,
             mgmt_flags,
-            start_ports
+            start_ports,
+            pinned_cpu
     ):
         self.uuid = uuid
         self.app_name = app_name
@@ -227,6 +231,7 @@ class Manifest(object):
         self.mem_io_maps = mem_io_maps
         self.mgmt_flags = mgmt_flags
         self.start_ports = start_ports
+        self.pinned_cpu = pinned_cpu
 
 
 '''
@@ -645,6 +650,10 @@ def parse_manifest_config(manifest_dict, constants, default_app_name, log):
             get_string(manifest_dict, APP_NAME, constants, log,
                        optional=True, default=default_app_name), log)
 
+    #PINNED_CPU
+    pinned_cpu = get_int(manifest_dict, PINNED_CPU, constants, log,
+                         optional=True)
+
     # look for any extra attributes
     if manifest_dict:
         log.error("Unknown atributes in manifest: {} ".format(manifest_dict))
@@ -653,7 +662,7 @@ def parse_manifest_config(manifest_dict, constants, default_app_name, log):
         return None
 
     return Manifest(uuid, app_name, min_heap, min_stack, mem_io_maps, mgmt_flags,
-                    start_ports)
+                    start_ports, pinned_cpu)
 
 
 '''
@@ -727,9 +736,9 @@ def pack_manifest_data(manifest, log):
     #        TRUSTY_APP_CONFIG_KEY_MIN_HEAP_SIZE, min_heap,
     #        TRUSTY_APP_CONFIG_KEY_MIN_STACK_SIZE, min_stack,
     #        TRUSTY_APP_CONFIG_KEY_MAP_MEM, id, addr, size,
-    #        TRUSTY_APP_CONFIG_KEY_MAP_MEM, id, addr, size,
     #        TRUSTY_APP_CONFIG_KEY_MGMT_FLAGS, mgmt_flags
     #        TRUSTY_APP_CONFIG_KEY_START_PORT, flag, name_size, name
+    #        TRUSTY_APP_CONFIG_KEY_PINNED_CPU, pinned_cpu
     #      }
     out = cStringIO.StringIO()
 
@@ -765,6 +774,11 @@ def pack_manifest_data(manifest, log):
                               pack_start_port_flags(
                                       port_entry.start_port_flags)))
         out.write(pack_inline_string(port_entry.name))
+
+    if manifest.pinned_cpu is not None:
+        out.write(struct.pack("II",
+                              TRUSTY_APP_CONFIG_KEY_PINNED_CPU,
+                              manifest.pinned_cpu))
 
     return out.getvalue()
 
@@ -892,6 +906,11 @@ def unpack_binary_manifest_to_data(packed_data):
             start_port_entry[START_PORT_FLAGS] = start_port_flags
 
             manifest[START_PORTS].append(start_port_entry)
+        elif tag == TRUSTY_APP_CONFIG_KEY_PINNED_CPU:
+            assert PINNED_CPU not in manifest
+            (pinned_cpu,), packed_data = struct.unpack(
+                    "I", packed_data[:4]), packed_data[4:]
+            manifest[PINNED_CPU] = pinned_cpu
         else:
             raise Exception("Unknown tag: {}".format(tag))
 

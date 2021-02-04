@@ -1509,6 +1509,113 @@ class TestManifest(unittest.TestCase):
                         pack_manifest_config_data(
                                 self, config_data, log, constants)))
 
+    '''
+    Test with valid manifest config containing
+      - UUID
+      - min_heap and min_stack
+      - pinned_cpu
+    Pack the manifest config data and unpack it and
+    verify it with the expected values
+    '''
+    def test_manifest_valid_pack_6(self):
+        # PLZ DON'T EDIT VALUES
+        constants = {}
+        log = manifest_compiler.Log()
+
+        # Reference JSON manifest data structure
+        config_ref_data  = {
+                manifest_compiler.UUID: "5f902ace-5e5c-4cd8-ae54-87b88c22ddaf",
+                manifest_compiler.APP_NAME: "test-app-name",
+                manifest_compiler.MIN_HEAP: 8192,
+                manifest_compiler.MIN_STACK: 4096,
+                manifest_compiler.MGMT_FLAGS: {
+                        manifest_compiler.MGMT_FLAG_RESTART_ON_EXIT: False,
+                        manifest_compiler.MGMT_FLAG_DEFERRED_START: False,
+                        manifest_compiler.MGMT_FLAG_NON_CRITICAL_APP: False
+                },
+                manifest_compiler.PINNED_CPU: 3
+        }
+
+        # JSON manifest data structure
+        config_data  = {
+                manifest_compiler.UUID: "5f902ace-5e5c-4cd8-ae54-87b88c22ddaf",
+                manifest_compiler.APP_NAME: "test-app-name",
+                manifest_compiler.MIN_HEAP: 8192,
+                manifest_compiler.MIN_STACK: 4096,
+                manifest_compiler.PINNED_CPU: 3
+        }
+
+        '''
+        Pack manifest config_data
+        Unpack the binary packed data to JSON text
+        Validate unpacked JSON text
+        '''
+        self.assertEqual(
+                manifest_compiler.manifest_data_to_json(config_ref_data),
+                manifest_compiler.unpack_binary_manifest_to_json(
+                        pack_manifest_config_data(
+                                self, config_data, log, constants)))
+
+    '''
+    Test with valid manifest config with a constants config containing
+      - UUID
+      - min_heap and min_stack
+      - pinned_cpu
+    Pack the manifest config data and unpack it and
+    verify it with the expected values
+    '''
+    def test_manifest_valid_pack_7(self):
+        constants_data = [{
+            "header": "cpu_constants.h",
+            "constants": [{
+                    "name": "CPU_NUM",
+                    "value": 3,
+                    "type": "int",
+                    "unsigned": True
+            }]
+        }]
+
+        log = manifest_compiler.Log()
+
+        # Reference JSON manifest data structure
+        config_ref_data  = {
+                manifest_compiler.UUID: "5f902ace-5e5c-4cd8-ae54-87b88c22ddaf",
+                manifest_compiler.APP_NAME: "test-app-name",
+                manifest_compiler.MIN_HEAP: 8192,
+                manifest_compiler.MIN_STACK: 4096,
+                manifest_compiler.MGMT_FLAGS: {
+                        manifest_compiler.MGMT_FLAG_RESTART_ON_EXIT: False,
+                        manifest_compiler.MGMT_FLAG_DEFERRED_START: False,
+                        manifest_compiler.MGMT_FLAG_NON_CRITICAL_APP: False
+                },
+                manifest_compiler.PINNED_CPU: 3
+        }
+
+        # JSON manifest data structure
+        config_data  = {
+                manifest_compiler.UUID: "5f902ace-5e5c-4cd8-ae54-87b88c22ddaf",
+                manifest_compiler.APP_NAME: "test-app-name",
+                manifest_compiler.MIN_HEAP: 8192,
+                manifest_compiler.MIN_STACK: 4096,
+                manifest_compiler.PINNED_CPU: "CPU_NUM"
+        }
+
+        conf_constants = manifest_compiler.extract_config_constants(
+                constants_data, log)
+        constants = manifest_compiler.index_constants(conf_constants, log)
+
+        '''
+        Pack manifest config_data
+        Unpack the binary packed data to JSON text
+        Validate unpacked JSON text
+        '''
+        self.assertEqual(
+                manifest_compiler.manifest_data_to_json(config_ref_data),
+                manifest_compiler.unpack_binary_manifest_to_json(
+                        pack_manifest_config_data(
+                                self, config_data, log, constants)))
+
+
 
 def pack_manifest_config_data(self, config_data, log, constants):
     # parse manifest JSON data
