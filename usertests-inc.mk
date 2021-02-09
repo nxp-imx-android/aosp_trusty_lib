@@ -18,6 +18,7 @@ include trusty/user/app/sample/usertests-inc.mk
 include trusty/user/app/storage/usertests-inc.mk
 
 TRUSTY_ALL_USER_TASKS += \
+	trusty/user/base/app/acvp \
 	trusty/user/base/app/apploader/tests \
 	trusty/user/base/app/crash-test \
 	trusty/user/base/app/crash-test/crasher \
