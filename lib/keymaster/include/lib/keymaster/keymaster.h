@@ -17,6 +17,7 @@
 #pragma once
 
 #include <lk/compiler.h>
+#include <trusty_ipc.h>
 
 __BEGIN_CDECLS
 
