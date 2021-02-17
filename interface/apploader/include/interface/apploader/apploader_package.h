@@ -40,3 +40,13 @@ enum apploader_package_header_label : uint64_t {};
 enum apploader_package_cbor_tag : uint64_t {
     APPLOADER_PACKAGE_CBOR_TAG_APP = 65536,
 };
+
+/**
+ * enum apploader_signature_format_version - Version number for the
+ *                                           apploader signature format
+ * @APPLOADER_SIGNATURE_FORMAT_VERSION_CURRENT:
+ *      The current version of the apploader package signature format
+ */
+enum apploader_signature_format_version : uint64_t {
+    APPLOADER_SIGNATURE_FORMAT_VERSION_CURRENT = 1,
+};

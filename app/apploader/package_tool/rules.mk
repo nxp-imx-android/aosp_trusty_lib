@@ -21,6 +21,7 @@ HOST_TOOL_NAME := apploader_package_tool
 
 HOST_SRCS := \
 	$(LOCAL_DIR)/apploader_package_tool.cpp \
+	$(LOCAL_DIR)/../cose.cpp \
 	$(LIBCPPBOR_DIR)/src/cppbor.cpp \
 	$(LIBCPPBOR_DIR)/src/cppbor_parse.cpp \
 
@@ -33,6 +34,10 @@ HOST_INCLUDE_DIRS := \
 # other APIs that host tools don't provide, so we define __TRUSTY__ here to
 # disable all the Android-specific code in libcppbor.
 HOST_FLAGS := -D__TRUSTY__
+
+# The COSE code also needs to use different APIs/macros for error printing
+# depending on whether it's compiled for a host tool or Trusty application.
+HOST_FLAGS += -D__COSE_HOST__
 
 HOST_LIBS := \
 	stdc++ \

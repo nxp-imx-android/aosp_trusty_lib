@@ -30,17 +30,23 @@
 #include <string>
 #include <vector>
 
+#include "../cose.h"
+
 enum class Mode {
     UNKNOWN,
     BUILD,
+    SIGN,
+    VERIFY,
 };
 
 static Mode mode = Mode::UNKNOWN;
+static bool strict = false;
 
-static const char* _sopts = "hm:";
+static const char* _sopts = "hm:s";
 static const struct option _lopts[] = {
         {"help", no_argument, 0, 'h'},
         {"mode", required_argument, 0, 'm'},
+        {"strict", no_argument, 0, 's'},
         {0, 0, 0, 0},
 };
 
@@ -49,10 +55,17 @@ static void print_usage_and_exit(const char* prog, int code) {
     fprintf(stderr, "\t%s --mode <mode> [options] ...\n", prog);
     fprintf(stderr, "\t%s --mode build [options] <output> <ELF> <manifest>\n",
             prog);
+    fprintf(stderr,
+            "\t%s --mode sign [options] <output> <input> <key> <key id>\n",
+            prog);
+    fprintf(stderr, "\t%s --mode verify [options] <input> <key>\n", prog);
     fprintf(stderr, "\n");
     fprintf(stderr, "Options:\n");
     fprintf(stderr, "\t-h, --help            prints this message and exit\n");
-    fprintf(stderr, "\t-m, --mode            mode; one of: build\n");
+    fprintf(stderr,
+            "\t-m, --mode            mode; one of: build, sign, verify\n");
+    fprintf(stderr,
+            "\t-s, --strict          verify signature in strict mode\n");
     fprintf(stderr, "\n");
     exit(code);
 }
@@ -75,6 +88,10 @@ static void parse_options(int argc, char** argv) {
         case 'm':
             if (!strcmp(optarg, "build")) {
                 mode = Mode::BUILD;
+            } else if (!strcmp(optarg, "sign")) {
+                mode = Mode::SIGN;
+            } else if (!strcmp(optarg, "verify")) {
+                mode = Mode::VERIFY;
             } else {
                 fprintf(stderr, "Unrecognized command mode: %s\n", optarg);
                 /*
@@ -82,6 +99,10 @@ static void parse_options(int argc, char** argv) {
                  */
                 mode = Mode::UNKNOWN;
             }
+            break;
+
+        case 's':
+            strict = true;
             break;
 
         default:
@@ -155,6 +176,94 @@ static void build_package(const char* output_path,
     write_entire_file(output_path, encoded_package);
 }
 
+static std::vector<uint8_t> string_to_vector(std::string s) {
+    auto* start_ptr = reinterpret_cast<uint8_t*>(s.data());
+    return {start_ptr, start_ptr + s.size()};
+}
+
+static uint8_t parse_key_id(const char* key_id) {
+    std::string key_id_str{key_id};
+    size_t key_id_end;
+    int int_key_id = std::stoi(key_id_str, &key_id_end);
+    if (key_id_end < key_id_str.size()) {
+        fprintf(stderr, "Invalid key id: %s\n", key_id);
+        exit(EXIT_FAILURE);
+    }
+    if (int_key_id < std::numeric_limits<uint8_t>::min() ||
+        int_key_id > std::numeric_limits<uint8_t>::max()) {
+        fprintf(stderr, "Key id out of range: %d\n", int_key_id);
+        exit(EXIT_FAILURE);
+    }
+    return static_cast<uint8_t>(int_key_id);
+}
+
+static void sign_package(const char* output_path,
+                         const char* input_path,
+                         const char* key_path,
+                         uint8_t key_id) {
+    auto input = string_to_vector(read_entire_file(input_path));
+    if (coseIsSigned(input, nullptr)) {
+        fprintf(stderr, "Input file is already signed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    cppbor::Map protected_headers;
+    cppbor::Array trusty_array;
+    trusty_array.add("TrustyApp");
+    trusty_array.add(APPLOADER_SIGNATURE_FORMAT_VERSION_CURRENT);
+    protected_headers.add(COSE_LABEL_TRUSTY, std::move(trusty_array));
+
+    auto key = string_to_vector(read_entire_file(key_path));
+    auto sig = coseSignEcDsa(key, key_id, input, std::move(protected_headers),
+                             {}, true, true);
+    if (!sig) {
+        fprintf(stderr, "Failed to sign package\n");
+        exit(EXIT_FAILURE);
+    }
+
+    auto full_sig = sig->encode();
+    full_sig.insert(full_sig.end(), input.begin(), input.end());
+    write_entire_file(output_path, full_sig);
+}
+
+static void verify_package(const char* input_path, const char* key_path) {
+    auto input = string_to_vector(read_entire_file(input_path));
+    size_t signature_length;
+    if (!coseIsSigned(input, &signature_length)) {
+        fprintf(stderr, "Input file is not signed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    auto key = string_to_vector(read_entire_file(key_path));
+    bool signature_ok;
+    if (strict) {
+        auto get_key = [&key](uint8_t key_id)
+                -> std::tuple<std::unique_ptr<uint8_t[]>, size_t> {
+            auto key_data = std::make_unique<uint8_t[]>(key.size());
+            if (!key_data) {
+                return {};
+            }
+
+            memcpy(key_data.get(), key.data(), key.size());
+            return {std::move(key_data), key.size()};
+        };
+        signature_ok = strictCheckEcDsaSignature(input.data(), input.size(),
+                                                 get_key, nullptr, nullptr);
+    } else {
+        std::vector<uint8_t> payload(input.begin() + signature_length,
+                                     input.end());
+        input.resize(signature_length);
+        signature_ok = coseCheckEcDsaSignature(input, payload, key);
+    }
+
+    if (!signature_ok) {
+        fprintf(stderr, "Signature verification failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    fprintf(stderr, "Signature verification passed\n");
+}
+
 int main(int argc, char** argv) {
     parse_options(argc, argv);
 
@@ -164,6 +273,21 @@ int main(int argc, char** argv) {
             print_usage_and_exit(argv[0], EXIT_FAILURE);
         }
         build_package(argv[optind], argv[optind + 1], argv[optind + 2]);
+        break;
+
+    case Mode::SIGN:
+        if (optind + 4 != argc) {
+            print_usage_and_exit(argv[0], EXIT_FAILURE);
+        }
+        sign_package(argv[optind], argv[optind + 1], argv[optind + 2],
+                     parse_key_id(argv[optind + 3]));
+        break;
+
+    case Mode::VERIFY:
+        if (optind + 2 != argc) {
+            print_usage_and_exit(argv[0], EXIT_FAILURE);
+        }
+        verify_package(argv[optind], argv[optind + 1]);
         break;
 
     default:
