@@ -22,12 +22,61 @@
 #include <endian.h>
 #include <interface/apploader/apploader_package.h>
 #include <inttypes.h>
+#include <lib/hwkey/hwkey.h>
 #include <lk/compiler.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <trusty_log.h>
+#include <uapi/err.h>
+#include <optional>
 
 #include "apploader_package.h"
+
+/*
+ * Maximum size of any key we could possibly get from hwkey.
+ * If the latter returns a key larger than this, validation fails.
+ * For now, 128 bytes should be enough since the apploader only
+ * supports 256-bit (P-256) ECDSA signatures which only need
+ * about 90 bytes for their public keys. If other curves or algorithms
+ * e.g., P-521 or RSS, are supported by the apploader at a later time,
+ * this value will need to increase.
+ */
+constexpr uint32_t kMaximumKeySize = 128;
+
+static std::tuple<std::unique_ptr<uint8_t[]>, size_t> get_key(
+        std::string_view op,
+        uint8_t key_id) {
+    std::string key_slot{"com.android.trusty.apploader."};
+    key_slot += op;
+    key_slot += ".key.";
+    key_slot += std::to_string(static_cast<unsigned>(key_id));
+
+    uint32_t key_size = kMaximumKeySize;
+    std::unique_ptr<uint8_t[]> result(new (std::nothrow) uint8_t[key_size]);
+    if (!result) {
+        TLOGE("Failed to allocate memory for key\n");
+        return {};
+    }
+
+    long rc = hwkey_open();
+    if (rc < 0) {
+        TLOGE("Failed to connect to hwkey (%ld)\n", rc);
+        return {};
+    }
+
+    hwkey_session_t hwkey_session = static_cast<hwkey_session_t>(rc);
+    rc = hwkey_get_keyslot_data(hwkey_session, key_slot.c_str(), result.get(),
+                                &key_size);
+
+    hwkey_close(hwkey_session);
+
+    if (rc < 0) {
+        TLOGE("Failed to get key %" PRIu8 " from hwkey (%ld)\n", key_id, rc);
+        return {};
+    }
+
+    return {std::move(result), static_cast<size_t>(key_size)};
+}
 
 /**
  * apploader_parse_package_metadata - Parse an apploader package into a

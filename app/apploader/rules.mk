@@ -27,6 +27,7 @@ MODULE_DEPS += \
 	trusty/user/base/lib/libc-trusty \
 	trusty/user/base/lib/libstdc++-trusty \
 	trusty/user/base/lib/tipc \
+	trusty/user/base/lib/hwkey \
 	trusty/user/base/interface/apploader \
 	external/boringssl \
 	external/libcppbor \
