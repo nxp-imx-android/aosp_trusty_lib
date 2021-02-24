@@ -17,6 +17,7 @@
 #pragma once
 
 /* Expected limits: should be in sync with kernel settings */
+#define USER_BASE_HANDLE 1000  /* first user handle id */
 #define MAX_USER_HANDLES 64    /* max number of user handles */
 #define MAX_PORT_PATH_LEN 64   /* max length of port path name   */
 #define MAX_PORT_BUF_NUM 32    /* max number of per port buffers */
