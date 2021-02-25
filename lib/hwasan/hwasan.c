@@ -128,7 +128,10 @@ void __hwasan_storeN(uintptr_t ptr, size_t size) {
 static uint8_t hwasan_generate_tag() {
     static uint8_t tag = 0;
     /* 0 tag corresponds to untagged memory, so avoid generating it */
-    return (tag++ % 0xff) + 1;
+    if (__builtin_add_overflow(tag, 1, &tag)) {
+        tag = 1;
+    }
+    return tag;
 }
 
 static uintptr_t hwasan_tag_memory_etc(uintptr_t ptr,
