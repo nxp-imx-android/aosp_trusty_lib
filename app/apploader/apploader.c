@@ -86,7 +86,9 @@ static int apploader_translate_error(int rc) {
     }
 }
 
-static int apploader_send_response(handle_t chan, uint32_t cmd, int error) {
+static int apploader_send_response(handle_t chan,
+                                   uint32_t cmd,
+                                   uint32_t error) {
     struct apploader_resp resp = {
             .hdr =
                     {
@@ -159,7 +161,7 @@ err:
 
 static uint32_t apploader_send_secure_get_memory_command(
         handle_t secure_chan,
-        size_t aligned_pkg_size,
+        size_t aligned_size,
         handle_t* secure_mem_handle) {
     assert(secure_mem_handle);
 
@@ -167,7 +169,7 @@ static uint32_t apploader_send_secure_get_memory_command(
             .cmd = APPLOADER_SECURE_CMD_GET_MEMORY,
     };
     struct apploader_secure_get_memory_req get_memory_req = {
-            .package_size = aligned_pkg_size,
+            .package_size = aligned_size,
     };
     int rc = tipc_send2(secure_chan, &hdr, sizeof(hdr), &get_memory_req,
                         sizeof(get_memory_req));
@@ -179,7 +181,7 @@ static uint32_t apploader_send_secure_get_memory_command(
     uevent_t event = UEVENT_INITIAL_VALUE(event);
     rc = wait(secure_chan, &event, INFINITE_TIME);
     if (rc != NO_ERROR || !(event.event & IPC_HANDLE_POLL_MSG)) {
-        TLOGD("Failed to wait for response (%d)\n", rc);
+        TLOGE("Failed to wait for response (%d)\n", rc);
         return apploader_translate_error(rc);
     }
 
@@ -235,7 +237,7 @@ static uint32_t apploader_send_secure_load_command(
     uevent_t event = UEVENT_INITIAL_VALUE(event);
     rc = wait(secure_chan, &event, INFINITE_TIME);
     if (rc != NO_ERROR || !(event.event & IPC_HANDLE_POLL_MSG)) {
-        TLOGD("Failed to wait for response (%d)\n", rc);
+        TLOGE("Failed to wait for response (%d)\n", rc);
         return apploader_translate_error(rc);
     }
 
