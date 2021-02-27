@@ -37,7 +37,7 @@
 
 /* CRYPTO_sysrand is called by BoringSSL to obtain entropy from the OS. By
  * default, BoringSSL's RNG calls this function without buffering. */
-void CRYPTO_sysrand(uint8_t* out, size_t requested) {
+__WEAK void CRYPTO_sysrand(uint8_t* out, size_t requested) {
     if (trusty_rng_secure_rand(out, requested) != NO_ERROR) {
         abort();
     }
