@@ -186,7 +186,13 @@ out:
 
 static void update_record(struct sancov_ctx* ctx, size_t idx, uintptr_t pc) {
     assert(idx < ctx->num_counters);
-    ctx->counters[idx]++;
+    /*
+     * Since counters are fixed-sized, there is always a chance of overflowing.
+     * Cap maximum counter value instead of overflowing.
+     */
+    if (ctx->counters[idx] < (counter_t)(-1)) {
+        ctx->counters[idx]++;
+    }
     if (!ctx->pcs[idx]) {
         ctx->pcs[idx] = pc - getauxval(AT_BASE);
     }
