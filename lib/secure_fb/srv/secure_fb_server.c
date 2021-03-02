@@ -58,7 +58,7 @@ static int secure_fb_on_connect(const struct tipc_port* port,
 static void secure_fb_on_channel_cleanup(void* _ctx) {
     struct secure_fb_ctx* ctx = (struct secure_fb_ctx*)_ctx;
     if (ctx->session != NULL) {
-        secure_fb_impl_release(ctx);
+        secure_fb_impl_release(ctx->session);
     }
     free(ctx);
 }
