@@ -8,7 +8,7 @@
             "name": "CRASHER_PORT",
             "flags": {
                 "allow_ta_connect": true,
-                "allow_ns_connect": false
+                "allow_ns_connect": true
             }
         }
     ]
