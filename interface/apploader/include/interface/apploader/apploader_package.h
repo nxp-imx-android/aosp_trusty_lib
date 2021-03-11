@@ -29,8 +29,13 @@ enum apploader_package_format_version : uint64_t {
 /**
  * enum apploader_package_header_label - Key labels for the ```headers```
  *                                       field in apploader packages
+ * @APPLOADER_PACKAGE_HEADER_LABEL_CONTENT_IS_COSE_ENCRYPT:
+ *      The ```contents``` field is a ```COSE_Encrypt``` structure
+ *      holding an encrypted ELF file.
  */
-enum apploader_package_header_label : uint64_t {};
+enum apploader_package_header_label : uint64_t {
+    APPLOADER_PACKAGE_HEADER_LABEL_CONTENT_IS_COSE_ENCRYPT = 1,
+};
 
 /**
  * enum apploader_package_cbor_tag - CBOR tags used by the apploader

@@ -19,11 +19,13 @@
 #include <assert.h>
 #include <cppbor.h>
 #include <cppbor_parse.h>
+#include <inttypes.h>
 #include <openssl/bn.h>
 #include <openssl/crypto.h>
 #include <openssl/ec.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
+#include <openssl/rand.h>
 #include <openssl/sha.h>
 #include <openssl/x509.h>
 #include <stddef.h>
@@ -45,6 +47,8 @@ using BIGNUM_Ptr = std::unique_ptr<BIGNUM, std::function<void(BIGNUM*)>>;
 using EC_KEY_Ptr = std::unique_ptr<EC_KEY, std::function<void(EC_KEY*)>>;
 using ECDSA_SIG_Ptr =
         std::unique_ptr<ECDSA_SIG, std::function<void(ECDSA_SIG*)>>;
+using EVP_CIPHER_CTX_Ptr =
+        std::unique_ptr<EVP_CIPHER_CTX, std::function<void(EVP_CIPHER_CTX*)>>;
 
 using SHA256Digest = std::array<uint8_t, SHA256_DIGEST_LENGTH>;
 
@@ -70,6 +74,16 @@ static std::vector<uint8_t> coseEncodeHeaders(
         return emptyBstr.encode();
     }
     return protectedHeaders.encode();
+}
+
+static std::optional<std::vector<uint8_t>> getRandom(size_t numBytes) {
+    std::vector<uint8_t> output;
+    output.resize(numBytes);
+    if (RAND_bytes(output.data(), numBytes) != 1) {
+        COSE_PRINT_ERROR("RAND_bytes: failed getting %zu random\n", numBytes);
+        return {};
+    }
+    return output;
 }
 
 static SHA256Digest sha256(const std::vector<uint8_t>& data) {
@@ -575,5 +589,650 @@ bool strictCheckEcDsaSignature(
     if (outPackageSize != nullptr) {
         *outPackageSize = payloadSize;
     }
+    return true;
+}
+
+static std::tuple<std::unique_ptr<uint8_t[]>, size_t> coseBuildGcmAad(
+        std::string_view context,
+        std::basic_string_view<uint8_t> encodedProtectedHeaders,
+        std::basic_string_view<uint8_t> externalAad) {
+    cppbor::Array encStructure;
+    encStructure.add(context);
+    encStructure.add(cppbor::ViewBstr(encodedProtectedHeaders));
+    encStructure.add(cppbor::ViewBstr(externalAad));
+
+    auto encStructureSize = encStructure.encodedSize();
+    std::unique_ptr<uint8_t[]> encStructureEncoded(
+            new (std::nothrow) uint8_t[encStructureSize]);
+    if (!encStructureEncoded) {
+        return {};
+    }
+
+    auto* encStructureEnd = encStructureEncoded.get() + encStructureSize;
+    auto* p = encStructure.encode(encStructureEncoded.get(), encStructureEnd);
+    if (p == nullptr) {
+        return {};
+    }
+    assert(p == encStructureEnd);
+
+    return {std::move(encStructureEncoded), encStructureSize};
+}
+
+static std::optional<std::vector<uint8_t>> encryptAes128Gcm(
+        const std::vector<uint8_t>& key,
+        const std::vector<uint8_t>& nonce,
+        const std::vector<uint8_t>& data,
+        std::basic_string_view<uint8_t> additionalAuthenticatedData) {
+    if (key.size() != kAes128GcmKeySize) {
+        COSE_PRINT_ERROR("key is not kAes128GcmKeySize bytes, got %zu\n",
+                         key.size());
+        return {};
+    }
+    if (nonce.size() != kAesGcmIvSize) {
+        COSE_PRINT_ERROR("nonce is not kAesGcmIvSize bytes, got %zu\n",
+                         nonce.size());
+        return {};
+    }
+
+    // The result is the ciphertext followed by the tag (kAesGcmTagSize bytes).
+    std::vector<uint8_t> encryptedData;
+    encryptedData.resize(data.size() + kAesGcmTagSize);
+    unsigned char* ciphertext = (unsigned char*)encryptedData.data();
+    unsigned char* tag = ciphertext + data.size();
+
+    auto ctx = EVP_CIPHER_CTX_Ptr(EVP_CIPHER_CTX_new(), EVP_CIPHER_CTX_free);
+    if (ctx.get() == nullptr) {
+        COSE_PRINT_ERROR("EVP_CIPHER_CTX_new: failed, error 0x%lx\n",
+                         static_cast<unsigned long>(ERR_get_error()));
+        return {};
+    }
+
+    if (EVP_EncryptInit_ex(ctx.get(), EVP_aes_128_gcm(), NULL, NULL, NULL) !=
+        1) {
+        COSE_PRINT_ERROR("EVP_EncryptInit_ex: failed, error 0x%lx\n",
+                         static_cast<unsigned long>(ERR_get_error()));
+        return {};
+    }
+
+    if (EVP_CIPHER_CTX_ctrl(ctx.get(), EVP_CTRL_GCM_SET_IVLEN, kAesGcmIvSize,
+                            NULL) != 1) {
+        COSE_PRINT_ERROR(
+                "EVP_CIPHER_CTX_ctrl: failed setting nonce length, "
+                "error 0x%lx\n",
+                static_cast<unsigned long>(ERR_get_error()));
+        return {};
+    }
+
+    if (EVP_EncryptInit_ex(ctx.get(), NULL, NULL, key.data(), nonce.data()) !=
+        1) {
+        COSE_PRINT_ERROR("EVP_EncryptInit_ex: failed, error 0x%lx\n",
+                         static_cast<unsigned long>(ERR_get_error()));
+        return {};
+    }
+
+    int numWritten;
+    if (additionalAuthenticatedData.size() > 0) {
+        if (EVP_EncryptUpdate(ctx.get(), NULL, &numWritten,
+                              additionalAuthenticatedData.data(),
+                              additionalAuthenticatedData.size()) != 1) {
+            fprintf(stderr,
+                    "EVP_EncryptUpdate: failed for "
+                    "additionalAuthenticatedData, error 0x%lx\n",
+                    static_cast<unsigned long>(ERR_get_error()));
+            return {};
+        }
+        if ((size_t)numWritten != additionalAuthenticatedData.size()) {
+            fprintf(stderr,
+                    "EVP_EncryptUpdate: Unexpected outl=%d (expected %zu) "
+                    "for additionalAuthenticatedData\n",
+                    numWritten, additionalAuthenticatedData.size());
+            return {};
+        }
+    }
+
+    if (data.size() > 0) {
+        if (EVP_EncryptUpdate(ctx.get(), ciphertext, &numWritten, data.data(),
+                              data.size()) != 1) {
+            COSE_PRINT_ERROR("EVP_EncryptUpdate: failed, error 0x%lx\n",
+                             static_cast<unsigned long>(ERR_get_error()));
+            return {};
+        }
+        if ((size_t)numWritten != data.size()) {
+            fprintf(stderr,
+                    "EVP_EncryptUpdate: Unexpected outl=%d (expected %zu)\n",
+                    numWritten, data.size());
+            ;
+            return {};
+        }
+    }
+
+    if (EVP_EncryptFinal_ex(ctx.get(), ciphertext + numWritten, &numWritten) !=
+        1) {
+        COSE_PRINT_ERROR("EVP_EncryptFinal_ex: failed, error 0x%lx\n",
+                         static_cast<unsigned long>(ERR_get_error()));
+        return {};
+    }
+    if (numWritten != 0) {
+        COSE_PRINT_ERROR("EVP_EncryptFinal_ex: Unexpected non-zero outl=%d\n",
+                         numWritten);
+        return {};
+    }
+
+    if (EVP_CIPHER_CTX_ctrl(ctx.get(), EVP_CTRL_GCM_GET_TAG, kAesGcmTagSize,
+                            tag) != 1) {
+        COSE_PRINT_ERROR(
+                "EVP_CIPHER_CTX_ctrl: failed getting tag, "
+                "error 0x%lx\n",
+                static_cast<unsigned long>(ERR_get_error()));
+        return {};
+    }
+
+    return encryptedData;
+}
+
+static std::unique_ptr<cppbor::Item> coseEncryptAes128Gcm(
+        std::string_view context,
+        const std::vector<uint8_t>& key,
+        const std::vector<uint8_t>& data,
+        const std::vector<uint8_t>& externalAad,
+        cppbor::Map protectedHeaders,
+        cppbor::Map unprotectedHeaders,
+        std::optional<cppbor::Array> recipients) {
+    std::optional<std::vector<uint8_t>> iv = getRandom(kAesGcmIvSize);
+    if (!iv) {
+        COSE_PRINT_ERROR("Error generating encryption IV\n");
+        return {};
+    }
+    unprotectedHeaders.add(COSE_LABEL_IV, iv.value());
+    protectedHeaders.add(COSE_LABEL_ALG, COSE_ALG_A128GCM);
+
+    // Canonicalize the headers to ensure a predictable layout
+    protectedHeaders.canonicalize(true);
+    unprotectedHeaders.canonicalize(true);
+
+    std::vector<uint8_t> encodedProtectedHeaders =
+            coseEncodeHeaders(protectedHeaders);
+    std::basic_string_view encodedProtectedHeadersView{
+            encodedProtectedHeaders.data(), encodedProtectedHeaders.size()};
+    std::basic_string_view externalAadView{externalAad.data(),
+                                           externalAad.size()};
+    auto [gcmAad, gcmAadSize] = coseBuildGcmAad(
+            context, encodedProtectedHeadersView, externalAadView);
+    std::basic_string_view gcmAadView{gcmAad.get(), gcmAadSize};
+
+    std::optional<std::vector<uint8_t>> ciphertext =
+            encryptAes128Gcm(key, iv.value(), data, gcmAadView);
+    if (!ciphertext) {
+        COSE_PRINT_ERROR("Error encrypting data\n");
+        return {};
+    }
+
+    auto coseArray = std::make_unique<cppbor::Array>();
+    coseArray->add(encodedProtectedHeaders);
+    coseArray->add(std::move(unprotectedHeaders));
+    coseArray->add(ciphertext.value());
+    if (recipients) {
+        coseArray->add(std::move(recipients.value()));
+    }
+    return coseArray;
+}
+
+std::unique_ptr<cppbor::Item> coseEncryptAes128GcmKeyWrap(
+        const std::vector<uint8_t>& key,
+        uint8_t keyId,
+        const std::vector<uint8_t>& data,
+        const std::vector<uint8_t>& externalAad,
+        cppbor::Map protectedHeaders,
+        cppbor::Map unprotectedHeaders,
+        bool tagged) {
+    /* Generate and encrypt the CEK */
+    std::optional<std::vector<uint8_t>> contentEncryptionKey =
+            getRandom(kAes128GcmKeySize);
+    if (!contentEncryptionKey) {
+        COSE_PRINT_ERROR("Error generating encryption key\n");
+        return {};
+    }
+
+    /* Build a COSE_Key structure for our CEK */
+    cppbor::Map coseKey{
+            COSE_LABEL_KEY_KTY,           COSE_KEY_TYPE_SYMMETRIC,
+            COSE_LABEL_KEY_ALG,           COSE_ALG_A128GCM,
+            COSE_LABEL_KEY_SYMMETRIC_KEY, contentEncryptionKey.value(),
+    };
+    coseKey.canonicalize(true);
+
+    cppbor::Map keyUnprotectedHeaders{
+            COSE_LABEL_KID,
+            cppbor::Bstr(std::vector(1, keyId)),
+    };
+    auto encContentEncryptionKey = coseEncryptAes128Gcm(
+            COSE_CONTEXT_ENC_RECIPIENT, key, coseKey.encode(), {}, {},
+            std::move(keyUnprotectedHeaders), {});
+    if (!encContentEncryptionKey) {
+        COSE_PRINT_ERROR("Error wrapping encryption key\n");
+        return {};
+    }
+
+    cppbor::Array recipients{encContentEncryptionKey.release()};
+    auto coseEncrypt = coseEncryptAes128Gcm(
+            COSE_CONTEXT_ENCRYPT, std::move(contentEncryptionKey.value()), data,
+            externalAad, std::move(protectedHeaders),
+            std::move(unprotectedHeaders), std::move(recipients));
+    if (!coseEncrypt) {
+        COSE_PRINT_ERROR("Error encrypting application package\n");
+        return {};
+    }
+
+    if (tagged) {
+        return std::make_unique<cppbor::SemanticTag>(COSE_TAG_ENCRYPT,
+                                                     coseEncrypt.release());
+    } else {
+        return coseEncrypt;
+    }
+}
+
+static bool decryptAes128GcmInPlace(
+        std::basic_string_view<uint8_t> key,
+        std::basic_string_view<uint8_t> nonce,
+        uint8_t* encryptedData,
+        size_t encryptedDataSize,
+        std::basic_string_view<uint8_t> additionalAuthenticatedData,
+        size_t* outPlaintextSize) {
+    assert(outPlaintextSize != nullptr);
+
+    int ciphertextSize = int(encryptedDataSize) - kAesGcmTagSize;
+    if (ciphertextSize < 0) {
+        COSE_PRINT_ERROR("encryptedData too small\n");
+        return false;
+    }
+    if (key.size() != kAes128GcmKeySize) {
+        COSE_PRINT_ERROR("key is not kAes128GcmKeySize bytes, got %zu\n",
+                         key.size());
+        return {};
+    }
+    if (nonce.size() != kAesGcmIvSize) {
+        COSE_PRINT_ERROR("nonce is not kAesGcmIvSize bytes, got %zu\n",
+                         nonce.size());
+        return false;
+    }
+    unsigned char* ciphertext = encryptedData;
+    unsigned char* tag = ciphertext + ciphertextSize;
+
+    /*
+     * Decrypt the data in place. OpenSSL and BoringSSL support this as long as
+     * the plaintext buffer completely overlaps the ciphertext.
+     */
+    unsigned char* plaintext = encryptedData;
+
+    auto ctx = EVP_CIPHER_CTX_Ptr(EVP_CIPHER_CTX_new(), EVP_CIPHER_CTX_free);
+    if (ctx.get() == nullptr) {
+        COSE_PRINT_ERROR("EVP_CIPHER_CTX_new: failed, error 0x%lx\n",
+                         static_cast<unsigned long>(ERR_get_error()));
+        return false;
+    }
+
+    if (EVP_DecryptInit_ex(ctx.get(), EVP_aes_128_gcm(), NULL, NULL, NULL) !=
+        1) {
+        COSE_PRINT_ERROR("EVP_DecryptInit_ex: failed, error 0x%lx\n",
+                         static_cast<unsigned long>(ERR_get_error()));
+        return false;
+    }
+
+    if (EVP_CIPHER_CTX_ctrl(ctx.get(), EVP_CTRL_GCM_SET_IVLEN, kAesGcmIvSize,
+                            NULL) != 1) {
+        COSE_PRINT_ERROR(
+                "EVP_CIPHER_CTX_ctrl: failed setting nonce length, "
+                "error 0x%lx\n",
+                static_cast<unsigned long>(ERR_get_error()));
+        return false;
+    }
+
+    if (EVP_DecryptInit_ex(ctx.get(), NULL, NULL, key.data(), nonce.data()) !=
+        1) {
+        COSE_PRINT_ERROR("EVP_DecryptInit_ex: failed, error 0x%lx\n",
+                         static_cast<unsigned long>(ERR_get_error()));
+        return false;
+    }
+
+    int numWritten;
+    if (additionalAuthenticatedData.size() > 0) {
+        if (EVP_DecryptUpdate(ctx.get(), NULL, &numWritten,
+                              additionalAuthenticatedData.data(),
+                              additionalAuthenticatedData.size()) != 1) {
+            COSE_PRINT_ERROR(
+                    "EVP_DecryptUpdate: failed for "
+                    "additionalAuthenticatedData, error 0x%lx\n",
+                    static_cast<unsigned long>(ERR_get_error()));
+            return false;
+        }
+        if ((size_t)numWritten != additionalAuthenticatedData.size()) {
+            COSE_PRINT_ERROR(
+                    "EVP_DecryptUpdate: Unexpected outl=%d "
+                    "(expected %zd) for additionalAuthenticatedData\n",
+                    numWritten, additionalAuthenticatedData.size());
+            return false;
+        }
+    }
+
+    if (EVP_DecryptUpdate(ctx.get(), plaintext, &numWritten, ciphertext,
+                          ciphertextSize) != 1) {
+        COSE_PRINT_ERROR("EVP_DecryptUpdate: failed, error 0x%lx\n",
+                         static_cast<unsigned long>(ERR_get_error()));
+        return false;
+    }
+    if (numWritten != ciphertextSize) {
+        COSE_PRINT_ERROR(
+                "EVP_DecryptUpdate: Unexpected outl=%d "
+                "(expected %d)\n",
+                numWritten, ciphertextSize);
+        return false;
+    }
+
+    if (!EVP_CIPHER_CTX_ctrl(ctx.get(), EVP_CTRL_GCM_SET_TAG, kAesGcmTagSize,
+                             tag)) {
+        COSE_PRINT_ERROR(
+                "EVP_CIPHER_CTX_ctrl: failed setting expected tag, "
+                "error 0x%lx\n",
+                static_cast<unsigned long>(ERR_get_error()));
+        return false;
+    }
+
+    int ret =
+            EVP_DecryptFinal_ex(ctx.get(), plaintext + numWritten, &numWritten);
+    if (ret != 1) {
+        COSE_PRINT_ERROR("EVP_DecryptFinal_ex: failed, error 0x%lx\n",
+                         static_cast<unsigned long>(ERR_get_error()));
+        return false;
+    }
+    if (numWritten != 0) {
+        COSE_PRINT_ERROR("EVP_DecryptFinal_ex: Unexpected non-zero outl=%d\n",
+                         numWritten);
+        return false;
+    }
+
+    *outPlaintextSize = ciphertextSize;
+    return true;
+}
+
+static bool coseDecryptAes128GcmInPlace(
+        std::string_view context,
+        const std::unique_ptr<cppbor::Item>& item,
+        std::basic_string_view<uint8_t> key,
+        const std::vector<uint8_t>& externalAad,
+        const uint8_t** outPlaintextStart,
+        size_t* outPlaintextSize) {
+    assert(outPlaintextStart != nullptr);
+    assert(outPlaintextSize != nullptr);
+
+    auto* itemArray = item->asArray();
+    if (itemArray == nullptr) {
+        COSE_PRINT_ERROR("Encrypted data is not a CBOR array\n");
+        return false;
+    }
+    if (itemArray->size() < 3 || itemArray->size() > 4) {
+        COSE_PRINT_ERROR("Invalid COSE encryption array size, got %zu\n",
+                         itemArray->size());
+        return false;
+    }
+
+    auto* encodedProtectedHeaders = itemArray->get(0)->asViewBstr();
+    if (encodedProtectedHeaders == nullptr) {
+        COSE_PRINT_ERROR(
+                "Failed to retrieve protected headers "
+                "from COSE encryption structure\n");
+        return false;
+    }
+
+    auto [protectedHeaders, pos, err] =
+            cppbor::parseWithViews(encodedProtectedHeaders->view().data(),
+                                   encodedProtectedHeaders->view().size());
+    if (!protectedHeaders) {
+        COSE_PRINT_ERROR("Failed to parse protected headers\n");
+        return false;
+    }
+
+    auto protectedHeadersMap = protectedHeaders->asMap();
+    if (protectedHeadersMap == nullptr) {
+        COSE_PRINT_ERROR("Invalid protected headers CBOR type\n");
+        return false;
+    }
+
+    /* Validate alg to ensure the data was encrypted with AES-128-GCM */
+    auto& alg_item = protectedHeadersMap->get(COSE_LABEL_ALG);
+    if (alg_item == nullptr) {
+        COSE_PRINT_ERROR("Missing alg field in COSE encryption structure\n");
+        return false;
+    }
+    auto* alg = alg_item->asInt();
+    if (alg == nullptr) {
+        COSE_PRINT_ERROR(
+                "Wrong CBOR type for alg value in protected headers\n");
+        return false;
+    }
+    if (alg->value() != COSE_ALG_A128GCM) {
+        COSE_PRINT_ERROR("Invalid COSE algorithm, got %" PRId64 "\n",
+                         alg->value());
+        return false;
+    }
+
+    auto* unprotectedHeaders = itemArray->get(1)->asMap();
+    if (unprotectedHeaders == nullptr) {
+        COSE_PRINT_ERROR(
+                "Failed to retrieve unprotected headers "
+                "from COSE encryption structure\n");
+        return false;
+    }
+
+    auto& iv_item = unprotectedHeaders->get(COSE_LABEL_IV);
+    if (iv_item == nullptr) {
+        COSE_PRINT_ERROR("Missing IV field in COSE encryption structure\n");
+        return false;
+    }
+    auto* iv = iv_item->asViewBstr();
+    if (iv == nullptr) {
+        COSE_PRINT_ERROR("Wrong CBOR type for IV value in protected headers\n");
+        return false;
+    }
+
+    auto ciphertext = itemArray->get(2)->asViewBstr();
+    if (ciphertext == nullptr) {
+        COSE_PRINT_ERROR(
+                "Failed to retrieve ciphertext "
+                "from COSE encryption structure\n");
+        return false;
+    }
+
+    std::basic_string_view externalAadView{externalAad.data(),
+                                           externalAad.size()};
+    auto [gcmAad, gcmAadSize] = coseBuildGcmAad(
+            context, encodedProtectedHeaders->view(), externalAadView);
+    std::basic_string_view gcmAadView{gcmAad.get(), gcmAadSize};
+
+    if (!decryptAes128GcmInPlace(
+                key, iv->view(),
+                const_cast<uint8_t*>(ciphertext->view().data()),
+                ciphertext->view().size(), gcmAadView, outPlaintextSize)) {
+        return false;
+    }
+
+    *outPlaintextStart = ciphertext->view().data();
+    return true;
+}
+
+bool coseDecryptAes128GcmKeyWrapInPlace(
+        const std::unique_ptr<cppbor::Item>& item,
+        std::function<std::tuple<std::unique_ptr<uint8_t[]>, size_t>(uint8_t)>
+                keyFn,
+        const std::vector<uint8_t>& externalAad,
+        bool checkTag,
+        const uint8_t** outPackageStart,
+        size_t* outPackageSize) {
+    assert(outPackageStart != nullptr);
+    assert(outPackageSize != nullptr);
+
+    if (checkTag) {
+        if (item->semanticTagCount() != 1) {
+            TLOGE("Invalid COSE_Encrypt tag count, expected 1 got %zd\n",
+                  item->semanticTagCount());
+            return false;
+        }
+        if (item->semanticTag() != COSE_TAG_ENCRYPT) {
+            TLOGE("Invalid COSE_Encrypt semantic tag: %" PRIu64 "\n",
+                  item->semanticTag());
+            return false;
+        }
+    }
+
+    auto* itemArray = item->asArray();
+    if (itemArray == nullptr) {
+        COSE_PRINT_ERROR("Encrypted data is not a CBOR array\n");
+        return false;
+    }
+    if (itemArray->size() != 4) {
+        COSE_PRINT_ERROR("Invalid COSE_Encrypt array size, got %zu\n",
+                         itemArray->size());
+        return false;
+    }
+
+    auto* recipientsArray = itemArray->get(3)->asArray();
+    if (recipientsArray == nullptr) {
+        COSE_PRINT_ERROR(
+                "Failed to retrieve recipients "
+                "from COSE_Encrypt structure\n");
+        return false;
+    }
+    if (recipientsArray->size() != 1) {
+        COSE_PRINT_ERROR("Invalid recipients array size, got %zu\n",
+                         recipientsArray->size());
+        return false;
+    }
+
+    auto& recipient = recipientsArray->get(0);
+    auto* recipientArray = recipient->asArray();
+    if (recipientArray == nullptr) {
+        COSE_PRINT_ERROR("COSE_Recipient is not a CBOR array\n");
+        return false;
+    }
+    if (recipientArray->size() != 3) {
+        COSE_PRINT_ERROR(
+                "Invalid COSE_Recipient structure array size, "
+                "got %zu\n",
+                recipientArray->size());
+        return false;
+    }
+
+    auto* unprotectedHeaders = recipientArray->get(1)->asMap();
+    if (unprotectedHeaders == nullptr) {
+        COSE_PRINT_ERROR(
+                "Failed to retrieve unprotected headers "
+                "from COSE_Recipient structure\n");
+        return false;
+    }
+
+    auto& keyIdItem = unprotectedHeaders->get(COSE_LABEL_KID);
+    if (keyIdItem == nullptr) {
+        COSE_PRINT_ERROR("Missing key id field in COSE_Recipient\n");
+        return false;
+    }
+    auto* keyIdBytes = keyIdItem->asViewBstr();
+    if (keyIdBytes == nullptr) {
+        COSE_PRINT_ERROR("Wrong CBOR type for key id in COSE_Recipient\n");
+        return false;
+    }
+    if (keyIdBytes->view().size() != 1) {
+        COSE_PRINT_ERROR("Invalid key id field length, got %zu\n",
+                         keyIdBytes->view().size());
+        return false;
+    }
+
+    auto keyId = keyIdBytes->view()[0];
+    auto [keyEncryptionKeyStart, keyEncryptionKeySize] = keyFn(keyId);
+    if (!keyEncryptionKeyStart) {
+        COSE_PRINT_ERROR("Failed to retrieve decryption key\n");
+        return false;
+    }
+    assert(keyEncryptionKeySize == kAes128GcmKeySize);
+
+    std::basic_string_view<uint8_t> keyEncryptionKey{
+            keyEncryptionKeyStart.get(), keyEncryptionKeySize};
+    const uint8_t* coseKeyStart;
+    size_t coseKeySize;
+    if (!coseDecryptAes128GcmInPlace(COSE_CONTEXT_ENC_RECIPIENT, recipient,
+                                     keyEncryptionKey, {}, &coseKeyStart,
+                                     &coseKeySize)) {
+        COSE_PRINT_ERROR("Failed to decrypt COSE_Key structure\n");
+        return false;
+    }
+
+    auto [coseKey, pos, err] =
+            cppbor::parseWithViews(coseKeyStart, coseKeySize);
+    if (!coseKey) {
+        COSE_PRINT_ERROR("Failed to parse COSE_Key structure\n");
+        return false;
+    }
+
+    auto* coseKeyMap = coseKey->asMap();
+    if (coseKeyMap == nullptr) {
+        COSE_PRINT_ERROR("COSE_Key structure is not an array\n");
+        return false;
+    }
+
+    auto& ktyItem = coseKeyMap->get(COSE_LABEL_KEY_KTY);
+    if (ktyItem == nullptr) {
+        COSE_PRINT_ERROR("Missing kty field of COSE_Key\n");
+        return false;
+    }
+    auto* kty = ktyItem->asInt();
+    if (kty == nullptr) {
+        COSE_PRINT_ERROR("Wrong CBOR type for kty field of COSE_Key\n");
+        return false;
+    }
+    if (kty->value() != COSE_KEY_TYPE_SYMMETRIC) {
+        COSE_PRINT_ERROR("Invalid COSE_Key key type: %" PRId64 "\n",
+                         kty->value());
+        return false;
+    }
+
+    auto& algItem = coseKeyMap->get(COSE_LABEL_KEY_ALG);
+    if (algItem == nullptr) {
+        COSE_PRINT_ERROR("Missing alg field of COSE_Key\n");
+        return false;
+    }
+    auto* alg = algItem->asInt();
+    if (alg == nullptr) {
+        COSE_PRINT_ERROR("Invalid CBOR type for alg field of COSE_Key\n");
+        return false;
+    }
+    if (alg->value() != COSE_ALG_A128GCM) {
+        COSE_PRINT_ERROR("Invalid COSE_Key algorithm value: %" PRId64 "\n",
+                         alg->value());
+        return false;
+    }
+
+    auto& contentEncryptionKeyItem =
+            coseKeyMap->get(COSE_LABEL_KEY_SYMMETRIC_KEY);
+    if (contentEncryptionKeyItem == nullptr) {
+        COSE_PRINT_ERROR("Missing key field in COSE_Key\n");
+        return false;
+    }
+    auto* contentEncryptionKey = contentEncryptionKeyItem->asViewBstr();
+    if (contentEncryptionKey == nullptr) {
+        COSE_PRINT_ERROR("Wrong CBOR type for key field of COSE_Key\n");
+        return false;
+    }
+    auto contentEncryptionKeySize = contentEncryptionKey->view().size();
+    if (contentEncryptionKeySize != kAes128GcmKeySize) {
+        COSE_PRINT_ERROR("Invalid content encryption key size, got %zu\n",
+                         contentEncryptionKeySize);
+        return false;
+    }
+
+    if (!coseDecryptAes128GcmInPlace(COSE_CONTEXT_ENCRYPT, item,
+                                     contentEncryptionKey->view(), externalAad,
+                                     outPackageStart, outPackageSize)) {
+        COSE_PRINT_ERROR("Failed to decrypt payload\n");
+        return false;
+    }
+
     return true;
 }

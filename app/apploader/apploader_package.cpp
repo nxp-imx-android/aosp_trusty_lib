@@ -105,7 +105,8 @@ static std::tuple<std::unique_ptr<uint8_t[]>, size_t> get_sign_key(
  *      The keys are labels from &enum apploader_package_header_label.
  * * ```contents```:
  *      The contents of the ELF file. This element is a CBOR ```bstr```
- *      if the ELF file is not encrypted.
+ *      if the ELF file is not encrypted, or a ```COSE_Encrypt``` structure
+ *      if it is encrypted.
  * * ```manifest:bstr```:
  *      The contents of the manifest file.
  *

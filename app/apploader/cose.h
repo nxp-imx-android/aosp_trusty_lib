@@ -23,9 +23,19 @@
 // From https://tools.ietf.org/html/rfc8152
 constexpr int COSE_LABEL_ALG = 1;
 constexpr int COSE_LABEL_KID = 4;
+constexpr int COSE_LABEL_IV = 5;
+constexpr int COSE_LABEL_KEY_KTY = 1;
+constexpr int COSE_LABEL_KEY_ALG = 3;
+constexpr int COSE_LABEL_KEY_SYMMETRIC_KEY = -1;
+constexpr int COSE_TAG_ENCRYPT = 96;
 constexpr int COSE_TAG_SIGN1 = 18;
+constexpr int COSE_KEY_TYPE_SYMMETRIC = 4;
+
+constexpr char COSE_CONTEXT_ENCRYPT[] = "Encrypt";
+constexpr char COSE_CONTEXT_ENC_RECIPIENT[] = "Enc_Recipient";
 
 // From "COSE Algorithms" registry
+constexpr int COSE_ALG_A128GCM = 1;
 constexpr int COSE_ALG_ECDSA_256 = -7;
 
 // Trusty-specific COSE constants
@@ -33,6 +43,10 @@ constexpr int COSE_LABEL_TRUSTY = -65537;
 
 constexpr size_t kEcdsaValueSize = 32;
 constexpr size_t kEcdsaSignatureSize = 2 * kEcdsaValueSize;
+
+constexpr size_t kAesGcmIvSize = 12;
+constexpr size_t kAesGcmTagSize = 16;
+constexpr size_t kAes128GcmKeySize = 16;
 
 /**
  * coseSignEcDsa() - Sign the given data using ECDSA and emit a COSE CBOR blob.
@@ -128,5 +142,77 @@ bool strictCheckEcDsaSignature(
         size_t packageSize,
         std::function<std::tuple<std::unique_ptr<uint8_t[]>, size_t>(uint8_t)>
                 keyFn,
+        const uint8_t** outPackageStart,
+        size_t* outPackageSize);
+
+/**
+ * coseEncryptAes128GcmKeyWrap() - Encrypt a block of data using AES-128-GCM
+ *                                 and a randomly-generated wrapped CEK.
+ * @key:
+ *      Key encryption key (KEK), 16 bytes in size.
+ * @keyId:
+ *      Key identifier for the KEK, an unsigned 1-byte integer.
+ * @data:
+ *      Input data to encrypt.
+ * @externalAad:
+ *      Additional authentication data to pass to AES-GCM.
+ * @protectedHeaders:
+ *      Protected headers for the COSE structure. The function may add its own
+ *      additional entries.
+ * @unprotectedHeaders:
+ *      Unprotected headers for the COSE structure. The function may add its
+ *      own additional entries.
+ * @tagged:
+ *      Whether to return the tagged ```COSE_Encrypt_Tagged``` or the untagged
+ *      ```COSE_Encrypt``` structure.
+ *
+ * This function generates a random key content encryption key (CEK) and wraps
+ * it using AES-128-GCM, then encrypts a given block of data with AES-128-GCM
+ * with the wrapped CEK and encodes both the data and CEK using the COSE
+ * encoding from RFC 8152.
+ *
+ * The caller may specify additional context-specific header values with the
+ * @protectedHeaders and @unprotectedHeaders parameters.
+ *
+ * Return: A unique pointer to a &struct cppbor::Item containing the
+ *         ```COSE_Encrypt``` structure if the encryption succeeds,
+ *         or an default-initialized &std::unique_ptr otherwise.
+ */
+std::unique_ptr<cppbor::Item> coseEncryptAes128GcmKeyWrap(
+        const std::vector<uint8_t>& key,
+        uint8_t keyId,
+        const std::vector<uint8_t>& data,
+        const std::vector<uint8_t>& externalAad,
+        cppbor::Map protectedHeaders,
+        cppbor::Map unprotectedHeaders,
+        bool tagged);
+
+/**
+ * coseDecryptAes128GcmKeyWrapInPlace() - Decrypt a block of data containing a
+ *                                        wrapped key using AES-128-GCM.
+ * @item:               CBOR item containing a ```COSE_Encrypt``` structure.
+ * @keyFn:              Function to call with a key id that returns the key
+ *                      encryption key (KEK) for that id.
+ * @externalAad:        Additional authentication data to pass to AES-GCM.
+ * @checkTag:           Whether to check the CBOR semantic tag of @item.
+ * @outPackageStart:    The output argument where the start of the
+ *                      payload will be stored. Must not be %NULL.
+ * @outPackageSize:     The output argument where the size of the
+ *                      payload will be stored. Must not be %NULL.
+ *
+ * This function decrypts a ciphertext encrypted with AES-128-GCM and encoded
+ * in a ```COSE_Encrypt0_Tagged``` structure. The function performs in-place
+ * decryption and overwrites the ciphertext with the plaintext, and returns
+ * the pointer and size of the plaintext in @outPackageStart and
+ * @outPackageSize, respectively.
+ *
+ * Returns: %true if the decryption succeeds, %false otherwise.
+ */
+bool coseDecryptAes128GcmKeyWrapInPlace(
+        const std::unique_ptr<cppbor::Item>& item,
+        std::function<std::tuple<std::unique_ptr<uint8_t[]>, size_t>(uint8_t)>
+                keyFn,
+        const std::vector<uint8_t>& externalAad,
+        bool checkTag,
         const uint8_t** outPackageStart,
         size_t* outPackageSize);
