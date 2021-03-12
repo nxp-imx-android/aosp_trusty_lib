@@ -122,6 +122,17 @@ test_abort:
     close(chan);
 }
 
+#if __aarch64__
+TEST(crash, brk_instruction) {
+    handle_t chan = INVALID_IPC_HANDLE;
+    ASSERT_EQ(crasher_connect(&chan), 0);
+    ASSERT_EQ(crasher_command(chan, CRASHER_BRK), ERR_CHANNEL_CLOSED);
+
+test_abort:
+    close(chan);
+}
+#endif
+
 TEST(crash, read_bad_ptr) {
     handle_t chan = INVALID_IPC_HANDLE;
     ASSERT_EQ(crasher_connect(&chan), 0);

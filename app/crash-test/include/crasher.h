@@ -28,6 +28,7 @@ enum crasher_command {
     CRASHER_WRITE_RO_PTR,
     CRASHER_EXEC_RODATA,
     CRASHER_EXEC_DATA,
+    CRASHER_BRK,
 };
 
 struct crasher_msg {

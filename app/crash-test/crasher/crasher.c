@@ -79,7 +79,7 @@ crasher_on_message(const struct tipc_port* port, handle_t chan, void* ctx) {
         break;
     case CRASHER_READ_NULL_PTR:
         TLOGI("read null\n");
-        READ_ONCE(*(uint8_t*)NULL); /* generates brk instruction on arm64 */
+        READ_ONCE(*(uint8_t*)NULL);
         break;
     case CRASHER_READ_BAD_PTR:
         TLOGI("read bad ptr\n");
@@ -101,6 +101,12 @@ crasher_on_message(const struct tipc_port* port, handle_t chan, void* ctx) {
         TLOGI("call crasher_data_func\n");
         crasher_data_func();
         break;
+#ifdef __aarch64__
+    case CRASHER_BRK:
+        TLOGI("BRK instruction\n");
+        __asm__("brk #42");
+        break;
+#endif
     default:
         TLOGE("Bad command: %d\n", msg.cmd);
         return -1;
