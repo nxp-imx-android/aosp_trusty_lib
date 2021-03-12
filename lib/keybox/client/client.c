@@ -92,7 +92,7 @@ int keybox_unwrap(const uint8_t* wrapped_keybox,
         goto out;
     }
 
-    *unwrapped_keybox_size = computed_size;
+    *unwrapped_keybox_size = rsp.unwrap_header.unwrapped_keybox_len;
 
     rc = NO_ERROR;
 
