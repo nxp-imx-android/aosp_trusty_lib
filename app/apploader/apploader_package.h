@@ -39,7 +39,7 @@ struct apploader_package_metadata {
 };
 
 bool apploader_parse_package_metadata(
-        const uint8_t* package,
+        const uint8_t* package_start,
         size_t package_size,
         struct apploader_package_metadata* metadata);
 

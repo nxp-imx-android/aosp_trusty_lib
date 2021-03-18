@@ -22,6 +22,7 @@ MANIFEST := $(LOCAL_DIR)/manifest.json
 MODULE_SRCS += \
 	$(LOCAL_DIR)/apploader.c \
 	$(LOCAL_DIR)/apploader_package.cpp \
+	$(LOCAL_DIR)/cose.cpp \
 
 MODULE_DEPS += \
 	trusty/user/base/lib/libc-trusty \

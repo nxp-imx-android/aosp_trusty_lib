@@ -510,11 +510,7 @@ static struct tipc_srv_ops apploader_ops = {
         .on_message = apploader_on_message,
 };
 
-#pragma message "Compiling apploader without signed packages support"
-
 int main(void) {
-    TLOGE("This version of apploader does not support signed packages!!!\n");
-
     struct tipc_hset* hset = tipc_hset_create();
 
     if (IS_ERR(hset)) {

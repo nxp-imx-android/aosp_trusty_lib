@@ -19,7 +19,6 @@
 #include <assert.h>
 #include <cppbor.h>
 #include <cppbor_parse.h>
-#include <endian.h>
 #include <interface/apploader/apploader_package.h>
 #include <inttypes.h>
 #include <lib/hwkey/hwkey.h>
@@ -31,6 +30,7 @@
 #include <optional>
 
 #include "apploader_package.h"
+#include "cose.h"
 
 /*
  * Maximum size of any key we could possibly get from hwkey.
@@ -78,6 +78,11 @@ static std::tuple<std::unique_ptr<uint8_t[]>, size_t> get_key(
     return {std::move(result), static_cast<size_t>(key_size)};
 }
 
+static std::tuple<std::unique_ptr<uint8_t[]>, size_t> get_sign_key(
+        uint8_t key_id) {
+    return get_key("sign", key_id);
+}
+
 /**
  * apploader_parse_package_metadata - Parse an apploader package into a
  *                                    metadata structure
@@ -107,10 +112,20 @@ static std::tuple<std::unique_ptr<uint8_t[]>, size_t> get_key(
  * Return: %false is an error is detected, %true otherwise.
  */
 bool apploader_parse_package_metadata(
-        const uint8_t* package,
+        const uint8_t* package_start,
         size_t package_size,
         struct apploader_package_metadata* metadata) {
-    auto [pkg_item, _, error] = cppbor::parseWithViews(package, package_size);
+    const uint8_t* unsigned_package_start;
+    size_t unsigned_package_size;
+    if (!strictCheckEcDsaSignature(package_start, package_size, get_sign_key,
+                                   &unsigned_package_start,
+                                   &unsigned_package_size)) {
+        TLOGE("Package signature verification failed\n");
+        return false;
+    }
+
+    auto [pkg_item, _, error] = cppbor::parseWithViews(unsigned_package_start,
+                                                       unsigned_package_size);
     if (pkg_item == nullptr) {
         TLOGE("cppbor returned error: %s\n", error.c_str());
         return false;
