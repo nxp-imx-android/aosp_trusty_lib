@@ -83,6 +83,25 @@ static std::tuple<std::unique_ptr<uint8_t[]>, size_t> get_sign_key(
     return get_key("sign", key_id);
 }
 
+static std::tuple<std::unique_ptr<uint8_t[]>, size_t> get_encrypt_key(
+        uint8_t key_id) {
+    return get_key("encrypt", key_id);
+}
+
+static std::optional<bool> get_cbor_bool(std::unique_ptr<cppbor::Item>& item) {
+    auto* item_simple = item->asSimple();
+    if (item_simple == nullptr) {
+        return {};
+    }
+
+    auto* item_bool = item_simple->asBool();
+    if (item_bool == nullptr) {
+        return {};
+    }
+
+    return item_bool->value();
+}
+
 /**
  * apploader_parse_package_metadata - Parse an apploader package into a
  *                                    metadata structure
@@ -113,7 +132,7 @@ static std::tuple<std::unique_ptr<uint8_t[]>, size_t> get_sign_key(
  * Return: %false is an error is detected, %true otherwise.
  */
 bool apploader_parse_package_metadata(
-        const uint8_t* package_start,
+        uint8_t* package_start,
         size_t package_size,
         struct apploader_package_metadata* metadata) {
     const uint8_t* unsigned_package_start;
@@ -180,6 +199,7 @@ bool apploader_parse_package_metadata(
     }
 
     /* Read headers and reject packages with invalid header labels */
+    bool content_is_cose_encrypt = false;
     for (auto& [label_item, value_item] : *headers) {
         auto* label_uint = label_item->asUint();
         if (label_uint == nullptr) {
@@ -190,6 +210,17 @@ bool apploader_parse_package_metadata(
 
         auto label = label_uint->unsignedValue();
         switch (label) {
+        case APPLOADER_PACKAGE_HEADER_LABEL_CONTENT_IS_COSE_ENCRYPT: {
+            auto value_opt_bool = get_cbor_bool(value_item);
+            if (!value_opt_bool.has_value()) {
+                TLOGE("Invalid content_is_cose_encrypt CBOR type\n");
+                return false;
+            }
+
+            content_is_cose_encrypt = value_opt_bool.value();
+            break;
+        }
+
         default:
             TLOGE("Package headers contain invalid label: %" PRIu64 "\n",
                   label);
@@ -199,14 +230,24 @@ bool apploader_parse_package_metadata(
 
     const uint8_t* elf_start;
     size_t elf_size;
-    auto* elf = pkg_array->get(2)->asViewBstr();
-    if (elf == nullptr) {
-        TLOGE("Invalid ELF CBOR type, got: 0x%x\n",
-              static_cast<int>(pkg_array->get(2)->type()));
-        return false;
+    if (content_is_cose_encrypt) {
+        auto& cose_encrypt = pkg_array->get(2);
+        if (!coseDecryptAes128GcmKeyWrapInPlace(cose_encrypt, get_encrypt_key,
+                                                {}, false, &elf_start,
+                                                &elf_size)) {
+            TLOGE("Failed to decrypt ELF file\n");
+            return false;
+        }
+    } else {
+        auto* elf = pkg_array->get(2)->asViewBstr();
+        if (elf == nullptr) {
+            TLOGE("Invalid ELF CBOR type, got: 0x%x\n",
+                  static_cast<int>(pkg_array->get(2)->type()));
+        }
+
+        elf_start = reinterpret_cast<const uint8_t*>(elf->view().data());
+        elf_size = elf->view().size();
     }
-    elf_start = reinterpret_cast<const uint8_t*>(elf->view().data());
-    elf_size = elf->view().size();
 
     auto* manifest = pkg_array->get(3)->asViewBstr();
     if (manifest == nullptr) {
