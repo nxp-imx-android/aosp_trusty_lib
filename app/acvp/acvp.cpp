@@ -226,20 +226,24 @@ static int AcvpOnMessage(const struct tipc_port* port,
         return rc;
     }
 
-    std::vector<bssl::Span<const uint8_t>> args;
+    if (request->num_args > bssl::acvp::kMaxArgs) {
+        TLOGE("Too many args in ACVP message: %d\n", request->num_args);
+        return ERR_INVALID_ARGS;
+    }
+
+    bssl::Span<const uint8_t> args[bssl::acvp::kMaxArgs];
     if (!tool->MapShm(shared_mem, request->buffer_size)) {
         return ERR_NO_MEMORY;
     }
 
     uint32_t cur_offset = 0;
     for (uint32_t i = 0; i < request->num_args; ++i) {
-        args.push_back(bssl::Span<const uint8_t>(
-                tool->arg_buffer() + cur_offset, request->lengths[i]));
+        args[i] = bssl::Span<const uint8_t>(tool->arg_buffer() + cur_offset,
+                                            request->lengths[i]);
         cur_offset += request->lengths[i];
     }
 
-    auto handler =
-            bssl::acvp::FindHandler(bssl::Span(args.data(), args.size()));
+    auto handler = bssl::acvp::FindHandler(bssl::Span(args, request->num_args));
     if (!handler) {
         const std::string name(reinterpret_cast<const char*>(args[0].data()),
                                args[0].size());
