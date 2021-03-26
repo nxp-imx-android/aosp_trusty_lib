@@ -20,6 +20,22 @@
 #include <stdbool.h>
 #include <trusty_ipc.h>
 
+#define PORT_TEST(suite_name, port_name_string)           \
+    __BEGIN_CDECLS                                        \
+    static bool run_##suite_name(struct unittest* test) { \
+        return RUN_ALL_TESTS();                           \
+    }                                                     \
+                                                          \
+    int main(void) {                                      \
+        static struct unittest test = {                   \
+                .port_name = port_name_string,            \
+                .run_test = run_##suite_name,             \
+        };                                                \
+        struct unittest* tests = &test;                   \
+        return unittest_main(&tests, 1);                  \
+    }                                                     \
+    __END_CDECLS
+
 __BEGIN_CDECLS
 
 struct unittest {
@@ -28,7 +44,6 @@ struct unittest {
     handle_t _port_handle;
 };
 
-int unittest_printf(const char* fmt, ...);
 int unittest_main(struct unittest** tests, size_t test_count);
 
 __END_CDECLS

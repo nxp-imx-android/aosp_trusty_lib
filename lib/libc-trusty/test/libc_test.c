@@ -288,9 +288,9 @@ TEST_F(libc, malloc_alignment) {
         void* ptr2 = malloc(size / 2); /* Try to shake up the alignment. */
         void* ptr3 = malloc(size);
 
-        ASSERT_EQ(0, (uintptr_t)ptr1 & alignment_mask, "size %d / align %ld",
+        ASSERT_EQ(0, (uintptr_t)ptr1 & alignment_mask, "size %d / align %zu",
                   size, alignment_mask + 1);
-        ASSERT_EQ(0, (uintptr_t)ptr3 & alignment_mask, "size %d / align %ld",
+        ASSERT_EQ(0, (uintptr_t)ptr3 & alignment_mask, "size %d / align %zu",
                   size, alignment_mask + 1);
 
         free(ptr3);

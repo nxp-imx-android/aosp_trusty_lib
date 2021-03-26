@@ -80,7 +80,7 @@ enum test_message_header {
     TEST_MESSAGE_HEADER_COUNT = 3,
 };
 
-int unittest_printf(const char* fmt, ...) {
+int _tlog(const char* fmt, ...) {
     char buf[256];
     struct iovec tx_iov = {buf, 1};
     ipc_msg_t tx_msg = {1, &tx_iov, 0, NULL};
@@ -88,6 +88,15 @@ int unittest_printf(const char* fmt, ...) {
     int ret;
     int slen;
 
+    /* Print to stderr as normal */
+    va_start(ap, fmt);
+    ret = vfprintf(stderr, fmt, ap);
+    va_end(ap);
+    if (ret < 0) {
+        return ret;
+    }
+
+    /* Send over IPC */
     if (ipc_printf_handle == INVALID_IPC_HANDLE) {
         return 0;
     }

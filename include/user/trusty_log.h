@@ -16,15 +16,8 @@
 
 #pragma once
 
+#include <lk/compiler.h>
 #include <stdio.h>
-
-#ifdef USER_TASK_WITH_TRUSTY_USER_BASE_LIB_UNITTEST
-#include <lib/unittest/unittest.h>
-#else
-static inline int unittest_printf(const char* fmt, ...) {
-    return 0;
-}
-#endif
 
 #define TLOG_LVL_NONE 0
 #define TLOG_LVL_CRIT 1
@@ -41,10 +34,29 @@ static inline int unittest_printf(const char* fmt, ...) {
 #endif
 #endif
 
-#define TLOG(fmt, ...)                                                      \
-    do {                                                                    \
-        fprintf(stderr, "%s: %d: " fmt, TLOG_TAG, __LINE__, ##__VA_ARGS__); \
-        unittest_printf("%s: %d: " fmt, TLOG_TAG, __LINE__, ##__VA_ARGS__); \
+__BEGIN_CDECLS
+
+#ifdef USER_TASK
+
+/* Defined in libc and libunittest, whichever is statically linked first will be
+ * used, so libunittest must always come before libc in the link order. */
+int _tlog(const char* fmt, ...) __PRINTFLIKE(1, 2);
+
+#else
+
+/* TLOG is also called from host code, where we don't provide a definition of
+ * _tlog. In this case, just printf */
+#define _tlog(fmt, ...)                      \
+    do {                                     \
+        fprintf(stderr, fmt, ##__VA_ARGS__); \
+    } while (0)
+#endif
+
+__END_CDECLS
+
+#define TLOG(fmt, ...)                                            \
+    do {                                                          \
+        _tlog("%s: %d: " fmt, TLOG_TAG, __LINE__, ##__VA_ARGS__); \
     } while (0)
 
 /* debug  */

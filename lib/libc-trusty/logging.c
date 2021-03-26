@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2015 The Android Open Source Project
+ * Copyright (C) 2020 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,16 @@
  * limitations under the License.
  */
 
-#pragma once
-
+#include <stdarg.h>
+#include <stdio.h>
 #include <trusty_log.h>
 
-#define trusty_unittest_printf(args...) \
-    do {                                \
-        _tlog(args);                    \
-    } while (0)
-
-#include <lk/trusty_unittest.h>
-
-#ifdef USER_TASK
-#include <lib/unittest/unittest.h>
-#endif
+/* Should be preempted by the definition in libunittest, if available. */
+__attribute__((__weak__)) int _tlog(const char* fmt, ...) {
+    int rc;
+    va_list ap;
+    va_start(ap, fmt);
+    rc = vfprintf(stderr, fmt, ap);
+    va_end(ap);
+    return rc;
+}
