@@ -338,7 +338,7 @@ def coerce_to_int(value, key, log):
     elif isinstance(value, basestring):
         try:
             return int(value, 0)
-        except ValueError as ex:
+        except ValueError:
             log.error("Invalid value for" +
                       " {} - \"{}\", valid integer or hex string is expected"
                       .format(key, value))
@@ -1129,7 +1129,7 @@ Parses the given manifest input file and creates packed data
 Writes the packed data to binary output file.
 '''
 def main(argv):
-    parser = argparse.ArgumentParser();
+    parser = argparse.ArgumentParser()
     parser.add_argument(
             "-i", "--input",
             dest="input_filename",
