@@ -23,6 +23,7 @@ TRUSTY_ALL_USER_TASKS += \
 	trusty/user/base/app/crash-test \
 	trusty/user/base/app/crash-test/crasher \
 	trusty/user/base/app/metrics/test/crasher \
+	trusty/user/base/app/hwaes-unittest \
 	trusty/user/base/lib/keymaster/test \
 	trusty/user/base/lib/libc-trusty/test \
 	trusty/user/base/lib/libstdc++-trusty/test \
