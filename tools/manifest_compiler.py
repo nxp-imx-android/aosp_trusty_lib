@@ -539,7 +539,7 @@ def parse_mem_map(mem_maps, key, constants, log):
                             optional=True)
                 )
         if mem_map_entry:
-            log.error("Unknown atributes in mem_map entries in manifest: {} "
+            log.error("Unknown attributes in mem_map entries in manifest: {} "
                       .format(mem_map_entry))
         mem_io_maps.append(mem_map)
 
@@ -556,7 +556,7 @@ def parse_mgmt_flags(flags, constants, log):
             get_boolean(flags, MGMT_FLAG_NON_CRITICAL_APP, constants, log, optional=True))
 
     if flags:
-        log.error("Unknown atributes in mgmt_flags entries in manifest: {} "
+        log.error("Unknown attributes in mgmt_flags entries in manifest: {} "
                   .format(flags))
 
     return mgmt_flags
@@ -585,10 +585,10 @@ def parse_app_start_ports(start_port_list, key, constants, log):
                                 log))
 
         if port_entry:
-            log.error("Unknown atributes in start_ports entries" +
+            log.error("Unknown attributes in start_ports entries" +
                       " in manifest: {} ".format(port_entry))
         if flags:
-            log.error("Unknown atributes in start_ports.flags entries" +
+            log.error("Unknown attributes in start_ports.flags entries" +
                       " in manifest: {} ".format(flags))
 
         start_ports.append(StartPort(name, len(name), start_ports_flag))
@@ -656,7 +656,7 @@ def parse_manifest_config(manifest_dict, constants, default_app_name, log):
 
     # look for any extra attributes
     if manifest_dict:
-        log.error("Unknown atributes in manifest: {} ".format(manifest_dict))
+        log.error("Unknown attributes in manifest: {} ".format(manifest_dict))
 
     if log.error_occurred():
         return None
@@ -1068,11 +1068,11 @@ def parse_config_constant(const_config, log):
             continue
         constants.append(parse_constant(item, log))
         if item:
-            log.error("Unknown atributes in constant: {} "
+            log.error("Unknown attributes in constant: {} "
                       .format(item))
 
     if const_config:
-        log.error("Unknown atributes in constants config: {} "
+        log.error("Unknown attributes in constants config: {} "
                   .format(const_config))
 
     return ConfigConstants(constants, header_file)
