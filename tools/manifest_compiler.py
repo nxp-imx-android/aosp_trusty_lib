@@ -994,7 +994,7 @@ def create_header_entry(constant, log):
     elif constant.type == CONST_BOOL:
         return define_bool_const_entry(constant, log)
     else:
-        raise Exception("Unknown tag: {}".format(const_type))
+        raise Exception("Unknown tag: {}".format(constant.type))
 
 
 '''
