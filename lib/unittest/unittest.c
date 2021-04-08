@@ -32,6 +32,11 @@
 
 #define MAX_PORT_BUF_SIZE 4096 /* max size of per port buffer    */
 
+/*
+ * We can't use the normal TLOG functions because they send data through the
+ * channel managed by this code.
+ */
+
 #define TLOGI(fmt, ...)                                                    \
     do {                                                                   \
         fprintf(stderr, "%s: %d: " fmt, LOG_TAG, __LINE__, ##__VA_ARGS__); \
@@ -142,12 +147,9 @@ int unittest_main(struct unittest** tests, size_t test_count) {
             TLOGI("failed to add %s to handle set: %d\n", test->port_name, ret);
             return ret;
         }
-        TLOGI("added port %s handle, %d, to handleset %d\n", test->port_name,
-              test->_port_handle, hset);
     }
 
     /* and just wait forever for now */
-    TLOGI("waiting forever\n");
     for (;;) {
         ret = wait(hset, &evt, INFINITE_TIME);
         test = evt.cookie;
