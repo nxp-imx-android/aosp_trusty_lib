@@ -124,14 +124,7 @@ static int handle_allocate_buffer_resp(handle_t chan,
         return ERR_NOT_ENOUGH_BUFFER;
     }
 
-    void* out = mmap(0, (size_t)resp.buffer_len, PROT_READ | PROT_WRITE, 0,
-                     buf_handle, 0);
-    if (!out) {
-        TLOGE("Error when calling mmap()\n");
-        return ERR_BAD_HANDLE;
-    }
-    close(buf_handle);
-    buf_info->addr = (void*)out;
+    buf_info->handle = buf_handle;
     buf_info->len = (size_t)resp.buffer_len;
 
     return NO_ERROR;
@@ -176,11 +169,7 @@ int secure_dpu_release_buffer(struct secure_dpu_buf_info* buf_info) {
         return ERR_INVALID_ARGS;
     }
 
-    int rc = munmap(buf_info->addr, buf_info->len);
-    if (rc < 0) {
-        TLOGE("Failed to do munmap\n");
-        return rc;
-    }
+    close(buf_info->handle);
 
     return NO_ERROR;
 }

@@ -22,7 +22,7 @@
 __BEGIN_CDECLS
 
 struct secure_dpu_buf_info {
-    void* addr;
+    handle_t handle;
     size_t len;
 };
 
