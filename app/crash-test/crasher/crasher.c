@@ -29,7 +29,7 @@
 #include <crasher_consts.h>
 
 static struct tipc_port_acl crasher_port_acl = {
-        .flags = IPC_PORT_ALLOW_TA_CONNECT | IPC_PORT_ALLOW_NS_CONNECT,
+        .flags = IPC_PORT_ALLOW_TA_CONNECT,
         .uuid_num = 0,
         .uuids = NULL,
         .extra_data = NULL,
