@@ -162,12 +162,12 @@ static bool ecdsaSignatureDerToCose(
     ecdsaCoseSignature.clear();
     ecdsaCoseSignature.resize(kEcdsaSignatureSize, 0);
     if (BN_bn2bin(rBn, ecdsaCoseSignature.data() + kEcdsaValueSize - rBnSize) !=
-        kEcdsaValueSize) {
+        rBnSize) {
         COSE_PRINT_ERROR("Error encoding r\n");
         return false;
     }
     if (BN_bn2bin(sBn, ecdsaCoseSignature.data() + kEcdsaSignatureSize -
-                               sBnSize) != kEcdsaValueSize) {
+                               sBnSize) != sBnSize) {
         COSE_PRINT_ERROR("Error encoding s\n");
         return false;
     }
