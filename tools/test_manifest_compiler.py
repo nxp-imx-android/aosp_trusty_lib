@@ -406,7 +406,8 @@ class TestManifest(unittest.TestCase):
     '''
     def test_validate_memory_size_1(self):
         log = manifest_compiler.Log()
-        data = manifest_compiler.parse_memory_size(4096, log)
+        data = manifest_compiler.parse_memory_size(4096,
+                manifest_compiler.MIN_STACK, log)
         self.assertFalse(log.error_occurred())
         self.assertEqual(data, 4096)
 
@@ -415,7 +416,8 @@ class TestManifest(unittest.TestCase):
     '''
     def test_validate_memory_size_2(self):
         log = manifest_compiler.Log()
-        data = manifest_compiler.parse_memory_size(8192, log)
+        data = manifest_compiler.parse_memory_size(8192,
+                manifest_compiler.MIN_STACK, log)
         self.assertFalse(log.error_occurred())
         self.assertEqual(data, 8192)
 
@@ -424,7 +426,8 @@ class TestManifest(unittest.TestCase):
     '''
     def test_validate_memory_size_3(self):
         log = manifest_compiler.Log()
-        data = manifest_compiler.parse_memory_size(0, log)
+        data = manifest_compiler.parse_memory_size(0,
+                manifest_compiler.MIN_STACK, log)
         self.assertTrue(log.error_occurred())
         self.assertIsNone(data)
 
@@ -433,7 +436,8 @@ class TestManifest(unittest.TestCase):
     '''
     def test_validate_memory_size_4(self):
         log = manifest_compiler.Log()
-        data = manifest_compiler.parse_memory_size(-4096, log)
+        data = manifest_compiler.parse_memory_size(-4096,
+                manifest_compiler.MIN_STACK, log)
         self.assertTrue(log.error_occurred())
         self.assertIsNone(data)
 
@@ -442,7 +446,8 @@ class TestManifest(unittest.TestCase):
     '''
     def test_validate_memory_size_5(self):
         log = manifest_compiler.Log()
-        data = manifest_compiler.parse_memory_size(4095, log)
+        data = manifest_compiler.parse_memory_size(4095,
+            manifest_compiler.MIN_STACK, log)
         self.assertTrue(log.error_occurred())
         self.assertIsNone(data)
 
@@ -451,7 +456,8 @@ class TestManifest(unittest.TestCase):
     '''
     def test_validate_memory_size_6(self):
         log = manifest_compiler.Log()
-        data = manifest_compiler.parse_memory_size(16777217, log)
+        data = manifest_compiler.parse_memory_size(16777217,
+            manifest_compiler.MIN_STACK, log)
         self.assertTrue(log.error_occurred())
         self.assertIsNone(data)
 
@@ -460,7 +466,8 @@ class TestManifest(unittest.TestCase):
     '''
     def test_validate_memory_size_7(self):
         log = manifest_compiler.Log()
-        data = manifest_compiler.parse_memory_size(1024, log)
+        data = manifest_compiler.parse_memory_size(1024,
+                manifest_compiler.MIN_STACK, log)
         self.assertTrue(log.error_occurred())
         self.assertIsNone(data)
 
@@ -469,7 +476,8 @@ class TestManifest(unittest.TestCase):
     '''
     def test_validate_memory_size_8(self):
         log = manifest_compiler.Log()
-        data = manifest_compiler.parse_memory_size(4294967296, log)
+        data = manifest_compiler.parse_memory_size(4294967296,
+                manifest_compiler.MIN_STACK, log)
         self.assertFalse(log.error_occurred())
         self.assertEqual(data, 4294967296)
 

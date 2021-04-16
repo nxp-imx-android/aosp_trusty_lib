@@ -499,14 +499,14 @@ def parse_uuid(uuid, log):
 Validate memory size value.
 if success return memory size value else return None
 '''
-def parse_memory_size(memory_size, log):
+def parse_memory_size(memory_size, memory_kind, log):
     if memory_size is None:
         return None
 
     if memory_size <= 0 or memory_size % 4096 != 0:
         log.error(
                 "{}: {}, Minimum memory size should be "
-                .format(MIN_STACK, memory_size) +
+                .format(memory_kind, memory_size) +
                 "non-negative multiple of 4096")
         return None
 
@@ -621,11 +621,11 @@ def parse_manifest_config(manifest_dict, constants, default_app_name, log):
 
     # MIN_HEAP
     min_heap = parse_memory_size(get_int(manifest_dict, MIN_HEAP, constants,
-                                         log), log)
+                                         log), MIN_HEAP, log)
 
     # MIN_STACK
     min_stack = parse_memory_size(get_int(manifest_dict, MIN_STACK, constants,
-                                          log), log)
+                                          log), MIN_STACK, log)
 
     # MEM_MAP
     mem_io_maps = parse_mem_map(
