@@ -488,6 +488,42 @@ class TestManifest(unittest.TestCase):
         self.assertEqual(data, 4294967296)
 
     '''
+    Test with valid shadow stack size
+    '''
+    def test_parse_shadow_stack_size_1(self):
+        log = manifest_compiler.Log()
+        data = manifest_compiler.parse_shadow_stack_size(4096, log)
+        self.assertFalse(log.error_occurred())
+        self.assertEqual(data, 4096)
+
+    '''
+    Test without shadow stack size
+    '''
+    def test_parse_shadow_stack_size_2(self):
+        log = manifest_compiler.Log()
+        data = manifest_compiler.parse_shadow_stack_size(None, log)
+        self.assertFalse(log.error_occurred())
+        self.assertIsNone(data)
+
+    '''
+    Test with invalid shadow stack size
+    '''
+    def test_parse_shadow_stack_size_3(self):
+        log = manifest_compiler.Log()
+        data = manifest_compiler.parse_shadow_stack_size(-1, log)
+        self.assertTrue(log.error_occurred())
+        self.assertIsNone(data)
+
+    '''
+    Test with invalid shadow stack size
+    '''
+    def test_parse_shadow_stack_size_4(self):
+        log = manifest_compiler.Log()
+        data = manifest_compiler.parse_shadow_stack_size(1, log)
+        self.assertTrue(log.error_occurred())
+        self.assertIsNone(data)
+
+    '''
     Test with a single memory mapping
     '''
     def test_validate_mem_map_1(self):
@@ -943,6 +979,36 @@ class TestManifest(unittest.TestCase):
         self.assertFalse(manifest.mgmt_flags.restart_on_exit)
         self.assertFalse(manifest.mgmt_flags.deferred_start)
         self.assertFalse(manifest.mgmt_flags.non_critical_app)
+
+    '''
+    Test with valid UUID, min_heap, min_stack,
+    and min_shadow stack.
+    '''
+    def test_manifest_valid_dict_2(self):
+        constants = {}
+        uuid_in = "5f902ace-5e5c-4cd8-ae54-87b88c22ddaf"
+        min_heap = 4096
+        min_stack = 4096
+        min_shadow_stack = 2 * min_stack
+        log = manifest_compiler.Log()
+
+        config_data  = {
+                "uuid": uuid_in,
+                "min_heap": min_heap,
+                "min_stack": min_stack,
+                "min_shadow_stack": min_shadow_stack
+        }
+        manifest = manifest_compiler.parse_manifest_config(config_data,
+                                                           constants,
+                                                           "shadowy_test_app",
+                                                           log)
+        self.assertFalse(log.error_occurred())
+        self.assertIsNotNone(manifest)
+        self.assertEqual(manifest.min_stack, min_stack)
+        # we mainly care that we got the shadow stack size right
+        self.assertEqual(manifest.min_shadow_stack, min_shadow_stack)
+        # not to be confused with the regular stack
+        self.assertNotEqual(manifest.min_shadow_stack, manifest.min_stack)
 
     '''
     Test with invalid value in config,
@@ -1632,17 +1698,23 @@ class TestManifest(unittest.TestCase):
     '''
     Test with valid manifest config with a constants config containing
       - UUID
-      - min_heap and min_stack
+      - min_heap, min_stack, and min_shadow_stack
       - version
     Pack the manifest config data and unpack it and
     verify it with the expected values
     '''
     def test_manifest_valid_pack_8(self):
         constants_data = [{
-            "header": "version_constants.h",
+            "header": "constants.h",
             "constants": [{
                     "name": "VERSION",
                     "value": 1,
+                    "type": "int",
+                    "unsigned": True
+            },
+            {
+                    "name": "PAGE_SIZE",
+                    "value": 4096,
                     "type": "int",
                     "unsigned": True
             }]
@@ -1657,6 +1729,7 @@ class TestManifest(unittest.TestCase):
                 manifest_compiler.MIN_HEAP: 8192,
                 manifest_compiler.MIN_STACK: 4096,
                 manifest_compiler.VERSION: 1,
+                manifest_compiler.MIN_SHADOW_STACK: 4096,
                 manifest_compiler.MGMT_FLAGS: {
                         manifest_compiler.MGMT_FLAG_RESTART_ON_EXIT: False,
                         manifest_compiler.MGMT_FLAG_DEFERRED_START: False,
@@ -1671,6 +1744,7 @@ class TestManifest(unittest.TestCase):
                 manifest_compiler.MIN_HEAP: 8192,
                 manifest_compiler.MIN_STACK: 4096,
                 manifest_compiler.VERSION: "VERSION",
+                manifest_compiler.MIN_SHADOW_STACK: "PAGE_SIZE",
         }
 
         conf_constants = manifest_compiler.extract_config_constants(

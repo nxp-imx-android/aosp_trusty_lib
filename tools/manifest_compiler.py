@@ -1,7 +1,7 @@
 #!/usr/bin/env python2.7
 
 '''
-This program will take truseted application's manifest config JSON file as
+This program will take trusted application's manifest config JSON file as
 input. Processes the JSON config file and creates packed data
 mapping to C structures and dumps in binary format.
 
@@ -104,6 +104,7 @@ import sys
 UUID = "uuid"
 MIN_HEAP = "min_heap"
 MIN_STACK = "min_stack"
+MIN_SHADOW_STACK = "min_shadow_stack"
 MEM_MAP = "mem_map"
 MEM_MAP_ID = "id"
 MEM_MAP_ADDR = "addr"
@@ -147,6 +148,7 @@ TRUSTY_APP_CONFIG_KEY_MGMT_FLAGS = 4
 TRUSTY_APP_CONFIG_KEY_START_PORT = 5
 TRUSTY_APP_CONFIG_KEY_PINNED_CPU = 6
 TRUSTY_APP_CONFIG_KEY_VERSION = 7
+TRUSTY_APP_CONFIG_KEY_MIN_SHADOW_STACK_SIZE = 8
 
 # MEM_MAP ARCH_MMU_FLAGS
 # These values need to be kept in sync with external/lk/include/arch/mmu.h
@@ -225,6 +227,7 @@ class Manifest(object):
             app_name,
             min_heap,
             min_stack,
+            min_shadow_stack,
             mem_io_maps,
             mgmt_flags,
             start_ports,
@@ -235,6 +238,7 @@ class Manifest(object):
         self.app_name = app_name
         self.min_heap = min_heap
         self.min_stack = min_stack
+        self.min_shadow_stack = min_shadow_stack
         self.mem_io_maps = mem_io_maps
         self.mgmt_flags = mgmt_flags
         self.start_ports = start_ports
@@ -522,6 +526,26 @@ def parse_memory_size(memory_size, memory_kind, log, zero_is_ok=True):
     return memory_size
 
 
+def parse_shadow_stack_size(stack_size, log):
+    """Validate the shadow stack size
+
+    :returns: validated shadow stack size or None
+    """
+    if stack_size is None:
+        return None
+
+    # shadow call stack is only supported on arm64 where pointers are 8 bytes
+    ptr_size = 8
+    if stack_size < 0 or stack_size % ptr_size != 0:
+        log.error(
+                "{}: {}, Minimum shadow stack size should be "
+                .format(MIN_SHADOW_STACK, stack_size) +
+                "non-negative multiple of the native pointer size")
+        return None
+
+    return stack_size
+
+
 def parse_mem_map_type(mem_map_type, log):
     if mem_map_type not in {MEM_MAP_TYPE_CACHED,
                             MEM_MAP_TYPE_UNCACHED,
@@ -636,6 +660,11 @@ def parse_manifest_config(manifest_dict, constants, default_app_name, log):
     min_stack = parse_memory_size(get_int(manifest_dict, MIN_STACK, constants,
                                           log), MIN_STACK, log, False)
 
+    # MIN_SHADOW_STACK
+    min_shadow_stack = parse_shadow_stack_size(get_int(manifest_dict,
+                                                       MIN_SHADOW_STACK, constants,
+                                                       log, optional=True), log)
+
     # MEM_MAP
     mem_io_maps = parse_mem_map(
             get_list(manifest_dict, MEM_MAP, log, optional=True, default=[]),
@@ -678,8 +707,8 @@ def parse_manifest_config(manifest_dict, constants, default_app_name, log):
     if log.error_occurred():
         return None
 
-    return Manifest(uuid, app_name, min_heap, min_stack, mem_io_maps, mgmt_flags,
-                    start_ports, pinned_cpu, version)
+    return Manifest(uuid, app_name, min_heap, min_stack, min_shadow_stack,
+                    mem_io_maps, mgmt_flags, start_ports, pinned_cpu, version)
 
 
 '''
@@ -757,6 +786,7 @@ def pack_manifest_data(manifest, log):
     #        TRUSTY_APP_CONFIG_KEY_START_PORT, flag, name_size, name
     #        TRUSTY_APP_CONFIG_KEY_PINNED_CPU, pinned_cpu
     #        TRUSTY_APP_CONFIG_KEY_VERSION, version
+    #        TRUSTY_APP_CONFIG_KEY_MIN_SHADOW_STACK_SIZE, min_shadow_stack,
     #      }
     out = cStringIO.StringIO()
 
@@ -802,6 +832,10 @@ def pack_manifest_data(manifest, log):
         out.write(struct.pack("II",
                               TRUSTY_APP_CONFIG_KEY_VERSION,
                               manifest.version))
+    if manifest.min_shadow_stack is not None:
+        out.write(struct.pack("II",
+                              TRUSTY_APP_CONFIG_KEY_MIN_SHADOW_STACK_SIZE,
+                              manifest.min_shadow_stack))
 
     return out.getvalue()
 
@@ -860,6 +894,10 @@ def unpack_binary_manifest_to_data(packed_data):
         elif tag == TRUSTY_APP_CONFIG_KEY_MIN_STACK_SIZE:
             assert MIN_STACK not in manifest
             (manifest[MIN_STACK],), packed_data = struct.unpack(
+                    "I", packed_data[:4]), packed_data[4:]
+        elif tag == TRUSTY_APP_CONFIG_KEY_MIN_SHADOW_STACK_SIZE:
+            assert MIN_SHADOW_STACK not in manifest
+            (manifest[MIN_SHADOW_STACK],), packed_data = struct.unpack(
                     "I", packed_data[:4]), packed_data[4:]
         elif tag == TRUSTY_APP_CONFIG_KEY_MAP_MEM:
             if MEM_MAP not in manifest:
