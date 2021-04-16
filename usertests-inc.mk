@@ -43,3 +43,10 @@ TRUSTY_ALL_USER_TASKS += \
 	trusty/user/base/lib/hwasan/test \
 
 endif
+
+ifeq (true,$(call TOBOOL,$(CFI_ENABLED)))
+TRUSTY_ALL_USER_TASKS += \
+	trusty/user/base/app/cfi-test \
+	trusty/user/base/app/cfi-test/cfi-crasher \
+
+endif
