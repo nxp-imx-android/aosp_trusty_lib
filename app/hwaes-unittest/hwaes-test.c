@@ -30,6 +30,8 @@
 #define MAX_TRY_TIMES 1000
 #define UNUSED_HWAES_ERROR_CODE HWAES_NO_ERROR
 
+#define HWAES_GCM_IV_SIZE 12
+
 /**
  * struct hwaes_iov - an wrapper of an array of iovec.
  * @iovs: array of iovec.
@@ -52,13 +54,227 @@ struct hwaes_shm {
     size_t num_handles;
 };
 
+struct test_vector {
+    uint32_t mode;
+    struct hwcrypt_arg_in key;
+    struct hwcrypt_arg_in iv;
+    struct hwcrypt_arg_in aad;
+    struct hwcrypt_arg_in tag;
+    struct hwcrypt_arg_in plaintext;
+    struct hwcrypt_arg_in ciphertext;
+};
+
+/*
+ * Test vectors are from boringssl cipher_tests.txt which are in turn taken from
+ * the GCM spec.
+ *
+ * We are intentionally not testing non-standard IV lengths because we don't
+ * support this (yet).
+ */
+static const uint8_t gcm_test1_key[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                        0x00, 0x00, 0x00, 0x00};
+static const uint8_t gcm_test1_iv[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                       0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+static const uint8_t gcm_test1_plaintext[] = {
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+static const uint8_t gcm_test1_ciphertext[] = {
+        0x03, 0x88, 0xda, 0xce, 0x60, 0xb6, 0xa3, 0x92,
+        0xf3, 0x28, 0xc2, 0xb9, 0x71, 0xb2, 0xfe, 0x78};
+static const uint8_t gcm_test1_aad[] = {};
+static const uint8_t gcm_test1_tag[] = {0xab, 0x6e, 0x47, 0xd4, 0x2c, 0xec,
+                                        0x13, 0xbd, 0xf5, 0x3a, 0x67, 0xb2,
+                                        0x12, 0x57, 0xbd, 0xdf};
+
+static const uint8_t gcm_test2_key[] = {0xfe, 0xff, 0xe9, 0x92, 0x86, 0x65,
+                                        0x73, 0x1c, 0x6d, 0x6a, 0x8f, 0x94,
+                                        0x67, 0x30, 0x83, 0x08};
+static const uint8_t gcm_test2_iv[] = {0xca, 0xfe, 0xba, 0xbe, 0xfa, 0xce,
+                                       0xdb, 0xad, 0xde, 0xca, 0xf8, 0x88};
+static const uint8_t gcm_test2_plaintext[] = {
+        0xd9, 0x31, 0x32, 0x25, 0xf8, 0x84, 0x06, 0xe5, 0xa5, 0x59, 0x09,
+        0xc5, 0xaf, 0xf5, 0x26, 0x9a, 0x86, 0xa7, 0xa9, 0x53, 0x15, 0x34,
+        0xf7, 0xda, 0x2e, 0x4c, 0x30, 0x3d, 0x8a, 0x31, 0x8a, 0x72, 0x1c,
+        0x3c, 0x0c, 0x95, 0x95, 0x68, 0x09, 0x53, 0x2f, 0xcf, 0x0e, 0x24,
+        0x49, 0xa6, 0xb5, 0x25, 0xb1, 0x6a, 0xed, 0xf5, 0xaa, 0x0d, 0xe6,
+        0x57, 0xba, 0x63, 0x7b, 0x39, 0x1a, 0xaf, 0xd2, 0x55};
+static const uint8_t gcm_test2_ciphertext[] = {
+        0x42, 0x83, 0x1e, 0xc2, 0x21, 0x77, 0x74, 0x24, 0x4b, 0x72, 0x21,
+        0xb7, 0x84, 0xd0, 0xd4, 0x9c, 0xe3, 0xaa, 0x21, 0x2f, 0x2c, 0x02,
+        0xa4, 0xe0, 0x35, 0xc1, 0x7e, 0x23, 0x29, 0xac, 0xa1, 0x2e, 0x21,
+        0xd5, 0x14, 0xb2, 0x54, 0x66, 0x93, 0x1c, 0x7d, 0x8f, 0x6a, 0x5a,
+        0xac, 0x84, 0xaa, 0x05, 0x1b, 0xa3, 0x0b, 0x39, 0x6a, 0x0a, 0xac,
+        0x97, 0x3d, 0x58, 0xe0, 0x91, 0x47, 0x3f, 0x59, 0x85};
+static const uint8_t gcm_test2_aad[] = {};
+static const uint8_t gcm_test2_tag[] = {0x4d, 0x5c, 0x2a, 0xf3, 0x27, 0xcd,
+                                        0x64, 0xa6, 0x2c, 0xf3, 0x5a, 0xbd,
+                                        0x2b, 0xa6, 0xfa, 0xb4};
+
+static const uint8_t gcm_test3_key[] = {0xfe, 0xff, 0xe9, 0x92, 0x86, 0x65,
+                                        0x73, 0x1c, 0x6d, 0x6a, 0x8f, 0x94,
+                                        0x67, 0x30, 0x83, 0x08};
+static const uint8_t gcm_test3_iv[] = {0xca, 0xfe, 0xba, 0xbe, 0xfa, 0xce,
+                                       0xdb, 0xad, 0xde, 0xca, 0xf8, 0x88};
+static const uint8_t gcm_test3_plaintext[] = {
+        0xd9, 0x31, 0x32, 0x25, 0xf8, 0x84, 0x06, 0xe5, 0xa5, 0x59, 0x09, 0xc5,
+        0xaf, 0xf5, 0x26, 0x9a, 0x86, 0xa7, 0xa9, 0x53, 0x15, 0x34, 0xf7, 0xda,
+        0x2e, 0x4c, 0x30, 0x3d, 0x8a, 0x31, 0x8a, 0x72, 0x1c, 0x3c, 0x0c, 0x95,
+        0x95, 0x68, 0x09, 0x53, 0x2f, 0xcf, 0x0e, 0x24, 0x49, 0xa6, 0xb5, 0x25,
+        0xb1, 0x6a, 0xed, 0xf5, 0xaa, 0x0d, 0xe6, 0x57, 0xba, 0x63, 0x7b, 0x39};
+static const uint8_t gcm_test3_ciphertext[] = {
+        0x42, 0x83, 0x1e, 0xc2, 0x21, 0x77, 0x74, 0x24, 0x4b, 0x72, 0x21, 0xb7,
+        0x84, 0xd0, 0xd4, 0x9c, 0xe3, 0xaa, 0x21, 0x2f, 0x2c, 0x02, 0xa4, 0xe0,
+        0x35, 0xc1, 0x7e, 0x23, 0x29, 0xac, 0xa1, 0x2e, 0x21, 0xd5, 0x14, 0xb2,
+        0x54, 0x66, 0x93, 0x1c, 0x7d, 0x8f, 0x6a, 0x5a, 0xac, 0x84, 0xaa, 0x05,
+        0x1b, 0xa3, 0x0b, 0x39, 0x6a, 0x0a, 0xac, 0x97, 0x3d, 0x58, 0xe0, 0x91};
+static const uint8_t gcm_test3_aad[] = {
+        0xfe, 0xed, 0xfa, 0xce, 0xde, 0xad, 0xbe, 0xef, 0xfe, 0xed,
+        0xfa, 0xce, 0xde, 0xad, 0xbe, 0xef, 0xab, 0xad, 0xda, 0xd2};
+static const uint8_t gcm_test3_tag[] = {0x5b, 0xc9, 0x4f, 0xbc, 0x32, 0x21,
+                                        0xa5, 0xdb, 0x94, 0xfa, 0xe9, 0x5a,
+                                        0xe7, 0x12, 0x1a, 0x47};
+
+static const struct test_vector vectors[] = {
+        {
+                .mode = HWAES_GCM_MODE,
+                .key =
+                        {
+                                .data_ptr = &gcm_test1_key,
+                                .len = sizeof(gcm_test1_key),
+                        },
+                .iv =
+                        {
+                                .data_ptr = &gcm_test1_iv,
+                                .len = sizeof(gcm_test1_iv),
+                        },
+                .aad =
+                        {
+                                .data_ptr = &gcm_test1_aad,
+                                .len = sizeof(gcm_test1_aad),
+                        },
+                .tag =
+                        {
+                                .data_ptr = &gcm_test1_tag,
+                                .len = sizeof(gcm_test1_tag),
+                        },
+                .ciphertext =
+                        {
+                                .data_ptr = &gcm_test1_ciphertext,
+                                .len = sizeof(gcm_test1_ciphertext),
+                        },
+                .plaintext =
+                        {
+                                .data_ptr = &gcm_test1_plaintext,
+                                .len = sizeof(gcm_test1_plaintext),
+                        },
+        },
+        {
+                .mode = HWAES_GCM_MODE,
+                .key =
+                        {
+                                .data_ptr = &gcm_test2_key,
+                                .len = sizeof(gcm_test2_key),
+                        },
+                .iv =
+                        {
+                                .data_ptr = &gcm_test2_iv,
+                                .len = sizeof(gcm_test2_iv),
+                        },
+                .aad =
+                        {
+                                .data_ptr = &gcm_test2_aad,
+                                .len = sizeof(gcm_test2_aad),
+                        },
+                .tag =
+                        {
+                                .data_ptr = &gcm_test2_tag,
+                                .len = sizeof(gcm_test2_tag),
+                        },
+                .ciphertext =
+                        {
+                                .data_ptr = &gcm_test2_ciphertext,
+                                .len = sizeof(gcm_test2_ciphertext),
+                        },
+                .plaintext =
+                        {
+                                .data_ptr = &gcm_test2_plaintext,
+                                .len = sizeof(gcm_test2_plaintext),
+                        },
+        },
+        {
+                .mode = HWAES_GCM_MODE,
+                .key =
+                        {
+                                .data_ptr = &gcm_test3_key,
+                                .len = sizeof(gcm_test3_key),
+                        },
+                .iv =
+                        {
+                                .data_ptr = &gcm_test3_iv,
+                                .len = sizeof(gcm_test3_iv),
+                        },
+                .aad =
+                        {
+                                .data_ptr = &gcm_test3_aad,
+                                .len = sizeof(gcm_test3_aad),
+                        },
+                .tag =
+                        {
+                                .data_ptr = &gcm_test3_tag,
+                                .len = sizeof(gcm_test3_tag),
+                        },
+                .ciphertext =
+                        {
+                                .data_ptr = &gcm_test3_ciphertext,
+                                .len = sizeof(gcm_test3_ciphertext),
+                        },
+                .plaintext =
+                        {
+                                .data_ptr = &gcm_test3_plaintext,
+                                .len = sizeof(gcm_test3_plaintext),
+                        },
+        },
+};
+
+static void parse_vector(const struct test_vector* vector,
+                         struct hwcrypt_shm_hd* shm_handle,
+                         struct hwcrypt_args* args,
+                         int encrypt) {
+    args->key_type = HWAES_UNWRAPPED_KEY;
+    args->padding = HWAES_NO_PADDING;
+    args->mode = vector->mode;
+
+    args->key = vector->key;
+    args->iv = vector->iv;
+    args->aad = vector->aad;
+    if (encrypt) {
+        args->text_in = vector->plaintext;
+    } else {
+        args->text_in = vector->ciphertext;
+        args->tag_in = vector->tag;
+    }
+
+    uint8_t* base = (uint8_t*)shm_handle->base;
+
+    args->text_out.data_ptr = base;
+    args->text_out.len = args->text_in.len;
+    args->text_out.shm_hd_ptr = shm_handle;
+
+    if (encrypt && vector->tag.len > 0) {
+        args->tag_out.data_ptr = base + args->text_out.len;
+        args->tag_out.len = vector->tag.len;
+        args->tag_out.shm_hd_ptr = shm_handle;
+    }
+}
+
 static const uint8_t hwaes_key[32];
 static const uint8_t hwaes_iv[16];
-static const uint8_t hwaes_plaintext[] = {
+static const uint8_t hwaes_cbc_plaintext[] = {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-static const uint8_t hwaes_ciphertext[] = {
+static const uint8_t hwaes_cbc_ciphertext[] = {
         0xdc, 0x95, 0xc0, 0x78, 0xa2, 0x40, 0x89, 0x89, 0xad, 0x48, 0xa2,
         0x14, 0x92, 0x84, 0x20, 0x87, 0x08, 0xc3, 0x74, 0x84, 0x8c, 0x22,
         0x82, 0x33, 0xc2, 0xb3, 0x4f, 0x33, 0x2b, 0xd2, 0xe9, 0xd3};
@@ -162,7 +378,7 @@ TEST_F_SETUP(hwaes) {
     _state->shm_base = shm_base;
     _state->shm_len = shm_len;
     memset(_state->shm_base, 0, _state->shm_len);
-    memcpy(_state->shm_base, hwaes_plaintext, sizeof(hwaes_plaintext));
+    memcpy(_state->shm_base, hwaes_cbc_plaintext, sizeof(hwaes_cbc_plaintext));
 
     _state->shm_hd = (struct hwcrypt_shm_hd){
             .handle = _state->memref,
@@ -184,13 +400,13 @@ TEST_F_SETUP(hwaes) {
             .text_in =
                     {
                             .data_ptr = _state->shm_base,
-                            .len = sizeof(hwaes_plaintext),
+                            .len = sizeof(hwaes_cbc_plaintext),
                             .shm_hd_ptr = &_state->shm_hd,
                     },
             .text_out =
                     {
                             .data_ptr = _state->shm_base,
-                            .len = sizeof(hwaes_ciphertext),
+                            .len = sizeof(hwaes_cbc_ciphertext),
                             .shm_hd_ptr = &_state->shm_hd,
                     },
             .key_type = HWAES_UNWRAPPED_KEY,
@@ -212,13 +428,13 @@ TEST_F_SETUP(hwaes) {
             .text_in =
                     {
                             .data_ptr = _state->shm_base,
-                            .len = sizeof(hwaes_ciphertext),
+                            .len = sizeof(hwaes_cbc_ciphertext),
                             .shm_hd_ptr = &_state->shm_hd,
                     },
             .text_out =
                     {
                             .data_ptr = _state->shm_base,
-                            .len = sizeof(hwaes_plaintext),
+                            .len = sizeof(hwaes_cbc_plaintext),
                             .shm_hd_ptr = &_state->shm_hd,
                     },
             .key_type = HWAES_UNWRAPPED_KEY,
@@ -419,19 +635,21 @@ TEST_F(hwaes, EncryptionDecryptionCBC) {
     int rc = hwaes_encrypt(_state->hwaes_session, &_state->args_encrypt);
 
     EXPECT_EQ(NO_ERROR, rc, "encryption - cbc mode");
-    rc = memcmp(_state->shm_base, hwaes_ciphertext, sizeof(hwaes_ciphertext));
+    rc = memcmp(_state->shm_base, hwaes_cbc_ciphertext,
+                sizeof(hwaes_cbc_ciphertext));
     EXPECT_EQ(0, rc, "wrong encryption result");
 
     rc = hwaes_decrypt(_state->hwaes_session, &_state->args_decrypt);
 
     EXPECT_EQ(NO_ERROR, rc, "decryption - cbc mode");
-    rc = memcmp(_state->shm_base, hwaes_plaintext, sizeof(hwaes_plaintext));
+    rc = memcmp(_state->shm_base, hwaes_cbc_plaintext,
+                sizeof(hwaes_cbc_plaintext));
     EXPECT_EQ(0, rc, "wrong decryption result");
 }
 
 TEST_F(hwaes, EncryptionDecryptionCBCNoSHM) {
-    uint8_t buf[sizeof(hwaes_plaintext)] = {0};
-    memcpy(buf, hwaes_plaintext, sizeof(hwaes_plaintext));
+    uint8_t buf[sizeof(hwaes_cbc_plaintext)] = {0};
+    memcpy(buf, hwaes_cbc_plaintext, sizeof(hwaes_cbc_plaintext));
 
     _state->args_encrypt.text_in = (struct hwcrypt_arg_in){
             .data_ptr = buf,
@@ -454,13 +672,13 @@ TEST_F(hwaes, EncryptionDecryptionCBCNoSHM) {
     int rc = hwaes_encrypt(_state->hwaes_session, &_state->args_encrypt);
 
     EXPECT_EQ(NO_ERROR, rc, "encryption - cbc mode");
-    rc = memcmp(buf, hwaes_ciphertext, sizeof(hwaes_ciphertext));
+    rc = memcmp(buf, hwaes_cbc_ciphertext, sizeof(hwaes_cbc_ciphertext));
     EXPECT_EQ(0, rc, "wrong encryption result");
 
     rc = hwaes_decrypt(_state->hwaes_session, &_state->args_decrypt);
 
     EXPECT_EQ(NO_ERROR, rc, "decryption - cbc mode");
-    rc = memcmp(buf, hwaes_plaintext, sizeof(hwaes_plaintext));
+    rc = memcmp(buf, hwaes_cbc_plaintext, sizeof(hwaes_cbc_plaintext));
     EXPECT_EQ(0, rc, "wrong decryption result");
 }
 
@@ -471,11 +689,158 @@ TEST_F(hwaes, RunEncryptMany) {
         ASSERT_EQ(NO_ERROR, rc, "encryption - in loop");
     }
 
-    memcpy(_state->shm_base, hwaes_plaintext, sizeof(hwaes_plaintext));
+    memcpy(_state->shm_base, hwaes_cbc_plaintext, sizeof(hwaes_cbc_plaintext));
     rc = hwaes_encrypt(_state->hwaes_session, &_state->args_encrypt);
     EXPECT_EQ(NO_ERROR, rc, "encryption - final round");
-    rc = memcmp(_state->shm_base, hwaes_ciphertext, sizeof(hwaes_ciphertext));
+    rc = memcmp(_state->shm_base, hwaes_cbc_ciphertext,
+                sizeof(hwaes_cbc_ciphertext));
     EXPECT_EQ(0, rc, "wrong encryption result");
+
+test_abort:;
+}
+
+TEST_F(hwaes, EncryptVectors) {
+    const struct test_vector* vector = vectors;
+    for (unsigned long i = 0; i < countof(vectors); ++i, ++vector) {
+        memset(_state->shm_base, 0, _state->shm_len);
+        struct hwcrypt_args args = {};
+
+        struct hwcrypt_shm_hd shm_hd = {
+                .handle = _state->memref,
+                .base = _state->shm_base,
+                .size = _state->shm_len,
+        };
+        parse_vector(vector, &shm_hd, &args, 1 /* encrypt */);
+
+        int rc = hwaes_encrypt(_state->hwaes_session, &args);
+        EXPECT_EQ(NO_ERROR, rc, "Encryption failed for test vector %lu\n", i);
+
+        rc = memcmp(_state->shm_base, vector->ciphertext.data_ptr,
+                    vector->ciphertext.len);
+        EXPECT_EQ(0, rc, "wrong encryption result");
+
+        if (vector->tag.len > 0) {
+            rc = memcmp((uint8_t*)_state->shm_base + vector->ciphertext.len,
+                        vector->tag.data_ptr, vector->tag.len);
+            EXPECT_EQ(0, rc, "wrong encryption result");
+        }
+    }
+
+test_abort:;
+}
+
+TEST_F(hwaes, DecryptVectors) {
+    const struct test_vector* vector = vectors;
+    for (unsigned long i = 0; i < countof(vectors); ++i, ++vector) {
+        memset(_state->shm_base, 0, _state->shm_len);
+        struct hwcrypt_args args = {};
+
+        struct hwcrypt_shm_hd shm_hd = {
+                .handle = _state->memref,
+                .base = _state->shm_base,
+                .size = _state->shm_len,
+        };
+        parse_vector(vector, &shm_hd, &args, 0 /* decrypt */);
+
+        int rc = hwaes_decrypt(_state->hwaes_session, &args);
+        EXPECT_EQ(NO_ERROR, rc, "Decryption failed for test vector %lu\n", i);
+
+        rc = memcmp(_state->shm_base, vector->plaintext.data_ptr,
+                    vector->plaintext.len);
+        EXPECT_EQ(0, rc, "wrong decryption result");
+    }
+
+test_abort:;
+}
+
+TEST_F(hwaes, InvalidAEADArgsForCBC) {
+    int rc;
+    uint8_t buf[sizeof(hwaes_cbc_plaintext)] = {0};
+
+    _state->args_encrypt.aad = (struct hwcrypt_arg_in){
+            .data_ptr = buf,
+            .len = sizeof(buf),
+    };
+    rc = hwaes_encrypt(_state->hwaes_session, &_state->args_encrypt);
+    EXPECT_EQ(ERR_INVALID_ARGS, rc, "unsupported AAD");
+
+    _state->args_encrypt.aad = (struct hwcrypt_arg_in){};
+    _state->args_encrypt.tag_in = (struct hwcrypt_arg_in){
+            .data_ptr = buf,
+            .len = sizeof(buf),
+    };
+    rc = hwaes_encrypt(_state->hwaes_session, &_state->args_encrypt);
+    EXPECT_EQ(ERR_INVALID_ARGS, rc, "unsupported tag");
+
+    _state->args_encrypt.tag_in = (struct hwcrypt_arg_in){};
+    _state->args_encrypt.tag_out = (struct hwcrypt_arg_out){
+            .data_ptr = buf,
+            .len = sizeof(buf),
+    };
+    rc = hwaes_encrypt(_state->hwaes_session, &_state->args_encrypt);
+    EXPECT_EQ(ERR_INVALID_ARGS, rc, "unsupported tag");
+
+    _state->args_decrypt.aad = (struct hwcrypt_arg_in){
+            .data_ptr = buf,
+            .len = sizeof(buf),
+    };
+    rc = hwaes_decrypt(_state->hwaes_session, &_state->args_decrypt);
+    EXPECT_EQ(ERR_INVALID_ARGS, rc, "unsupported AAD");
+
+    _state->args_decrypt.aad = (struct hwcrypt_arg_in){};
+    _state->args_decrypt.tag_in = (struct hwcrypt_arg_in){
+            .data_ptr = buf,
+            .len = sizeof(buf),
+    };
+    rc = hwaes_decrypt(_state->hwaes_session, &_state->args_decrypt);
+    EXPECT_EQ(ERR_INVALID_ARGS, rc, "unsupported tag");
+
+    _state->args_decrypt.tag_in = (struct hwcrypt_arg_in){};
+    _state->args_decrypt.tag_out = (struct hwcrypt_arg_out){
+            .data_ptr = buf,
+            .len = sizeof(buf),
+    };
+    rc = hwaes_decrypt(_state->hwaes_session, &_state->args_decrypt);
+    EXPECT_EQ(ERR_INVALID_ARGS, rc, "unsupported tag");
+}
+
+TEST_F(hwaes, InvalidGCMTagArgs) {
+    int rc;
+    uint8_t buf[16] = {0};
+
+    _state->args_encrypt.mode = HWAES_GCM_MODE;
+    ASSERT_LE(HWAES_GCM_IV_SIZE, _state->args_encrypt.iv.len,
+              "IV length too short");
+    _state->args_encrypt.iv.len = HWAES_GCM_IV_SIZE;
+
+    rc = hwaes_encrypt(_state->hwaes_session, &_state->args_encrypt);
+    EXPECT_EQ(ERR_INVALID_ARGS, rc, "missing tag output for GCM");
+
+    _state->args_encrypt.tag_in = (struct hwcrypt_arg_in){
+            .data_ptr = buf,
+            .len = sizeof(buf),
+    };
+    rc = hwaes_encrypt(_state->hwaes_session, &_state->args_encrypt);
+    EXPECT_EQ(ERR_INVALID_ARGS, rc, "wrong tag direction for encryption");
+
+    _state->args_decrypt.mode = HWAES_GCM_MODE;
+    ASSERT_LE(HWAES_GCM_IV_SIZE, _state->args_decrypt.iv.len,
+              "IV length too short");
+    _state->args_decrypt.iv.len = HWAES_GCM_IV_SIZE;
+
+    rc = hwaes_decrypt(_state->hwaes_session, &_state->args_decrypt);
+    EXPECT_EQ(ERR_INVALID_ARGS, rc, "missing tag input for GCM");
+
+    _state->args_decrypt.tag_in = (struct hwcrypt_arg_in){
+            .data_ptr = buf,
+            .len = sizeof(buf),
+    };
+    _state->args_decrypt.tag_out = (struct hwcrypt_arg_out){
+            .data_ptr = buf,
+            .len = sizeof(buf),
+    };
+    rc = hwaes_decrypt(_state->hwaes_session, &_state->args_decrypt);
+    EXPECT_EQ(ERR_INVALID_ARGS, rc, "wrong tag direction for decryption");
 
 test_abort:;
 }
