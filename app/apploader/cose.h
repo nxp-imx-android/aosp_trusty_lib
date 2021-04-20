@@ -18,6 +18,7 @@
 
 #include <stddef.h>
 #include <optional>
+#include <string_view>
 #include <vector>
 
 // From https://tools.ietf.org/html/rfc8152
@@ -47,6 +48,16 @@ constexpr size_t kEcdsaSignatureSize = 2 * kEcdsaValueSize;
 constexpr size_t kAesGcmIvSize = 12;
 constexpr size_t kAesGcmTagSize = 16;
 constexpr size_t kAes128GcmKeySize = 16;
+
+using GetKeyFn =
+        std::function<std::tuple<std::unique_ptr<uint8_t[]>, size_t>(uint8_t)>;
+using DecryptFn = std::function<bool(
+        std::basic_string_view<uint8_t> key,
+        std::basic_string_view<uint8_t> nonce,
+        uint8_t* encryptedData,
+        size_t encryptedDataSize,
+        std::basic_string_view<uint8_t> additionalAuthenticatedData,
+        size_t* outPlaintextSize)>;
 
 /**
  * coseSignEcDsa() - Sign the given data using ECDSA and emit a COSE CBOR blob.
@@ -137,13 +148,11 @@ bool coseCheckEcDsaSignature(const std::vector<uint8_t>& signatureCoseSign1,
  *
  * Returns: %true if the signature verification passes, %false otherwise.
  */
-bool strictCheckEcDsaSignature(
-        const uint8_t* packageStart,
-        size_t packageSize,
-        std::function<std::tuple<std::unique_ptr<uint8_t[]>, size_t>(uint8_t)>
-                keyFn,
-        const uint8_t** outPackageStart,
-        size_t* outPackageSize);
+bool strictCheckEcDsaSignature(const uint8_t* packageStart,
+                               size_t packageSize,
+                               GetKeyFn keyFn,
+                               const uint8_t** outPackageStart,
+                               size_t* outPackageSize);
 
 /**
  * coseEncryptAes128GcmKeyWrap() - Encrypt a block of data using AES-128-GCM
@@ -210,9 +219,9 @@ std::unique_ptr<cppbor::Item> coseEncryptAes128GcmKeyWrap(
  */
 bool coseDecryptAes128GcmKeyWrapInPlace(
         const std::unique_ptr<cppbor::Item>& item,
-        std::function<std::tuple<std::unique_ptr<uint8_t[]>, size_t>(uint8_t)>
-                keyFn,
+        GetKeyFn keyFn,
         const std::vector<uint8_t>& externalAad,
         bool checkTag,
         const uint8_t** outPackageStart,
-        size_t* outPackageSize);
+        size_t* outPackageSize,
+        DecryptFn decryptFn = DecryptFn());

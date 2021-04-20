@@ -515,13 +515,11 @@ constexpr size_t kSignatureOffset =
         kSignatureHeaderPart2Offset + sizeof(kSignatureHeaderPart2);
 constexpr size_t kPayloadOffset = kSignatureOffset + kEcdsaSignatureSize;
 
-bool strictCheckEcDsaSignature(
-        const uint8_t* packageStart,
-        size_t packageSize,
-        std::function<std::tuple<std::unique_ptr<uint8_t[]>, size_t>(uint8_t)>
-                keyFn,
-        const uint8_t** outPackageStart,
-        size_t* outPackageSize) {
+bool strictCheckEcDsaSignature(const uint8_t* packageStart,
+                               size_t packageSize,
+                               GetKeyFn keyFn,
+                               const uint8_t** outPackageStart,
+                               size_t* outPackageSize) {
     if (packageSize < kPayloadOffset) {
         COSE_PRINT_ERROR("Passed-in COSE_Sign1 is not large enough\n");
         return false;
@@ -960,7 +958,8 @@ static bool coseDecryptAes128GcmInPlace(
         std::basic_string_view<uint8_t> key,
         const std::vector<uint8_t>& externalAad,
         const uint8_t** outPlaintextStart,
-        size_t* outPlaintextSize) {
+        size_t* outPlaintextSize,
+        DecryptFn keyDecryptFn) {
     assert(outPlaintextStart != nullptr);
     assert(outPlaintextSize != nullptr);
 
@@ -1048,10 +1047,10 @@ static bool coseDecryptAes128GcmInPlace(
             context, encodedProtectedHeaders->view(), externalAadView);
     std::basic_string_view gcmAadView{gcmAad.get(), gcmAadSize};
 
-    if (!decryptAes128GcmInPlace(
-                key, iv->view(),
-                const_cast<uint8_t*>(ciphertext->view().data()),
-                ciphertext->view().size(), gcmAadView, outPlaintextSize)) {
+    if (!keyDecryptFn(key, iv->view(),
+                      const_cast<uint8_t*>(ciphertext->view().data()),
+                      ciphertext->view().size(), gcmAadView,
+                      outPlaintextSize)) {
         return false;
     }
 
@@ -1061,14 +1060,18 @@ static bool coseDecryptAes128GcmInPlace(
 
 bool coseDecryptAes128GcmKeyWrapInPlace(
         const std::unique_ptr<cppbor::Item>& item,
-        std::function<std::tuple<std::unique_ptr<uint8_t[]>, size_t>(uint8_t)>
-                keyFn,
+        GetKeyFn keyFn,
         const std::vector<uint8_t>& externalAad,
         bool checkTag,
         const uint8_t** outPackageStart,
-        size_t* outPackageSize) {
+        size_t* outPackageSize,
+        DecryptFn keyDecryptFn) {
     assert(outPackageStart != nullptr);
     assert(outPackageSize != nullptr);
+
+    if (!keyDecryptFn) {
+        keyDecryptFn = &decryptAes128GcmInPlace;
+    }
 
     if (checkTag) {
         if (item->semanticTagCount() != 1) {
@@ -1159,7 +1162,7 @@ bool coseDecryptAes128GcmKeyWrapInPlace(
     size_t coseKeySize;
     if (!coseDecryptAes128GcmInPlace(COSE_CONTEXT_ENC_RECIPIENT, recipient,
                                      keyEncryptionKey, {}, &coseKeyStart,
-                                     &coseKeySize)) {
+                                     &coseKeySize, keyDecryptFn)) {
         COSE_PRINT_ERROR("Failed to decrypt COSE_Key structure\n");
         return false;
     }
@@ -1229,7 +1232,8 @@ bool coseDecryptAes128GcmKeyWrapInPlace(
 
     if (!coseDecryptAes128GcmInPlace(COSE_CONTEXT_ENCRYPT, item,
                                      contentEncryptionKey->view(), externalAad,
-                                     outPackageStart, outPackageSize)) {
+                                     outPackageStart, outPackageSize,
+                                     decryptAes128GcmInPlace)) {
         COSE_PRINT_ERROR("Failed to decrypt payload\n");
         return false;
     }

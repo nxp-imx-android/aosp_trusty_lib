@@ -21,10 +21,13 @@
 #include <cppbor_parse.h>
 #include <interface/apploader/apploader_package.h>
 #include <inttypes.h>
+#include <lib/hwaes/hwaes.h>
 #include <lib/hwkey/hwkey.h>
 #include <lk/compiler.h>
+#include <memref.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <sys/mman.h>
 #include <trusty_log.h>
 #include <uapi/err.h>
 #include <optional>
@@ -100,6 +103,63 @@ static std::optional<bool> get_cbor_bool(std::unique_ptr<cppbor::Item>& item) {
     }
 
     return item_bool->value();
+}
+
+static bool hwaesDecryptAes128GcmInPlace(
+        std::basic_string_view<uint8_t> key,
+        std::basic_string_view<uint8_t> nonce,
+        uint8_t* encryptedData,
+        size_t encryptedDataSize,
+        std::basic_string_view<uint8_t> additionalAuthenticatedData,
+        size_t* outPlaintextSize) {
+    assert(outPlaintextSize != nullptr);
+    if (encryptedDataSize <= kAesGcmTagSize) {
+        TLOGE("encryptedData too small\n");
+        return false;
+    }
+
+    if (key.size() != kAes128GcmKeySize) {
+        TLOGE("key is not kAes128GcmKeySize bytes, got %zu\n", key.size());
+        return {};
+    }
+    if (nonce.size() != kAesGcmIvSize) {
+        TLOGE("nonce is not kAesGcmIvSize bytes, got %zu\n", nonce.size());
+        return false;
+    }
+
+    size_t ciphertextSize = encryptedDataSize - kAesGcmTagSize;
+    unsigned char* tag = encryptedData + ciphertextSize;
+
+    struct hwcrypt_args cryptArgs = {};
+    cryptArgs.key.data_ptr = key.data();
+    cryptArgs.key.len = key.size();
+    cryptArgs.iv.data_ptr = nonce.data();
+    cryptArgs.iv.len = nonce.size();
+    cryptArgs.aad.data_ptr = additionalAuthenticatedData.data();
+    cryptArgs.aad.len = additionalAuthenticatedData.size();
+    cryptArgs.tag_in.data_ptr = tag;
+    cryptArgs.tag_in.len = kAesGcmTagSize;
+    cryptArgs.text_in.data_ptr = encryptedData;
+    cryptArgs.text_in.len = ciphertextSize;
+    cryptArgs.text_out.data_ptr = encryptedData;
+    cryptArgs.text_out.len = ciphertextSize;
+    cryptArgs.key_type = HWAES_WRAPPED_KEY;
+    cryptArgs.padding = HWAES_NO_PADDING;
+    cryptArgs.mode = HWAES_GCM_MODE;
+
+    hwaes_session_t sess;
+    auto ret = hwaes_open(&sess);
+    if (ret != NO_ERROR) {
+        return false;
+    }
+
+    ret = hwaes_decrypt(sess, &cryptArgs);
+    if (ret == NO_ERROR) {
+        *outPlaintextSize = ciphertextSize;
+    }
+    hwaes_close(sess);
+
+    return ret == NO_ERROR;
 }
 
 /**
@@ -232,9 +292,9 @@ bool apploader_parse_package_metadata(
     size_t elf_size;
     if (content_is_cose_encrypt) {
         auto& cose_encrypt = pkg_array->get(2);
-        if (!coseDecryptAes128GcmKeyWrapInPlace(cose_encrypt, get_encrypt_key,
-                                                {}, false, &elf_start,
-                                                &elf_size)) {
+        if (!coseDecryptAes128GcmKeyWrapInPlace(
+                    cose_encrypt, get_encrypt_key, {}, false, &elf_start,
+                    &elf_size, hwaesDecryptAes128GcmInPlace)) {
             TLOGE("Failed to decrypt ELF file\n");
             return false;
         }
