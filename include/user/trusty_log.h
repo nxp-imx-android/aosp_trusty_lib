@@ -34,7 +34,11 @@ static inline int unittest_printf(const char* fmt, ...) {
 #define TLOG_LVL_DEBUG 5
 
 #ifndef TLOG_LVL
+#ifdef TLOG_LVL_DEFAULT
+#define TLOG_LVL TLOG_LVL_DEFAULT
+#else
 #define TLOG_LVL TLOG_LVL_INFO
+#endif
 #endif
 
 #define TLOG(fmt, ...)                                                      \
