@@ -40,7 +40,7 @@ HOST_FLAGS := -D__TRUSTY__
 HOST_FLAGS += -D__COSE_HOST__
 
 HOST_LIBS := \
-	stdc++ \
+	c++ \
 	crypto \
 	ssl \
 
