@@ -303,7 +303,7 @@ static int restart_service(struct tipc_srv_state* state) {
  *  Kill all servoces
  */
 static void kill_services(void) {
-    TLOGI("Terminating unittest services\n");
+    TLOGD("Terminating unittest services\n");
 
     /* close any opened ports */
     for (unsigned int i = 0; i < countof(_services); i++) {
@@ -315,7 +315,7 @@ static void kill_services(void) {
  *  Initialize all services
  */
 static int init_services(void) {
-    TLOGI("Init unittest services!!!\n");
+    TLOGD("Init unittest services!!!\n");
 
     for (unsigned int i = 0; i < countof(_services); i++) {
         int rc = _create_service(&_services[i], &_srv_states[i]);

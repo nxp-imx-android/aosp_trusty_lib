@@ -2559,7 +2559,7 @@ int main(void) {
     };
     struct unittest* unittest = &ipc_unittest;
 
-    TLOGI("Welcome to IPC unittest!!!\n");
+    TLOGD("Welcome to IPC unittest!!!\n");
 
     return unittest_main(&unittest, 1);
 }
