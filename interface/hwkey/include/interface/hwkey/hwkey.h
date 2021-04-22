@@ -27,6 +27,12 @@
 #define HWKEY_KDF_VERSION_1 1
 
 /**
+ * HWKEY_OPAQUE_HANDLE_MAX_SIZE: The maximum size of an opaque handle returned
+ * by the hwkey service.
+ */
+#define HWKEY_OPAQUE_HANDLE_MAX_SIZE 128
+
+/**
  * enum hwkey_cmd - command identifiers for hwkey functions
  */
 enum hwkey_cmd {
