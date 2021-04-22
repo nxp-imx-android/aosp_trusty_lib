@@ -143,7 +143,7 @@ static bool hwaesDecryptAes128GcmInPlace(
     cryptArgs.text_in.len = ciphertextSize;
     cryptArgs.text_out.data_ptr = encryptedData;
     cryptArgs.text_out.len = ciphertextSize;
-    cryptArgs.key_type = HWAES_WRAPPED_KEY;
+    cryptArgs.key_type = HWAES_PLAINTEXT_KEY;
     cryptArgs.padding = HWAES_NO_PADDING;
     cryptArgs.mode = HWAES_GCM_MODE;
 

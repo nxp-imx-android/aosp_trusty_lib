@@ -78,14 +78,17 @@ enum hwaes_padding {
 
 /**
  * enum hwaes_key_type - key types for hwaes
- * @HWAES_UNWRAPPED_KEY: Unwrapped key.
- * @HWAES_WRAPPED_KEY:   Wrapped key.
+ * @HWAES_PLAINTEXT_KEY: Plaintext key, directly usable by hardware.
+ * @HWAES_OPAQUE_HANDLE: Opaque handle to a key from hwkey service.
  *
- * Wrapped key means the key is wrapped and not accessible to the client.
+ * Opaque handles are created by the hwkey service and provide proxied access to
+ * key material that is not directly exposed to the client. The hwaes service
+ * will fetch the real key from hwkey when performing a cyptographic operation
+ * on behalf of the client.
  */
 enum hwaes_key_type {
-    HWAES_UNWRAPPED_KEY = 0,
-    HWAES_WRAPPED_KEY = 1,
+    HWAES_PLAINTEXT_KEY = 0,
+    HWAES_OPAQUE_HANDLE = 1,
 };
 
 /**

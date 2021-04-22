@@ -20,6 +20,7 @@
 #include <string.h>
 
 #include <lib/hwaes/hwaes.h>
+#include <lib/hwkey/hwkey.h>
 #include <memref.h>
 #include <sys/auxv.h>
 #include <sys/mman.h>
@@ -241,7 +242,7 @@ static void parse_vector(const struct test_vector* vector,
                          struct hwcrypt_shm_hd* shm_handle,
                          struct hwcrypt_args* args,
                          int encrypt) {
-    args->key_type = HWAES_UNWRAPPED_KEY;
+    args->key_type = HWAES_PLAINTEXT_KEY;
     args->padding = HWAES_NO_PADDING;
     args->mode = vector->mode;
 
@@ -409,7 +410,7 @@ TEST_F_SETUP(hwaes) {
                             .len = sizeof(hwaes_cbc_ciphertext),
                             .shm_hd_ptr = &_state->shm_hd,
                     },
-            .key_type = HWAES_UNWRAPPED_KEY,
+            .key_type = HWAES_PLAINTEXT_KEY,
             .padding = HWAES_NO_PADDING,
             .mode = HWAES_CBC_MODE,
     };
@@ -437,7 +438,7 @@ TEST_F_SETUP(hwaes) {
                             .len = sizeof(hwaes_cbc_plaintext),
                             .shm_hd_ptr = &_state->shm_hd,
                     },
-            .key_type = HWAES_UNWRAPPED_KEY,
+            .key_type = HWAES_PLAINTEXT_KEY,
             .padding = HWAES_NO_PADDING,
             .mode = HWAES_CBC_MODE,
     };
@@ -841,6 +842,182 @@ TEST_F(hwaes, InvalidGCMTagArgs) {
     };
     rc = hwaes_decrypt(_state->hwaes_session, &_state->args_decrypt);
     EXPECT_EQ(ERR_INVALID_ARGS, rc, "wrong tag direction for decryption");
+
+test_abort:;
+}
+
+static const uint8_t opaque_key_ciphertext[] = {
+        0x8c, 0xc8, 0xc0, 0xc7, 0x76, 0x57, 0xb4, 0x4f, 0x22, 0xd3, 0x33,
+        0x2e, 0x6f, 0x23, 0x92, 0x51, 0x21, 0x69, 0x30, 0xff, 0x84, 0x88,
+        0x4c, 0x38, 0x04, 0xe5, 0x17, 0xad, 0x5c, 0x08, 0x87, 0xfc,
+};
+
+#define HWKEY_OPAQUE_KEY_ID "com.android.trusty.hwaes.unittest.opaque_handle"
+
+TEST_F(hwaes, EncryptWithOpaqueKey) {
+    long rc = hwkey_open();
+    ASSERT_GE(rc, 0, "Could not connect to hwkey");
+    hwkey_session_t hwkey_session = (hwkey_session_t)rc;
+
+    uint8_t key_handle[HWKEY_OPAQUE_HANDLE_MAX_SIZE] = {0};
+    uint32_t key_handle_size = HWKEY_OPAQUE_HANDLE_MAX_SIZE;
+    rc = hwkey_get_keyslot_data(hwkey_session, HWKEY_OPAQUE_KEY_ID, key_handle,
+                                &key_handle_size);
+    EXPECT_EQ(NO_ERROR, rc, "Could not get opaque key handle");
+    EXPECT_LE(key_handle_size, HWKEY_OPAQUE_HANDLE_MAX_SIZE,
+              "Wrong handle size");
+
+    _state->args_encrypt.key_type = HWAES_OPAQUE_HANDLE;
+    _state->args_encrypt.key.data_ptr = key_handle;
+    _state->args_encrypt.key.len = key_handle_size;
+    _state->args_encrypt.key.shm_hd_ptr = NULL;
+
+    rc = hwaes_encrypt(_state->hwaes_session, &_state->args_encrypt);
+
+    EXPECT_EQ(NO_ERROR, rc, "opaque encryption - cbc mode");
+    rc = memcmp(_state->shm_base, opaque_key_ciphertext,
+                sizeof(opaque_key_ciphertext));
+    EXPECT_EQ(0, rc, "wrong encryption result");
+
+    hwkey_close(hwkey_session);
+test_abort:;
+}
+
+TEST_F(hwaes, DecryptWithOpaqueKey) {
+    long rc = hwkey_open();
+    ASSERT_GE(rc, 0, "Could not connect to hwkey");
+    hwkey_session_t hwkey_session = (hwkey_session_t)rc;
+
+    uint8_t key_handle[HWKEY_OPAQUE_HANDLE_MAX_SIZE] = {0};
+    uint32_t key_handle_size = HWKEY_OPAQUE_HANDLE_MAX_SIZE;
+    rc = hwkey_get_keyslot_data(hwkey_session, HWKEY_OPAQUE_KEY_ID, key_handle,
+                                &key_handle_size);
+    EXPECT_EQ(NO_ERROR, rc, "Could not get opaque key handle");
+    EXPECT_LE(key_handle_size, HWKEY_OPAQUE_HANDLE_MAX_SIZE,
+              "Wrong handle size");
+
+    _state->args_decrypt.key_type = HWAES_OPAQUE_HANDLE;
+    _state->args_decrypt.key.data_ptr = key_handle;
+    _state->args_decrypt.key.len = key_handle_size;
+    _state->args_decrypt.key.shm_hd_ptr = NULL;
+
+    memcpy(_state->shm_base, opaque_key_ciphertext,
+           sizeof(opaque_key_ciphertext));
+    _state->args_decrypt.text_in.data_ptr = _state->shm_base;
+    _state->args_decrypt.text_in.len = sizeof(opaque_key_ciphertext);
+    _state->args_decrypt.text_in.shm_hd_ptr = &_state->shm_hd;
+
+    rc = hwaes_decrypt(_state->hwaes_session, &_state->args_decrypt);
+
+    EXPECT_EQ(NO_ERROR, rc, "opaque decryption - cbc mode");
+    rc = memcmp(_state->shm_base, hwaes_cbc_plaintext,
+                sizeof(hwaes_cbc_plaintext));
+    EXPECT_EQ(0, rc, "wrong decryption result");
+
+    hwkey_close(hwkey_session);
+test_abort:;
+}
+
+TEST_F(hwaes, RunOpaqueEncryptMany) {
+    long rc = hwkey_open();
+    ASSERT_GE(rc, 0, "Could not connect to hwkey");
+    hwkey_session_t hwkey_session = (hwkey_session_t)rc;
+
+    uint8_t key_handle[HWKEY_OPAQUE_HANDLE_MAX_SIZE] = {0};
+    uint32_t key_handle_size = HWKEY_OPAQUE_HANDLE_MAX_SIZE;
+    rc = hwkey_get_keyslot_data(hwkey_session, HWKEY_OPAQUE_KEY_ID, key_handle,
+                                &key_handle_size);
+    EXPECT_EQ(NO_ERROR, rc, "Could not get opaque key handle");
+    EXPECT_LE(key_handle_size, HWKEY_OPAQUE_HANDLE_MAX_SIZE,
+              "Wrong handle size");
+
+    _state->args_encrypt.key_type = HWAES_OPAQUE_HANDLE;
+    _state->args_encrypt.key.data_ptr = key_handle;
+    _state->args_encrypt.key.len = key_handle_size;
+    _state->args_encrypt.key.shm_hd_ptr = NULL;
+
+    for (size_t i = 0; i < MAX_TRY_TIMES; i++) {
+        rc = hwaes_encrypt(_state->hwaes_session, &_state->args_encrypt);
+        ASSERT_EQ(NO_ERROR, rc, "encryption - in loop");
+    }
+
+    memcpy(_state->shm_base, hwaes_cbc_plaintext, sizeof(hwaes_cbc_plaintext));
+    rc = hwaes_encrypt(_state->hwaes_session, &_state->args_encrypt);
+    EXPECT_EQ(NO_ERROR, rc, "encryption - final round");
+    rc = memcmp(_state->shm_base, opaque_key_ciphertext,
+                sizeof(opaque_key_ciphertext));
+    EXPECT_EQ(0, rc, "wrong encryption result");
+
+    hwkey_close(hwkey_session);
+test_abort:;
+}
+
+TEST_F(hwaes, InvalidOpaqueKeySize) {
+    long rc = hwkey_open();
+    ASSERT_GE(rc, 0, "Could not connect to hwkey");
+    hwkey_session_t hwkey_session = (hwkey_session_t)rc;
+
+    uint8_t key_handle[HWKEY_OPAQUE_HANDLE_MAX_SIZE + 1] = {0};
+
+    _state->args_encrypt.key_type = HWAES_OPAQUE_HANDLE;
+    _state->args_encrypt.key.data_ptr = key_handle;
+    _state->args_encrypt.key.len = sizeof(key_handle);
+    _state->args_encrypt.key.shm_hd_ptr = NULL;
+
+    rc = hwaes_encrypt(_state->hwaes_session, &_state->args_encrypt);
+
+    EXPECT_EQ(ERR_INVALID_ARGS, rc, "Did not error on invalid opaque key size");
+
+    hwkey_close(hwkey_session);
+test_abort:;
+}
+
+TEST_F(hwaes, InvalidOpaqueKeyTerminator) {
+    long rc = hwkey_open();
+    ASSERT_GE(rc, 0, "Could not connect to hwkey");
+    hwkey_session_t hwkey_session = (hwkey_session_t)rc;
+
+    uint8_t key_handle[HWKEY_OPAQUE_HANDLE_MAX_SIZE];
+
+    /* Non-null terminated handle */
+    memset(key_handle, 0xa, HWKEY_OPAQUE_HANDLE_MAX_SIZE);
+
+    _state->args_encrypt.key_type = HWAES_OPAQUE_HANDLE;
+    _state->args_encrypt.key.data_ptr = key_handle;
+    _state->args_encrypt.key.len = sizeof(key_handle);
+    _state->args_encrypt.key.shm_hd_ptr = NULL;
+
+    rc = hwaes_encrypt(_state->hwaes_session, &_state->args_encrypt);
+
+    EXPECT_EQ(ERR_INVALID_ARGS, rc, "Did not error on invalid opaque key");
+
+    hwkey_close(hwkey_session);
+test_abort:;
+}
+
+TEST_F(hwaes, OutdatedOpaqueHandle) {
+    long rc = hwkey_open();
+    ASSERT_GE(rc, 0, "Could not connect to hwkey");
+    hwkey_session_t hwkey_session = (hwkey_session_t)rc;
+
+    uint8_t key_handle[HWKEY_OPAQUE_HANDLE_MAX_SIZE] = {0};
+    uint32_t key_handle_size = HWKEY_OPAQUE_HANDLE_MAX_SIZE;
+    rc = hwkey_get_keyslot_data(hwkey_session, HWKEY_OPAQUE_KEY_ID, key_handle,
+                                &key_handle_size);
+    EXPECT_EQ(NO_ERROR, rc, "Could not get opaque key handle");
+    EXPECT_LE(key_handle_size, HWKEY_OPAQUE_HANDLE_MAX_SIZE,
+              "Wrong handle size");
+
+    /* Close the session and invalidate the handle */
+    hwkey_close(hwkey_session);
+
+    _state->args_encrypt.key_type = HWAES_OPAQUE_HANDLE;
+    _state->args_encrypt.key.data_ptr = key_handle;
+    _state->args_encrypt.key.len = key_handle_size;
+    _state->args_encrypt.key.shm_hd_ptr = NULL;
+
+    rc = hwaes_encrypt(_state->hwaes_session, &_state->args_encrypt);
+    EXPECT_EQ(ERR_IO, rc, "Should not be able to fetch key for opaque handle");
 
 test_abort:;
 }
