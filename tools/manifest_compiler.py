@@ -27,6 +27,9 @@ USAGE:
                 --header-dir \
                 <build_dir>/user_tasks/trusty/user/app/sample/hwcrypto/include
 
+    If the output filename is omitted, the compiler will only generate constants
+    headers for the given constants files.
+
 
    Input sample JSON Manifest config file content -
    {
@@ -1158,14 +1161,14 @@ def main(argv):
     parser.add_argument(
             "-i", "--input",
             dest="input_filename",
-            required=True,
+            required=False,
             type=str,
             help="It should be trust app manifest config JSON file"
     )
     parser.add_argument(
             "-o", "--output",
             dest="output_filename",
-            required=True,
+            required=False,
             type=str,
             help="It will be binary file with packed manifest data"
     )
@@ -1188,6 +1191,12 @@ def main(argv):
     if args.constants and not args.header_dir:
         parser.error("--header-dir is required if --constants are specified")
 
+    if args.input_filename and not args.output_filename:
+        args.error("Input file provided with no manifest output file.")
+
+    if args.output_filename and not args.input_filename:
+        args.error("Building a manifest output file requires an input file.")
+
     log = Log()
 
     # collect config constants and create header files for each const config
@@ -1195,6 +1204,10 @@ def main(argv):
                                                 args.header_dir, log)
     if log.error_occurred():
         return 1
+
+    if not args.output_filename:
+        return 0
+
     constants = index_constants(config_constants, log)
 
     if not os.path.exists(args.input_filename):

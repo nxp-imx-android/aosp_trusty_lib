@@ -30,6 +30,9 @@
 # MODULE_ADD_IMPLICIT_DEPS : Add basic libraries to MODULE_LIBRARY_DEPS.
 # 		Defaults to true. (currently adds libc-trusty)
 # MODULE_DEFINES : #defines local to this module
+# MODULE_CONSTANTS : JSON files with constants used for both the manifest and C
+# 		headers (optional) (CONSTANTS is a deprecated equivalent to
+# 		MODULE_CONSTANTS)
 # MODULE_COMPILEFLAGS : COMPILEFLAGS local to this module
 # MODULE_CFLAGS : CFLAGS local to this module
 # MODULE_CPPFLAGS : CPPFLAGS local to this module
@@ -39,6 +42,7 @@
 # MODULE_EXTRA_OBJECTS : extra .o files that should be linked with the module
 # MODULE_ARM_OVERRIDE_SRCS : list of source files, local path that should be
 # 		force compiled with ARM (if applicable)
+# MANIFEST : App manifest JSON file, only applicable if this module is an app
 #
 # Exported flags:
 # The following args are the same as their corresponding variables above, but
@@ -48,6 +52,7 @@
 #
 # MODULE_EXPORT_DEFINES
 # MODULE_EXPORT_COMPILEFLAGS
+# MODULE_EXPORT_CONSTANTS
 # MODULE_EXPORT_CFLAGS
 # MODULE_EXPORT_CPPFLAGS
 # MODULE_EXPORT_ASMFLAGS
@@ -118,6 +123,11 @@ ifneq ($(strip $(MODULE_DEPS)),)
 $(warning $(MODULE) is a userspace library module but has deprecated MODULE_DEPS: $(MODULE_DEPS).)
 endif
 
+ifneq ($(CONSTANTS),)
+$(warning $(MODULE) has set CONSTANTS, this variable is deprecated, please use MODULE_CONSTANTS or MODULE_EXPORT_CONSTANTS)
+endif
+MODULE_CONSTANTS += $(CONSTANTS)
+
 # Register the module in a global registry. This is used to avoid repeatedly
 # generating rules for this module from modules that depend on it.
 _MODULES_$(MODULE) := T
@@ -125,6 +135,7 @@ _MODULES_$(MODULE) := T
 # Cache exported flags for use in modules that depend on this library.
 _MODULES_$(MODULE)_DEFINES := $(MODULE_EXPORT_DEFINES)
 _MODULES_$(MODULE)_COMPILEFLAGS := $(MODULE_EXPORT_COMPILEFLAGS)
+_MODULES_$(MODULE)_CONSTANTS := $(MODULE_EXPORT_CONSTANTS)
 _MODULES_$(MODULE)_CFLAGS := $(MODULE_EXPORT_CFLAGS)
 _MODULES_$(MODULE)_CPPFLAGS := $(MODULE_EXPORT_CPPFLAGS)
 _MODULES_$(MODULE)_ASMFLAGS := $(MODULE_EXPORT_ASMFLAGS)
@@ -155,6 +166,8 @@ $(foreach dep,$(sort $(MODULE_LIBRARY_DEPS)),\
 	$(eval DEPENDENCY_MODULE := $(dep))\
 	$(eval include make/userspace_recurse.mk))
 
+# Generate constant headers and manifest, if needed.
+include make/gen_manifest.mk
 
 ifneq ($(MODULE_SRCS)$(MODULE_SRCS_FIRST),)
 # Not a header-only library, so we need to build the source files
@@ -218,6 +231,7 @@ MODULE_EXPORT_LIBRARIES :=
 MODULE_EXPORT_EXTRA_OBJECTS :=
 MODULE_EXPORT_DEFINES :=
 MODULE_EXPORT_COMPILEFLAGS :=
+MODULE_EXPORT_CONSTANTS :=
 MODULE_EXPORT_CFLAGS :=
 MODULE_EXPORT_CPPFLAGS :=
 MODULE_EXPORT_ASMFLAGS :=

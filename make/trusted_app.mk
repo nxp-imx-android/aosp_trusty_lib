@@ -25,7 +25,9 @@
 # TRUSTY_APP_BUILDDIR : Build directory for trusty apps (app will be built in
 # 		$(TRUSTY_APP_BUILDDIR)/$(MODULE))
 # MANIFEST : App manifest JSON file
-# CONSTANTS : JSON files with constants used for both the manifest and C headers
+# MODULE_CONSTANTS : JSON files with constants used for both the manifest and C
+# 		headers (optional) (CONSTANTS is a deprecated equivalent to
+# 		MODULE_CONSTANTS)
 #
 # The following input arguments control app linking behavior and are not cleared
 # after building the app:
@@ -45,39 +47,6 @@ endif
 
 TRUSTY_APP := true
 BUILDDIR := $(TRUSTY_APP_BUILDDIR)/$(MODULE)
-
-$(info BUILDDIR $(MODULE): $(BUILDDIR))
-
-# Generate and add constant headers, if necessary
-
-ifneq ($(strip $(CONSTANTS)),)
-MODULE_INCLUDES += \
-	$(BUILDDIR)/constants/include
-endif
-
-# build manifest objects if manifest config json provided
-# generate shared constants headers if constants provided
-ifneq ($(strip $(MANIFEST)),)
-ifeq ($(strip $(MANIFEST_COMPILER)),)
-MANIFEST_COMPILER := trusty/user/base/tools/manifest_compiler.py
-endif
-TRUSTY_APP_MANIFEST_BIN := $(BUILDDIR)/$(TRUSTY_APP_NAME).manifest
-$(TRUSTY_APP_MANIFEST_BIN): MANIFEST_COMPILER := $(MANIFEST_COMPILER)
-$(TRUSTY_APP_MANIFEST_BIN): CONFIG_CONSTANTS := $(CONSTANTS)
-$(TRUSTY_APP_MANIFEST_BIN): HEADER_DIR := $(BUILDDIR)/constants/include
-$(TRUSTY_APP_MANIFEST_BIN): $(MANIFEST) $(MANIFEST_COMPILER) $(CONSTANTS)
-	@$(MKDIR)
-	@echo compiling $< to $@
-	$(MANIFEST_COMPILER) -i $< -o $@ $(addprefix -c,$(CONFIG_CONSTANTS)) --header-dir $(HEADER_DIR)
-
-# The manifest binary is not actually a SRCDEP,
-# but it is generated at the same time of header files that are.
-# Since we do not know the name of the header files,
-# add a dependency edge on a file created at the same time.
-ifneq ($(strip $(CONSTANTS)),)
-MODULE_SRCDEPS += $(TRUSTY_APP_MANIFEST_BIN)
-endif
-endif
 
 include make/library.mk
 
@@ -188,12 +157,11 @@ TRUSTY_APP_STRIPFLAGS :=
 
 TRUSTY_APP_APP :=
 
-MANIFEST :=
-CONSTANTS :=
 TRUSTY_APP_MANIFEST_BIN :=
 
 ALLMODULE_OBJS :=
 
+MODULE_CONSTANTS :=
 MODULE_LDFLAGS :=
 
 MANIFEST_COMPILER :=
