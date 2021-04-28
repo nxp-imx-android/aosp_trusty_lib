@@ -21,6 +21,7 @@ MANIFEST := $(LOCAL_DIR)/manifest.json
 MODULE_SRCS := \
 	$(LOCAL_DIR)/aggregator.c \
 	$(LOCAL_DIR)/client.c \
+	$(LOCAL_DIR)/disable_sancov.c \
 	$(LOCAL_DIR)/main.c \
 
 MODULE_DEPS += \
@@ -28,10 +29,5 @@ MODULE_DEPS += \
 	trusty/user/base/lib/coverage/common \
 	trusty/user/base/lib/libc-trusty \
 	trusty/user/base/lib/tipc \
-
-# We shouldn't be linking against the coverage library in the aggregator, or we
-# end up with a loop when the init registered by the coverage module tries to
-# connect to this service.
-APP_DISABLE_COVERAGE := true
 
 include make/module.mk

@@ -207,7 +207,9 @@ static int get_event(struct sancov_ctx* ctx) {
 
 static struct sancov_ctx ctx;
 
-void __sanitizer_cov_trace_pc_guard_init(uint32_t* start, uint32_t* stop) {
+__attribute__((__weak__)) void __sanitizer_cov_trace_pc_guard_init(
+        uint32_t* start,
+        uint32_t* stop) {
     SANCOV_START;
 
     static size_t num_counters = 0;
@@ -231,7 +233,7 @@ out:
     SANCOV_FINISH;
 }
 
-void __sanitizer_cov_trace_pc_guard(uint32_t* guard) {
+__attribute__((__weak__)) void __sanitizer_cov_trace_pc_guard(uint32_t* guard) {
     SANCOV_START;
 
     int rc;
