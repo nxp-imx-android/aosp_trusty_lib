@@ -22,13 +22,16 @@ MANIFEST := $(LOCAL_DIR)/manifest.json
 MODULE_SRCS += \
 	$(LOCAL_DIR)/apploader.c \
 	$(LOCAL_DIR)/apploader_package.cpp \
+	$(LOCAL_DIR)/app_version.cpp \
 	$(LOCAL_DIR)/cose.cpp \
 
 MODULE_DEPS += \
+	trusty/kernel/lib/app_manifest \
 	trusty/user/base/lib/libc-trusty \
 	trusty/user/base/lib/libstdc++-trusty \
 	trusty/user/base/lib/tipc \
 	trusty/user/base/lib/hwkey \
+	trusty/user/base/lib/storage \
 	trusty/user/base/interface/apploader \
 	external/boringssl \
 	external/libcppbor \

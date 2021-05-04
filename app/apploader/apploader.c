@@ -21,6 +21,7 @@
 #include <interface/apploader/apploader.h>
 #include <interface/apploader/apploader_secure.h>
 #include <inttypes.h>
+#include <lib/app_manifest/app_manifest.h>
 #include <lib/tipc/tipc.h>
 #include <lib/tipc/tipc_srv.h>
 #include <lk/err_ptr.h>
@@ -33,6 +34,7 @@
 #include <sys/mman.h>
 #include <trusty_log.h>
 
+#include "app_version.h"
 #include "apploader_package.h"
 
 struct apploader_req {
@@ -407,6 +409,12 @@ static int apploader_handle_cmd_load_app(handle_t chan,
         goto err_elf_not_found;
     }
 
+    if (!apploader_check_app_version(&pkg_meta)) {
+        TLOGE("Failed application version check\n");
+        resp_error = APPLOADER_ERR_INVALID_VERSION;
+        goto err_version_check;
+    }
+
     if (!apploader_relocate_package(package, &pkg_meta)) {
         TLOGE("Failed to relocate package contents in memory\n");
         resp_error = APPLOADER_ERR_VERIFICATION_FAILED;
@@ -432,6 +440,7 @@ static int apploader_handle_cmd_load_app(handle_t chan,
     }
 
 err_relocate_package:
+err_version_check:
 err_elf_not_found:
 err_manifest_not_found:
 err_invalid_package:

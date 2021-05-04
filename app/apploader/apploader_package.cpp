@@ -258,8 +258,7 @@ bool apploader_parse_package_metadata(
 
     metadata->elf_start = elf_start;
     metadata->elf_size = elf_size;
-    metadata->manifest_start =
-            reinterpret_cast<const uint8_t*>(manifest->view().data());
+    metadata->manifest_start = manifest->view().data();
     metadata->manifest_size = manifest->view().size();
 
     return true;
