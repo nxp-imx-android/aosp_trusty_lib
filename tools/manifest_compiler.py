@@ -66,7 +66,8 @@ USAGE:
                 }
             }
         ],
-        "pinned_cpu": 3
+        "pinned_cpu": 3,
+        "version": 1
    }
 
    JSON manifest constant config -
@@ -120,6 +121,7 @@ START_PORT_ALLOW_TA_CONNECT = "allow_ta_connect"
 START_PORT_ALLOW_NS_CONNECT = "allow_ns_connect"
 APP_NAME = "app_name"
 PINNED_CPU = "pinned_cpu"
+VERSION = "version"
 
 # constants configs
 CONSTANTS = "constants"
@@ -141,6 +143,7 @@ TRUSTY_APP_CONFIG_KEY_MAP_MEM = 3
 TRUSTY_APP_CONFIG_KEY_MGMT_FLAGS = 4
 TRUSTY_APP_CONFIG_KEY_START_PORT = 5
 TRUSTY_APP_CONFIG_KEY_PINNED_CPU = 6
+TRUSTY_APP_CONFIG_KEY_VERSION = 7
 
 # MEM_MAP ARCH_MMU_FLAGS
 # These values need to be kept in sync with external/lk/include/arch/mmu.h
@@ -222,7 +225,8 @@ class Manifest(object):
             mem_io_maps,
             mgmt_flags,
             start_ports,
-            pinned_cpu
+            pinned_cpu,
+            version,
     ):
         self.uuid = uuid
         self.app_name = app_name
@@ -232,6 +236,7 @@ class Manifest(object):
         self.mgmt_flags = mgmt_flags
         self.start_ports = start_ports
         self.pinned_cpu = pinned_cpu
+        self.version = version
 
 
 '''
@@ -654,6 +659,9 @@ def parse_manifest_config(manifest_dict, constants, default_app_name, log):
     pinned_cpu = get_int(manifest_dict, PINNED_CPU, constants, log,
                          optional=True)
 
+    #VERSION
+    version = get_int(manifest_dict, VERSION, constants, log, optional=True)
+
     # look for any extra attributes
     if manifest_dict:
         log.error("Unknown attributes in manifest: {} ".format(manifest_dict))
@@ -662,7 +670,7 @@ def parse_manifest_config(manifest_dict, constants, default_app_name, log):
         return None
 
     return Manifest(uuid, app_name, min_heap, min_stack, mem_io_maps, mgmt_flags,
-                    start_ports, pinned_cpu)
+                    start_ports, pinned_cpu, version)
 
 
 '''
@@ -739,6 +747,7 @@ def pack_manifest_data(manifest, log):
     #        TRUSTY_APP_CONFIG_KEY_MGMT_FLAGS, mgmt_flags
     #        TRUSTY_APP_CONFIG_KEY_START_PORT, flag, name_size, name
     #        TRUSTY_APP_CONFIG_KEY_PINNED_CPU, pinned_cpu
+    #        TRUSTY_APP_CONFIG_KEY_VERSION, version
     #      }
     out = cStringIO.StringIO()
 
@@ -779,6 +788,11 @@ def pack_manifest_data(manifest, log):
         out.write(struct.pack("II",
                               TRUSTY_APP_CONFIG_KEY_PINNED_CPU,
                               manifest.pinned_cpu))
+
+    if manifest.version is not None:
+        out.write(struct.pack("II",
+                              TRUSTY_APP_CONFIG_KEY_VERSION,
+                              manifest.version))
 
     return out.getvalue()
 
@@ -911,6 +925,11 @@ def unpack_binary_manifest_to_data(packed_data):
             (pinned_cpu,), packed_data = struct.unpack(
                     "I", packed_data[:4]), packed_data[4:]
             manifest[PINNED_CPU] = pinned_cpu
+        elif tag == TRUSTY_APP_CONFIG_KEY_VERSION:
+            assert VERSION not in manifest
+            (version,), packed_data = struct.unpack(
+                    "I", packed_data[:4]), packed_data[4:]
+            manifest[VERSION] = version
         else:
             raise Exception("Unknown tag: {}".format(tag))
 
