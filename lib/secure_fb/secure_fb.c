@@ -56,16 +56,24 @@ static void free_secure_fb_session(struct secure_fb_session* s) {
     free(s);
 }
 
-static struct secure_fb_session* new_connected_session() {
+static struct secure_fb_session* new_connected_session(uint32_t idx) {
     int rc;
     struct secure_fb_session* s = new_secure_fb_session();
-    if (s == NULL) {
+    char port_name[SECURE_FB_MAX_PORT_NAME_SIZE] = {0};
+    if (s == NULL || idx >= SECURE_FB_MAX_INST) {
         return NULL;
     }
 
-    rc = tipc_connect(&s->chan, SECURE_FB_PORT_NAME);
+    int n = sprintf(port_name, "%s.%d", SECURE_FB_PORT_NAME, idx);
+    if (n != SECURE_FB_MAX_PORT_NAME_SIZE - 1) {
+        TLOGE("Failed to create port name\n");
+        return NULL;
+    }
+
+    rc = tipc_connect(&s->chan, port_name);
     if (rc != NO_ERROR) {
-        TLOGE("Failed to connect to \"%s\" (%d)\n", SECURE_FB_PORT_NAME, rc);
+        TLOGE("Failed to connect to \"%s_%d\" (%d)\n", SECURE_FB_PORT_NAME, idx,
+              rc);
         free_secure_fb_session(s);
         return NULL;
     }
@@ -272,7 +280,8 @@ static int display_fb(handle_t chan, uint32_t buffer_id) {
 }
 
 secure_fb_error secure_fb_open(secure_fb_handle_t* session,
-                               struct secure_fb_info* fb_info) {
+                               struct secure_fb_info* fb_info,
+                               uint32_t idx) {
     int rc;
     struct secure_fb_session* s;
 
@@ -280,9 +289,9 @@ secure_fb_error secure_fb_open(secure_fb_handle_t* session,
         return TTUI_ERROR_UNEXPECTED_NULL_PTR;
     }
 
-    s = new_connected_session();
+    s = new_connected_session(idx);
     if (s == NULL) {
-        return TTUI_ERROR_MEMORY_ALLOCATION_FAILED;
+        return TTUI_ERROR_NO_SERVICE;
     }
 
     rc = get_fbs(s);

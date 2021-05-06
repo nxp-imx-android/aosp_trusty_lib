@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <lib/secure_fb/srv/dev.h>
 #include <lib/tipc/tipc_srv.h>
 #include <lk/compiler.h>
 #include <stdint.h>
@@ -25,12 +26,16 @@ __BEGIN_CDECLS
 /**
  * add_secure_fb_service() - Add secure_fb service.
  * @hset: Handle set created by tipc_hset_create()
+ * @impl_ops: Array of the secure_fb_impl_ops pointers.
+ * @num_ops: Number of instances to be added.
  *
  * The caller should call tipc_run_event_loop() at some point after this call
  * returns.
  *
  * Return: 0 on success, or an error code < 0 on failure.
  */
-int add_secure_fb_service(struct tipc_hset* hset);
+int add_secure_fb_service(struct tipc_hset* hset,
+                          const struct secure_fb_impl_ops* impl_ops,
+                          uint32_t num_ops);
 
 __END_CDECLS

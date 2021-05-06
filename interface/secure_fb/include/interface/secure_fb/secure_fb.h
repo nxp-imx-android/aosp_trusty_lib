@@ -22,7 +22,27 @@
 
 __BEGIN_CDECLS
 
+/*
+ * Maximum number of instances that can be created by the secure fb server
+ * implementation.
+ */
+#define SECURE_FB_MAX_INST 4
+
+/*
+ * The name of the created secure fb service will be
+ * "SECURE_FB_PORT_NAME"."idx", where idx is 0, 1, ..., SECURE_FB_MAX_INST-1
+ * The number of the instance is a variable depends on how many physical screen
+ * the system has. The index of the instances is consecutive and should start
+ * from 0 to SECURE_FB_MAX_INST-1.
+ */
 #define SECURE_FB_PORT_NAME "com.android.trusty.secure_fb"
+
+/*
+ * The maximum size of the secure_fb port name. The size includes the base name
+ * with ".", "x" and a null terminator where x is the single digit for
+ * identifying instances.
+ */
+#define SECURE_FB_MAX_PORT_NAME_SIZE (strlen(SECURE_FB_PORT_NAME) + 3)
 
 /*
  * Maximum number of framebuffers that can be allocated by one request to get

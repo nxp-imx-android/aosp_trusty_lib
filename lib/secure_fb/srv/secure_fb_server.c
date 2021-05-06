@@ -32,7 +32,16 @@
 
 struct secure_fb_ctx {
     secure_fb_handle_t session;
+    const struct secure_fb_impl_ops* ops;
 };
+
+static int secure_fb_check_impl_ops(const struct secure_fb_impl_ops* ops) {
+    if (!ops->init || !ops->get_fbs || !ops->display_fb || !ops->release) {
+        TLOGE("NULL ops pointers\n");
+        return ERR_INVALID_ARGS;
+    }
+    return NO_ERROR;
+}
 
 static int secure_fb_on_connect(const struct tipc_port* port,
                                 handle_t chan,
@@ -44,7 +53,9 @@ static int secure_fb_on_connect(const struct tipc_port* port,
         return ERR_NO_MEMORY;
     }
 
-    ctx->session = secure_fb_impl_init();
+    ctx->ops = (const struct secure_fb_impl_ops*)port->priv;
+    assert(ctx->ops);
+    ctx->session = ctx->ops->init();
     if (ctx->session == NULL) {
         TLOGE("Driver initialization failed.\n");
         free(ctx);
@@ -58,20 +69,21 @@ static int secure_fb_on_connect(const struct tipc_port* port,
 static void secure_fb_on_channel_cleanup(void* _ctx) {
     struct secure_fb_ctx* ctx = (struct secure_fb_ctx*)_ctx;
     if (ctx->session != NULL) {
-        secure_fb_impl_release(ctx->session);
+        ctx->ops->release(ctx->session);
     }
     free(ctx);
 }
 
-static int handle_get_fbs_req(handle_t chan, secure_fb_handle_t session) {
+static int handle_get_fbs_req(handle_t chan, struct secure_fb_ctx* ctx) {
     int rc;
     struct secure_fb_impl_buffers buffers;
     struct secure_fb_resp hdr;
     struct secure_fb_get_fbs_resp args;
     struct secure_fb_desc fbs[SECURE_FB_MAX_FBS];
     size_t fbs_len;
+    secure_fb_handle_t session = ctx->session;
 
-    rc = secure_fb_impl_get_fbs(session, &buffers);
+    rc = ctx->ops->get_fbs(session, &buffers);
     if (rc != SECURE_FB_ERROR_OK) {
         TLOGE("Failed secure_fb_impl_get_fbs() (%d)\n", rc);
     }
@@ -117,11 +129,12 @@ static int handle_get_fbs_req(handle_t chan, secure_fb_handle_t session) {
 
 static int handle_display_fb(handle_t chan,
                              struct secure_fb_display_fb_req* display_fb,
-                             secure_fb_handle_t session) {
+                             struct secure_fb_ctx* ctx) {
     int rc;
     struct secure_fb_resp hdr;
+    secure_fb_handle_t session = ctx->session;
 
-    rc = secure_fb_impl_display_fb(session, display_fb->buffer_id);
+    rc = ctx->ops->display_fb(session, display_fb->buffer_id);
     if (rc != SECURE_FB_ERROR_OK) {
         TLOGE("Failed secure_fb_impl_display_fb() (%d)\n", rc);
     }
@@ -165,21 +178,21 @@ static int secure_fb_on_message(const struct tipc_port* port,
             TLOGE("Failed to read SECURE_FB_CMD_GET_FBS request (%d)\n", rc);
             return ERR_BAD_LEN;
         }
-        return handle_get_fbs_req(chan, ctx->session);
+        return handle_get_fbs_req(chan, ctx);
 
     case SECURE_FB_CMD_DISPLAY_FB:
         if (rc != (int)(sizeof(req.hdr) + sizeof(req.display_fb))) {
             TLOGE("Failed to read SECURE_FB_CMD_DISPLAY_FB request (%d)\n", rc);
             return ERR_BAD_LEN;
         }
-        return handle_display_fb(chan, &req.display_fb, ctx->session);
+        return handle_display_fb(chan, &req.display_fb, ctx);
 
     case SECURE_FB_CMD_RELEASE:
         if (rc != (int)sizeof(req.hdr)) {
             TLOGE("Failed to read SECURE_FB_CMD_RELEASE request (%d)\n", rc);
             return ERR_BAD_LEN;
         }
-        secure_fb_impl_release(ctx->session);
+        ctx->ops->release(ctx->session);
         ctx->session = NULL;
         return NO_ERROR;
 
@@ -191,25 +204,82 @@ static int secure_fb_on_message(const struct tipc_port* port,
     return NO_ERROR;
 }
 
-int add_secure_fb_service(struct tipc_hset* hset) {
+int add_secure_fb_service(struct tipc_hset* hset,
+                          const struct secure_fb_impl_ops* impl_ops,
+                          uint32_t num_ops) {
+    int rc;
+    uint32_t i;
+    char* port_name_base;
+
+    if (!hset || !impl_ops) {
+        TLOGE("NULL pointer arguments\n");
+        return ERR_INVALID_ARGS;
+    }
+    if (num_ops > SECURE_FB_MAX_INST) {
+        TLOGE("Number of instance exceeds the limitation\n");
+        return ERR_INVALID_ARGS;
+    }
+    for (i = 0; i < num_ops; ++i) {
+        if ((rc = secure_fb_check_impl_ops(&impl_ops[i])) != NO_ERROR) {
+            TLOGE("Failed to check impl ops\n");
+            return rc;
+        }
+    }
+
     static struct tipc_port_acl acl = {
             .flags = IPC_PORT_ALLOW_TA_CONNECT,
     };
-    static struct tipc_port port = {
-            .name = SECURE_FB_PORT_NAME,
-            .msg_max_size = 1024,
-            .msg_queue_len = 1,
-            .acl = &acl,
-    };
+
     static struct tipc_srv_ops ops = {
             .on_connect = secure_fb_on_connect,
             .on_message = secure_fb_on_message,
             .on_channel_cleanup = secure_fb_on_channel_cleanup,
     };
 
+    struct tipc_port* port = calloc(num_ops, sizeof(struct tipc_port));
+    if (port == NULL) {
+        TLOGE("Memory allocation failed.\n");
+        rc = ERR_NO_MEMORY;
+        goto fail_port_alloc;
+    }
+    port_name_base =
+            calloc(num_ops, sizeof(char) * SECURE_FB_MAX_PORT_NAME_SIZE);
+    if (port_name_base == NULL) {
+        TLOGE("Memory allocation failed.\n");
+        rc = ERR_NO_MEMORY;
+        goto fail_port_name_alloc;
+    }
+
+    for (i = 0; i < num_ops; ++i) {
+        char* port_name = port_name_base + SECURE_FB_MAX_PORT_NAME_SIZE * i;
+        port->name = port_name;
+        port->msg_max_size = 1024;
+        port->msg_queue_len = 1;
+        port->acl = &acl;
+        port->priv = (void*)impl_ops;
+
+        int n = sprintf(port_name, "%s.%d", SECURE_FB_PORT_NAME, i);
+        if (n != SECURE_FB_MAX_PORT_NAME_SIZE - 1) {
+            TLOGE("Failed to create port name\n");
+            rc = ERR_BAD_LEN;
+            goto fail;
+        }
+    }
     /*
      * The secure display is a limited resource. This means only one client
      * can have an open session at a time.
      */
-    return tipc_add_service(hset, &port, 1, 1, &ops);
+    rc = tipc_add_service(hset, port, num_ops, 1, &ops);
+    if (rc) {
+        TLOGE("Failed to add tipc service\n");
+        goto fail;
+    }
+    return rc;
+
+fail:
+    free(port_name_base);
+fail_port_name_alloc:
+    free(port);
+fail_port_alloc:
+    return rc;
 }

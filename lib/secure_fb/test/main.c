@@ -29,7 +29,7 @@ TEST_F_SETUP(secure_fb) {
     int rc;
 
     _state->session = 0;
-    rc = secure_fb_open(&_state->session, &_state->fb_info);
+    rc = secure_fb_open(&_state->session, &_state->fb_info, 0);
     ASSERT_EQ(rc, 0);
 
 test_abort:;
@@ -82,7 +82,7 @@ TEST(secure_fb, stress) {
     struct secure_fb_info fb_info;
 
     for (size_t i = 0; i < 100; i++) {
-        rc = secure_fb_open(&session, &fb_info);
+        rc = secure_fb_open(&session, &fb_info, 0);
         ASSERT_EQ(rc, 0);
         secure_fb_close(session);
     }

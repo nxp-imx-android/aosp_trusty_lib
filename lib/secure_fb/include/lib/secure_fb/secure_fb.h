@@ -28,6 +28,7 @@ typedef enum {
     TTUI_ERROR_NO_FRAMEBUFFER,
     TTUI_ERROR_MEMORY_ALLOCATION_FAILED,
     TTUI_ERROR_UNEXPECTED_NULL_PTR,
+    TTUI_ERROR_NO_SERVICE,
 } secure_fb_error;
 
 typedef void* secure_fb_handle_t;
@@ -50,14 +51,22 @@ typedef void* secure_fb_handle_t;
  * @fb_info: Output parameter that holds the framebuffer description of the
  *           next framebuffer that will be displayed on the next call to
  *           secure_fb_display_next().
+ * @idx:     Index of the secure_fb corresponding to each physical display.
+ *           The index starts from 0 and up to SECURE_FB_MAX_INST-1. The client
+ *           should call the function with idx starting from 0 and keep
+ *           increasing the idx up to either SECURE_FB_MAX_INST-1 or the
+ *           function returns TTUI_ERROR_NO_SERVICE.
  * Return:
  * TTUI_ERROR_OK - on success.
  * TTUI_ERROR_NO_FRAMEBUFFER - if no next framebuffer could be found.
  * TTUI_ERROR_MEMORY_ALLOCATION_FAILED - if any memory allocation failed.
  * TTUI_ERROR_UNEXPECTED_NULL_PTR - if the a parameter was NULL.
+ * TTUI_ERROR_NO_SERVICE - if the idx exceeds the maximum number of the physical
+ *                         display that the systen supports.
  */
 secure_fb_error secure_fb_open(secure_fb_handle_t* session,
-                               struct secure_fb_info* fb_info);
+                               struct secure_fb_info* fb_info,
+                               uint32_t idx);
 
 /**
  * secure_fb_display_next() - Indicates to the subsystem that the next buffer
