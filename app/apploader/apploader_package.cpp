@@ -20,6 +20,7 @@
 #include <cppbor.h>
 #include <cppbor_parse.h>
 #include <interface/apploader/apploader_package.h>
+#include <interface/hwkey/hwkey.h>
 #include <inttypes.h>
 #include <lib/hwaes/hwaes.h>
 #include <lib/hwkey/hwkey.h>
@@ -44,35 +45,25 @@
  * e.g., P-521 or RSS, are supported by the apploader at a later time,
  * this value will need to increase.
  */
-constexpr uint32_t kMaximumKeySize = 128;
+constexpr uint32_t kMaximumKeySize =
+        std::max(128, HWKEY_OPAQUE_HANDLE_MAX_SIZE);
 
-static std::tuple<std::unique_ptr<uint8_t[]>, size_t> get_key(
-        std::string_view op,
-        uint8_t key_id) {
+static std::tuple<std::unique_ptr<uint8_t[]>, size_t>
+get_key(hwkey_session_t hwkey_session, std::string_view op, uint8_t key_id) {
     std::string key_slot{"com.android.trusty.apploader."};
     key_slot += op;
     key_slot += ".key.";
     key_slot += std::to_string(static_cast<unsigned>(key_id));
 
     uint32_t key_size = kMaximumKeySize;
-    std::unique_ptr<uint8_t[]> result(new (std::nothrow) uint8_t[key_size]);
+    std::unique_ptr<uint8_t[]> result(new (std::nothrow) uint8_t[key_size]());
     if (!result) {
         TLOGE("Failed to allocate memory for key\n");
         return {};
     }
 
-    long rc = hwkey_open();
-    if (rc < 0) {
-        TLOGE("Failed to connect to hwkey (%ld)\n", rc);
-        return {};
-    }
-
-    hwkey_session_t hwkey_session = static_cast<hwkey_session_t>(rc);
-    rc = hwkey_get_keyslot_data(hwkey_session, key_slot.c_str(), result.get(),
-                                &key_size);
-
-    hwkey_close(hwkey_session);
-
+    long rc = hwkey_get_keyslot_data(hwkey_session, key_slot.c_str(),
+                                     result.get(), &key_size);
     if (rc < 0) {
         TLOGE("Failed to get key %" PRIu8 " from hwkey (%ld)\n", key_id, rc);
         return {};
@@ -83,12 +74,19 @@ static std::tuple<std::unique_ptr<uint8_t[]>, size_t> get_key(
 
 static std::tuple<std::unique_ptr<uint8_t[]>, size_t> get_sign_key(
         uint8_t key_id) {
-    return get_key("sign", key_id);
-}
+    long rc = hwkey_open();
+    if (rc < 0) {
+        TLOGE("Failed to connect to hwkey (%ld)\n", rc);
+        return {};
+    }
 
-static std::tuple<std::unique_ptr<uint8_t[]>, size_t> get_encrypt_key(
-        uint8_t key_id) {
-    return get_key("encrypt", key_id);
+    hwkey_session_t hwkey_session = static_cast<hwkey_session_t>(rc);
+
+    auto key = get_key(hwkey_session, "sign", key_id);
+
+    hwkey_close(hwkey_session);
+
+    return key;
 }
 
 static std::optional<bool> get_cbor_bool(std::unique_ptr<cppbor::Item>& item) {
@@ -118,10 +116,6 @@ static bool hwaesDecryptAes128GcmInPlace(
         return false;
     }
 
-    if (key.size() != kAes128GcmKeySize) {
-        TLOGE("key is not kAes128GcmKeySize bytes, got %zu\n", key.size());
-        return {};
-    }
     if (nonce.size() != kAesGcmIvSize) {
         TLOGE("nonce is not kAesGcmIvSize bytes, got %zu\n", nonce.size());
         return false;
@@ -143,7 +137,7 @@ static bool hwaesDecryptAes128GcmInPlace(
     cryptArgs.text_in.len = ciphertextSize;
     cryptArgs.text_out.data_ptr = encryptedData;
     cryptArgs.text_out.len = ciphertextSize;
-    cryptArgs.key_type = HWAES_PLAINTEXT_KEY;
+    cryptArgs.key_type = HWAES_OPAQUE_HANDLE;
     cryptArgs.padding = HWAES_NO_PADDING;
     cryptArgs.mode = HWAES_GCM_MODE;
 
@@ -291,10 +285,30 @@ bool apploader_parse_package_metadata(
     const uint8_t* elf_start;
     size_t elf_size;
     if (content_is_cose_encrypt) {
+        long rc = hwkey_open();
+        if (rc < 0) {
+            TLOGE("Failed to connect to hwkey (%ld)\n", rc);
+            return false;
+        }
+
+        hwkey_session_t hwkey_session = static_cast<hwkey_session_t>(rc);
+
+        /*
+         * get the encryption key handle but keep the hwkey connection open
+         * until we've finished decrypting with it
+         */
+        auto get_encrypt_key_handle = [hwkey_session](uint8_t key_id) {
+            return get_key(hwkey_session, "encrypt", key_id);
+        };
+
         auto& cose_encrypt = pkg_array->get(2);
-        if (!coseDecryptAes128GcmKeyWrapInPlace(
-                    cose_encrypt, get_encrypt_key, {}, false, &elf_start,
-                    &elf_size, hwaesDecryptAes128GcmInPlace)) {
+        bool success = coseDecryptAes128GcmKeyWrapInPlace(
+                cose_encrypt, get_encrypt_key_handle, {}, false, &elf_start,
+                &elf_size, hwaesDecryptAes128GcmInPlace);
+
+        hwkey_close(hwkey_session);
+
+        if (!success) {
             TLOGE("Failed to decrypt ELF file\n");
             return false;
         }

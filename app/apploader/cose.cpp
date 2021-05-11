@@ -1154,7 +1154,6 @@ bool coseDecryptAes128GcmKeyWrapInPlace(
         COSE_PRINT_ERROR("Failed to retrieve decryption key\n");
         return false;
     }
-    assert(keyEncryptionKeySize == kAes128GcmKeySize);
 
     std::basic_string_view<uint8_t> keyEncryptionKey{
             keyEncryptionKeyStart.get(), keyEncryptionKeySize};
