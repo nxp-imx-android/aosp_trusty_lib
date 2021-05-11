@@ -1,4 +1,4 @@
-# Copyright (C) 2020 The Android Open Source Project
+# Copyright (C) 2013-2014 The Android Open Source Project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,26 +20,9 @@ MODULE := $(LOCAL_DIR)
 MANIFEST := $(LOCAL_DIR)/manifest.json
 
 MODULE_SRCS += \
-	$(LOCAL_DIR)/apploader_test.c \
-	$(LOCAL_DIR)/test_apps.S \
+	$(LOCAL_DIR)/../version_test_app.c \
 
 MODULE_DEPS += \
 	trusty/user/base/lib/libc-trusty \
-	trusty/user/base/lib/tipc \
-	trusty/user/base/lib/unittest \
-	trusty/user/base/interface/apploader \
-
-VERSION_TEST_APP_V1 := \
-	$(abspath $(BUILDDIR)/version_test_apps/v1/v1.app)
-VERSION_TEST_APP_V2 := \
-	$(abspath $(BUILDDIR)/version_test_apps/v2/v2.app)
-
-MODULE_ASMFLAGS += \
-       -DVERSION_TEST_APP_V1=\"$(VERSION_TEST_APP_V1)\" \
-       -DVERSION_TEST_APP_V2=\"$(VERSION_TEST_APP_V2)\" \
-
-MODULE_SRCDEPS += \
-       $(VERSION_TEST_APP_V1) \
-       $(VERSION_TEST_APP_V2) \
 
 include make/module.mk

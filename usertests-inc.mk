@@ -51,3 +51,7 @@ TRUSTY_ALL_USER_TASKS += \
 	trusty/user/base/app/cfi-test/cfi-crasher \
 
 endif
+
+TRUSTY_LOADABLE_USER_TASKS += \
+	trusty/user/base/app/apploader/tests/version_test_apps/v1 \
+	trusty/user/base/app/apploader/tests/version_test_apps/v2 \

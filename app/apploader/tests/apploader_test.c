@@ -94,6 +94,32 @@ test_abort:
     return 0;
 }
 
+static uint32_t load_test_app(handle_t channel,
+                              char* app_start,
+                              char* app_end) {
+    uint32_t error = 0;
+
+    uint64_t page_size = getauxval(AT_PAGESZ);
+    ptrdiff_t app_size = app_end - app_start;
+    size_t aligned_app_size = round_up(app_size, page_size);
+
+    handle_t handle;
+    handle = memref_create(app_start, aligned_app_size, MMAP_FLAG_PROT_READ);
+    ASSERT_GT(handle, 0);
+
+    struct apploader_load_app_req req = {
+            .package_size = app_size,
+    };
+    error = make_request(channel, APPLOADER_CMD_LOAD_APPLICATION, &req,
+                         sizeof(req), handle, NULL, 0);
+
+test_abort:
+    if (handle > 0) {
+        close(handle);
+    }
+    return error;
+}
+
 static void* get_memory_buffer_from_malloc(size_t size, handle_t* handle_ptr) {
     if (HasFailure()) {
         return NULL;
@@ -326,6 +352,29 @@ TEST_F(apploader_user, BadLoadCmdPackageCBORMap) {
             0xa0,
     };
     send_cbor_package(_state->channel, bad_map_cbor, sizeof(bad_map_cbor));
+}
+
+extern char version_test_app_v1_start[], version_test_app_v1_end[];
+extern char version_test_app_v2_start[], version_test_app_v2_end[];
+
+/*
+ * App with versions v1 and v2, which tests that v1 cannot be loaded after v2
+ */
+TEST_F(apploader_user, AppVersionTest) {
+    uint32_t error;
+
+    error = load_test_app(_state->channel, version_test_app_v2_start,
+                          version_test_app_v2_end);
+    ASSERT_EQ(false, HasFailure());
+    ASSERT_EQ(true, error == APPLOADER_NO_ERROR ||
+                            error == APPLOADER_ERR_ALREADY_EXISTS);
+
+    error = load_test_app(_state->channel, version_test_app_v1_start,
+                          version_test_app_v1_end);
+    ASSERT_EQ(false, HasFailure());
+    ASSERT_EQ(error, APPLOADER_ERR_INVALID_VERSION);
+
+test_abort:;
 }
 
 typedef struct apploader_service {
