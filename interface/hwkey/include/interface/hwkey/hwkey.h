@@ -60,6 +60,9 @@ enum hwkey_cmd {
  *                              function.
  * @HWKEY_ERR_NOT_IMPLEMENTED:  requested command not implemented
  * @HWKEY_ERR_NOT_FOUND:        requested keyslot not found
+ * @HWKEY_ERR_ALREADY_EXISTS:   requested opaque handle has already been
+ *                              retrieved. Close the connection and reconnect
+ *                              to clear this handle and retrieve a new handle.
  */
 enum hwkey_err {
     HWKEY_NO_ERROR = 0,
@@ -68,6 +71,7 @@ enum hwkey_err {
     HWKEY_ERR_BAD_LEN = 3,
     HWKEY_ERR_NOT_IMPLEMENTED = 4,
     HWKEY_ERR_NOT_FOUND = 5,
+    HWKEY_ERR_ALREADY_EXISTS = 6,
 };
 
 /**

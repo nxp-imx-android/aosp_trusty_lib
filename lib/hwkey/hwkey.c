@@ -46,6 +46,8 @@ static long hwkey_err_to_tipc_err(enum hwkey_err hwkey_err) {
         return ERR_NOT_IMPLEMENTED;
     case HWKEY_ERR_NOT_FOUND:
         return ERR_NOT_FOUND;
+    case HWKEY_ERR_ALREADY_EXISTS:
+        return ERR_ALREADY_EXISTS;
     default:
         return ERR_GENERIC;
     }
