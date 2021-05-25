@@ -61,4 +61,15 @@ static inline bool system_state_provisioning_allowed(void) {
            SYSTEM_STATE_FLAG_PROVISIONING_ALLOWED_VALUE_ALLOWED;
 }
 
+/**
+ * system_state_app_loading_unlocked() - Check if loading dev apps is allowed
+ *
+ * Return: %true if app loading is unlocked and dev signing are enabled, %false
+ * otherwise.
+ */
+static inline bool system_state_app_loading_unlocked(void) {
+    return system_state_get_flag_default(SYSTEM_STATE_FLAG_APP_LOADING_UNLOCKED,
+                                         false);
+}
+
 __END_CDECLS

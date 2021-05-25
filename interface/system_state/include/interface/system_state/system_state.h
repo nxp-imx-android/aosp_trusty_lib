@@ -50,6 +50,13 @@ enum system_state_flag {
      *     Flag used to restrict when provisoning is allowed.
      */
     SYSTEM_STATE_FLAG_PROVISIONING_ALLOWED = 1,
+
+    /**
+     * @SYSTEM_STATE_FLAG_APP_LOADING_UNLOCKED:
+     *     Flag used to indicate that loading apps signed with insecure dev keys
+     *     is allowed.
+     */
+    SYSTEM_STATE_FLAG_APP_LOADING_UNLOCKED = 2,
 };
 
 /**

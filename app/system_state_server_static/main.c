@@ -27,11 +27,12 @@
  * @flag:   Identifier for flag to get. One of @enum system_state_flag.
  * @valuep: Pointer to return value in.
  *
- * If @flag is %SYSTEM_STATE_FLAG_PROVISIONING_ALLOWED, return the value of
- * the %STATIC_SYSTEM_STATE_FLAG_PROVISIONING_ALLOWED build flag. This is a
- * simple implementation of the system state server that either always allows or
- * always disallows provisioning. Real devices should allow or disallow
- * provisioning based on fuses, or something similar.
+ * @flag values %SYSTEM_STATE_FLAG_PROVISIONING_ALLOWED and
+ * %SYSTEM_STATE_FLAG_APP_LOADING_UNLOCKED are handled by returning the
+ * corresponding %STATIC_SYSTEM_STATE_FLAG_... build flag. This is a simple
+ * implementation of the system state server that either always allows or always
+ * disallows provisioning and unlocked app loading, respectively. Real devices
+ * should base these state flags on fuses, or something similar.
  *
  * Return: 0 on success if @flag is supported, ERR_INVALID_ARGS is @flag is
  * unknown.
@@ -40,6 +41,9 @@ int system_state_server_get_flag(uint32_t flag, uint64_t* valuep) {
     switch (flag) {
     case SYSTEM_STATE_FLAG_PROVISIONING_ALLOWED:
         *valuep = STATIC_SYSTEM_STATE_FLAG_PROVISIONING_ALLOWED;
+        return 0;
+    case SYSTEM_STATE_FLAG_APP_LOADING_UNLOCKED:
+        *valuep = STATIC_SYSTEM_STATE_FLAG_APP_LOADING_UNLOCKED;
         return 0;
     default:
         return ERR_INVALID_ARGS;
