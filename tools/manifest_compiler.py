@@ -1224,6 +1224,26 @@ def main(argv):
             type=str,
             help="Directory path for generating headers"
     )
+    parser.add_argument(
+            "--enable-shadow-call-stack",
+            dest="shadow_call_stack",
+            required=False,
+            action="store_true",  # implies default := False
+            help="Allow apps to opt into having a shadow call stack. "
+                "Without this flag, apps will not have shadow stacks "
+                "even if their manifests define \"min_shadow_stack\"."
+    )
+    parser.add_argument(
+            "--default-shadow-call-stack-size",
+            dest="default_shadow_call_stack_size",
+            required=False,
+            default=4096,
+            type=int,
+            metavar="DEFAULT_SIZE",
+            help="Controls the size of the default shadow call stack."
+                "This option has no effect unless shadow call stacks "
+                "are enabled via the --enable-shadow-call-stack flag."
+    )
     # Parse the command line arguments
     args = parser.parse_args()
     if args.constants and not args.header_dir:
@@ -1234,6 +1254,10 @@ def main(argv):
 
     if args.output_filename and not args.input_filename:
         parser.error("Building a manifest output file requires an input file.")
+
+    if args.default_shadow_call_stack_size <= 0:
+        parser.error(
+                "--default-shadow-call-stack-size expects a positive integer")
 
     log = Log()
 
@@ -1262,10 +1286,27 @@ def main(argv):
     default_app_name = os.path.basename(os.path.dirname(args.input_filename))
 
     # parse the manifest config
-    manifest = parse_manifest_config(manifest_dict, constants, default_app_name,
-                                     log)
+    manifest = parse_manifest_config(manifest_dict, constants,
+                                     default_app_name, log)
+
     if log.error_occurred():
         return 1
+
+    # Optionally adjust min_shadow_stack based on command line arguments
+    if args.shadow_call_stack:
+        # If shadow callstack is enabled but the size is not specified in the
+        # manifest, set it to the default value.
+        if manifest.min_shadow_stack is None:
+            manifest.min_shadow_stack = args.default_shadow_call_stack_size
+    else:
+        # If shadow call stack is not enabled, make sure the size is set to
+        # zero in the binary manifest. In the future, "not present" may
+        # indicate the binary does not use a shadow callstack, but for now
+        # we're making sure a value is always present.
+        manifest.min_shadow_stack = 0
+
+    assert (args.shadow_call_stack and manifest.min_shadow_stack > 0) != \
+           (manifest.min_shadow_stack == 0)
 
     # Pack the data as per c structures
     packed_data = pack_manifest_data(manifest, log)

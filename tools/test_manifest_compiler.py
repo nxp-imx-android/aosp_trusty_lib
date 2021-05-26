@@ -1408,7 +1408,7 @@ class TestManifest(unittest.TestCase):
     '''
     Test with valid manifest config containing
       - UUID
-      - min_heap and min_stack
+      - min_heap, min_stack, and min_shadow_stack
       - Management flags
     Pack the manifest config data and unpack it and
     verify it with the expected values
