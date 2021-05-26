@@ -136,7 +136,7 @@ CONST_INT = "int"
 CONST_BOOL = "bool"
 
 # CONFIG TAGS
-# These values need to be kept in sync with uapi/trusty_app_manifest_types.h
+# These values need to be kept in sync with lib/app_manifest/app_manifest.h
 TRUSTY_APP_CONFIG_KEY_MIN_STACK_SIZE = 1
 TRUSTY_APP_CONFIG_KEY_MIN_HEAP_SIZE = 2
 TRUSTY_APP_CONFIG_KEY_MAP_MEM = 3
@@ -154,7 +154,7 @@ ARCH_MMU_FLAG_CACHE_MASK = 3 << 0
 ARCH_MMU_FLAG_NS = 1 << 5
 
 # MGMT FLAGS
-# These values need to be kept in sync with uapi/trusty_app_manifest_types.h
+# These values need to be kept in sync with lib/app_manifest/app_manifest.h
 TRUSTY_APP_MGMT_FLAGS_NONE = 0
 TRUSTY_APP_MGMT_FLAGS_RESTART_ON_EXIT = 1 << 0
 TRUSTY_APP_MGMT_FLAGS_DEFERRED_START = 1 << 1
