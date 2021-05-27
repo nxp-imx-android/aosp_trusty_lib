@@ -45,7 +45,7 @@ TRUSTY_ALL_USER_TASKS += \
 
 endif
 
-ifeq (true,$(call TOBOOL,$(CFI_ENABLED)))
+ifeq (true,$(call TOBOOL,$(USER_CFI_ENABLED)))
 TRUSTY_ALL_USER_TASKS += \
 	trusty/user/base/app/cfi-test \
 	trusty/user/base/app/cfi-test/cfi-crasher \
