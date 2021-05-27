@@ -252,11 +252,11 @@ int add_secure_fb_service(struct tipc_hset* hset,
 
     for (i = 0; i < num_ops; ++i) {
         char* port_name = port_name_base + SECURE_FB_MAX_PORT_NAME_SIZE * i;
-        port->name = port_name;
-        port->msg_max_size = 1024;
-        port->msg_queue_len = 1;
-        port->acl = &acl;
-        port->priv = (void*)impl_ops;
+        port[i].name = port_name;
+        port[i].msg_max_size = 1024;
+        port[i].msg_queue_len = 1;
+        port[i].acl = &acl;
+        port[i].priv = (void*)&impl_ops[i];
 
         int n = sprintf(port_name, "%s.%d", SECURE_FB_PORT_NAME, i);
         if (n != SECURE_FB_MAX_PORT_NAME_SIZE - 1) {
@@ -269,7 +269,7 @@ int add_secure_fb_service(struct tipc_hset* hset,
      * The secure display is a limited resource. This means only one client
      * can have an open session at a time.
      */
-    rc = tipc_add_service(hset, port, num_ops, 1, &ops);
+    rc = tipc_add_service(hset, port, num_ops, num_ops, &ops);
     if (rc) {
         TLOGE("Failed to add tipc service\n");
         goto fail;
