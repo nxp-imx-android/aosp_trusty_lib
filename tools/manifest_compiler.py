@@ -1180,7 +1180,7 @@ def main(argv):
     # Parse the command line arguments
     args = parser.parse_args()
     if args.constants and not args.header_dir:
-        args.error("--header-dir is required if --constants are specified")
+        parser.error("--header-dir is required if --constants are specified")
 
     log = Log()
 
