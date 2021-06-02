@@ -422,12 +422,18 @@ class TestManifest(unittest.TestCase):
         self.assertEqual(data, 8192)
 
     '''
-    Test with invalid memory size
+    Test flag controlling whether zero is valid or not
     '''
     def test_validate_memory_size_3(self):
         log = manifest_compiler.Log()
+
         data = manifest_compiler.parse_memory_size(0,
-                manifest_compiler.MIN_STACK, log)
+                manifest_compiler.MIN_STACK, log, zero_is_ok=True)
+        self.assertFalse(log.error_occurred())
+        self.assertEqual(data, 0)
+
+        data = manifest_compiler.parse_memory_size(0,
+                manifest_compiler.MIN_STACK, log, zero_is_ok=False)
         self.assertTrue(log.error_occurred())
         self.assertIsNone(data)
 
