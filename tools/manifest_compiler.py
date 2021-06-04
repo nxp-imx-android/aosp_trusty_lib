@@ -1192,10 +1192,10 @@ def main(argv):
         parser.error("--header-dir is required if --constants are specified")
 
     if args.input_filename and not args.output_filename:
-        args.error("Input file provided with no manifest output file.")
+        parser.error("Input file provided with no manifest output file.")
 
     if args.output_filename and not args.input_filename:
-        args.error("Building a manifest output file requires an input file.")
+        parser.error("Building a manifest output file requires an input file.")
 
     log = Log()
 
