@@ -49,13 +49,28 @@ ifneq ($(strip $(MANIFEST)),)
 TRUSTY_APP_MANIFEST_BIN := $(BUILDDIR)/$(TRUSTY_APP_NAME).manifest
 $(info generating manifest for $(MODULE): $(TRUSTY_APP_MANIFEST_BIN))
 
+# TODO Once SDK support for library variants lands, we want to use a separate
+# flag (e.g. TRUSTY_APP_DISABLE_SCS) that disables SCS for the entire application.
+$(TRUSTY_APP_MANIFEST_BIN): TRUSTY_APP_ENABLE_SCS :=
+ifeq (false,$(call TOBOOL,$(MODULE_DISABLE_SCS)))
+ifeq (true,$(call TOBOOL,$(SCS_ENABLED)))
+$(TRUSTY_APP_MANIFEST_BIN): TRUSTY_APP_ENABLE_SCS := --enable-shadow-call-stack
+endif
+endif
+ifdef ARCH_$(ARCH)_DEFAULT_SHADOW_STACK_SIZE
+$(TRUSTY_APP_MANIFEST_BIN): DEFAULT_USER_SHADOW_STACK_SIZE := \
+--default-shadow-call-stack-size $(ARCH_$(ARCH)_DEFAULT_USER_SHADOW_STACK_SIZE)
+else
+$(TRUSTY_APP_MANIFEST_BIN): DEFAULT_USER_SHADOW_STACK_SIZE :=
+endif
 $(TRUSTY_APP_MANIFEST_BIN): MANIFEST_COMPILER := $(MANIFEST_COMPILER)
 $(TRUSTY_APP_MANIFEST_BIN): CONFIG_CONSTANTS := $(MODULE_CONSTANTS)
 $(TRUSTY_APP_MANIFEST_BIN): HEADER_DIR := $(CONSTANTS_HEADER_DIR)
 $(TRUSTY_APP_MANIFEST_BIN): $(MANIFEST) $(MANIFEST_COMPILER) $(MODULE_CONSTANTS)
 	@$(MKDIR)
 	@echo compiling $< to $@
-	$(MANIFEST_COMPILER) -i $< -o $@ $(addprefix -c,$(CONFIG_CONSTANTS)) --header-dir $(HEADER_DIR)
+	$(MANIFEST_COMPILER) -i $< -o $@ $(addprefix -c,$(CONFIG_CONSTANTS)) --header-dir $(HEADER_DIR) \
+	$(TRUSTY_APP_ENABLE_SCS) $(DEFAULT_USER_SHADOW_STACK_SIZE)
 
 else # MANIFEST is empty
 
