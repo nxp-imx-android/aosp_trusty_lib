@@ -30,9 +30,9 @@ MODULE_LIBRARY_DEPS += \
 	trusty/user/base/interface/apploader \
 
 VERSION_TEST_APP_V1 := \
-	$(abspath $(TRUSTY_APP_BUILDDIR)/trusty/user/base/app/apploader/tests/version_test_apps/v1/v1.app)
+	$(TRUSTY_APP_BUILDDIR)/trusty/user/base/app/apploader/tests/version_test_apps/v1/v1.app
 VERSION_TEST_APP_V2 := \
-	$(abspath $(TRUSTY_APP_BUILDDIR)/trusty/user/base/app/apploader/tests/version_test_apps/v2/v2.app)
+	$(TRUSTY_APP_BUILDDIR)/trusty/user/base/app/apploader/tests/version_test_apps/v2/v2.app
 
 MODULE_ASMFLAGS += \
        -DVERSION_TEST_APP_V1=\"$(VERSION_TEST_APP_V1)\" \
