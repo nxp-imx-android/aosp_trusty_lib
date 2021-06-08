@@ -52,6 +52,15 @@ TRUSTY_ALL_USER_TASKS += \
 
 endif
 
+ifeq (true,$(call TOBOOL,$(IS_64BIT)))
+ifeq (false, $(call TOBOOL,$(USER_32BIT)))
+TRUSTY_ALL_USER_TASKS += \
+	trusty/user/base/lib/scudo/test \
+	trusty/user/base/lib/scudo/test/srv \
+
+endif
+endif
+
 TRUSTY_LOADABLE_USER_TASKS += \
 	trusty/user/base/app/apploader/tests/version_test_apps/v1 \
 	trusty/user/base/app/apploader/tests/version_test_apps/v2 \
