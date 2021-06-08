@@ -527,7 +527,7 @@ MAX_RELEASE_CHECK_RATE   default: 4095 unless not HAVE_MMAP
 #endif /* DLMALLOC_VERSION */
 
 #ifndef DLMALLOC_EXPORT
-#define DLMALLOC_EXPORT extern
+#define DLMALLOC_EXPORT extern __attribute__((__weak__))
 #endif
 
 #ifndef WIN32
@@ -1261,7 +1261,7 @@ DLMALLOC_EXPORT void  dlmalloc_stats(void);
   p = malloc(n);
   assert(malloc_usable_size(p) >= 256);
 */
-size_t dlmalloc_usable_size(void*);
+DLMALLOC_EXPORT size_t dlmalloc_usable_size(void*);
 
 #endif /* ONLY_MSPACES */
 
