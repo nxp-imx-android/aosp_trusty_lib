@@ -377,6 +377,43 @@ TEST_F(apploader_user, AppVersionTest) {
 test_abort:;
 }
 
+extern char mmio_test_app_allowed_start[], mmio_test_app_allowed_end[];
+extern char mmio_test_app_bad_uuid_start[], mmio_test_app_bad_uuid_end[];
+extern char mmio_test_app_bad_range_low_start[],
+        mmio_test_app_bad_range_low_end[];
+extern char mmio_test_app_bad_range_high_start[],
+        mmio_test_app_bad_range_high_end[];
+
+TEST_F(apploader_user, MmioTest) {
+    uint32_t error;
+
+    /* The allowed app should get loaded successfully */
+    error = load_test_app(_state->channel, mmio_test_app_allowed_start,
+                          mmio_test_app_allowed_end);
+    ASSERT_EQ(false, HasFailure());
+    ASSERT_EQ(true, error == APPLOADER_NO_ERROR ||
+                            error == APPLOADER_ERR_ALREADY_EXISTS);
+
+    /* The app with an unknown UUID should get rejected */
+    error = load_test_app(_state->channel, mmio_test_app_bad_uuid_start,
+                          mmio_test_app_bad_uuid_end);
+    ASSERT_EQ(false, HasFailure());
+    ASSERT_EQ(APPLOADER_ERR_LOADING_FAILED, error);
+
+    /* The apps with mappings outside the allowed range should get rejected */
+    error = load_test_app(_state->channel, mmio_test_app_bad_range_low_start,
+                          mmio_test_app_bad_range_low_end);
+    ASSERT_EQ(false, HasFailure());
+    ASSERT_EQ(APPLOADER_ERR_LOADING_FAILED, error);
+
+    error = load_test_app(_state->channel, mmio_test_app_bad_range_high_start,
+                          mmio_test_app_bad_range_high_end);
+    ASSERT_EQ(false, HasFailure());
+    ASSERT_EQ(APPLOADER_ERR_LOADING_FAILED, error);
+
+test_abort:;
+}
+
 typedef struct apploader_service {
     handle_t channel;
 } apploader_service_t;

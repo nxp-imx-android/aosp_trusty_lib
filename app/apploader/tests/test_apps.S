@@ -30,3 +30,31 @@ version_test_app_v1_end:
 version_test_app_v2_start:
 .incbin VERSION_TEST_APP_V2
 version_test_app_v2_end:
+
+.global mmio_test_app_allowed_start, mmio_test_app_allowed_end
+.hidden mmio_test_app_allowed_start, mmio_test_app_allowed_end
+.balign 4096
+mmio_test_app_allowed_start:
+.incbin MMIO_TEST_APP_ALLOWED
+mmio_test_app_allowed_end:
+
+.global mmio_test_app_bad_uuid_start, mmio_test_app_bad_uuid_end
+.hidden mmio_test_app_bad_uuid_start, mmio_test_app_bad_uuid_end
+.balign 4096
+mmio_test_app_bad_uuid_start:
+.incbin MMIO_TEST_APP_BAD_UUID
+mmio_test_app_bad_uuid_end:
+
+.global mmio_test_app_bad_range_low_start, mmio_test_app_bad_range_low_end
+.hidden mmio_test_app_bad_range_low_start, mmio_test_app_bad_range_low_end
+.balign 4096
+mmio_test_app_bad_range_low_start:
+.incbin MMIO_TEST_APP_BAD_RANGE_LOW
+mmio_test_app_bad_range_low_end:
+
+.global mmio_test_app_bad_range_high_start, mmio_test_app_bad_range_high_end
+.hidden mmio_test_app_bad_range_high_start, mmio_test_app_bad_range_high_end
+.balign 4096
+mmio_test_app_bad_range_high_start:
+.incbin MMIO_TEST_APP_BAD_RANGE_HIGH
+mmio_test_app_bad_range_high_end:

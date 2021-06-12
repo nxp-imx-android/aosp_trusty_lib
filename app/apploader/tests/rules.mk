@@ -29,17 +29,37 @@ MODULE_LIBRARY_DEPS += \
 	trusty/user/base/lib/unittest \
 	trusty/user/base/interface/apploader \
 
+APPLOADER_TESTS_DIR := \
+	$(TRUSTY_APP_BUILDDIR)/trusty/user/base/app/apploader/tests
+
 VERSION_TEST_APP_V1 := \
-	$(TRUSTY_APP_BUILDDIR)/trusty/user/base/app/apploader/tests/version_test_apps/v1/v1.app
+	$(APPLOADER_TESTS_DIR)/version_test_apps/v1/v1.app
 VERSION_TEST_APP_V2 := \
-	$(TRUSTY_APP_BUILDDIR)/trusty/user/base/app/apploader/tests/version_test_apps/v2/v2.app
+	$(APPLOADER_TESTS_DIR)/version_test_apps/v2/v2.app
+
+MMIO_TEST_APP_ALLOWED := \
+	$(APPLOADER_TESTS_DIR)/mmio_test_apps/allowed/allowed.app
+MMIO_TEST_APP_BAD_UUID := \
+	$(APPLOADER_TESTS_DIR)/mmio_test_apps/bad_uuid/bad_uuid.app
+MMIO_TEST_APP_BAD_RANGE_LOW := \
+	$(APPLOADER_TESTS_DIR)/mmio_test_apps/bad_range_low/bad_range_low.app
+MMIO_TEST_APP_BAD_RANGE_HIGH := \
+	$(APPLOADER_TESTS_DIR)/mmio_test_apps/bad_range_high/bad_range_high.app
 
 MODULE_ASMFLAGS += \
        -DVERSION_TEST_APP_V1=\"$(VERSION_TEST_APP_V1)\" \
        -DVERSION_TEST_APP_V2=\"$(VERSION_TEST_APP_V2)\" \
+       -DMMIO_TEST_APP_ALLOWED=\"$(MMIO_TEST_APP_ALLOWED)\" \
+       -DMMIO_TEST_APP_BAD_UUID=\"$(MMIO_TEST_APP_BAD_UUID)\" \
+       -DMMIO_TEST_APP_BAD_RANGE_LOW=\"$(MMIO_TEST_APP_BAD_RANGE_LOW)\" \
+       -DMMIO_TEST_APP_BAD_RANGE_HIGH=\"$(MMIO_TEST_APP_BAD_RANGE_HIGH)\" \
 
 MODULE_SRCDEPS += \
        $(VERSION_TEST_APP_V1) \
        $(VERSION_TEST_APP_V2) \
+       $(MMIO_TEST_APP_ALLOWED) \
+       $(MMIO_TEST_APP_BAD_UUID) \
+       $(MMIO_TEST_APP_BAD_RANGE_LOW) \
+       $(MMIO_TEST_APP_BAD_RANGE_HIGH) \
 
 include make/trusted_app.mk
