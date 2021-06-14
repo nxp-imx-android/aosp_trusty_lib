@@ -52,8 +52,8 @@ TRUSTY_ALL_USER_TASKS += \
 
 endif
 
-ifeq (false,$(call TOBOOL,$(KERNEL_32BIT)))
-ifeq (false,$(call TOBOOL,$(USER_32BIT)))
+ifeq (true,$(call TOBOOL,$(IS_64BIT)))
+ifeq (false, $(call TOBOOL,$(USER_32BIT)))
 TRUSTY_ALL_USER_TASKS += \
 	trusty/user/base/lib/scudo/test \
 	trusty/user/base/lib/scudo/test/srv \
