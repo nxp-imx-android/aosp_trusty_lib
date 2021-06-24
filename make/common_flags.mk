@@ -60,12 +60,16 @@ ifeq (false,$(call TOBOOL,$(ARCH_$(ARCH)_SUPPORTS_SCS)))
 $(error Error: Shadow call stack is not supported for $(ARCH))
 endif
 
+ifeq (false,$(call TOBOOL,$(TRUSTY_APP_DISABLE_SCS)))
 ifeq (false,$(call TOBOOL,$(MODULE_DISABLE_SCS)))
 # architectures that support SCS should set the flag that reserves
 # a register for the shadow call stack in their toolchain.mk file
 MODULE_COMPILEFLAGS += \
 	-fsanitize=shadow-call-stack \
 
+endif
+else  # TRUSTY_APP_DISABLE_SCS
+$(warning $(MODULE) has set TRUSTY_APP_DISABLE_SCS, this flag only works as intended for apps w/o dependencies)
 endif
 endif # SCS_ENABLED
 
