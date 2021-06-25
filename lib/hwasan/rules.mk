@@ -21,6 +21,8 @@ MODULE_STATIC_LIB := true
 MODULE_SRCS := \
 	$(LOCAL_DIR)/hwasan.c \
 
+MODULE_EXPORT_INCLUDES += $(LOCAL_DIR)/include
+
 MODULE_LIBRARY_DEPS := \
 	trusty/user/base/lib/libc-trusty \
 

@@ -25,4 +25,4 @@ MODULE_LIBRARY_DEPS += \
 	trusty/user/base/lib/libc-trusty \
 	trusty/user/base/lib/unittest \
 
-include make/library.mk
+include make/trusted_app.mk
