@@ -35,6 +35,35 @@ struct secure_fb_ctx {
     const struct secure_fb_impl_ops* ops;
 };
 
+/* UUID: {7dee2364-c036-425b-b086-df0f6c233c1b} */
+static const struct uuid confirmationui_uuid = {
+        0x7dee2364,
+        0xc036,
+        0x425b,
+        {0xb0, 0x86, 0xdf, 0x0f, 0x6c, 0x23, 0x3c, 0x1b},
+};
+
+#if TEST_BUILD
+/* UUID: {e181673c-7d7b-4b98-b962-5a3e6d59d855} */
+static const struct uuid secure_fb_test_uuid = {
+        0xe181673c,
+        0x7d7b,
+        0x4b98,
+        {0xb9, 0x62, 0x5a, 0x3e, 0x6d, 0x59, 0xd8, 0x55},
+};
+#endif
+
+/*
+ * TODO: We'll need to configure ACL in a device-specific manner, but right now
+ * we know/control all the clients of this service.
+ */
+static const struct uuid* allowed_uuids[] = {
+        &confirmationui_uuid,
+#if TEST_BUILD
+        &secure_fb_test_uuid,
+#endif
+};
+
 static int secure_fb_check_impl_ops(const struct secure_fb_impl_ops* ops) {
     if (!ops->init || !ops->get_fbs || !ops->display_fb || !ops->release) {
         TLOGE("NULL ops pointers\n");
@@ -228,6 +257,8 @@ int add_secure_fb_service(struct tipc_hset* hset,
 
     static struct tipc_port_acl acl = {
             .flags = IPC_PORT_ALLOW_TA_CONNECT,
+            .uuids = allowed_uuids,
+            .uuid_num = countof(allowed_uuids),
     };
 
     static struct tipc_srv_ops ops = {
