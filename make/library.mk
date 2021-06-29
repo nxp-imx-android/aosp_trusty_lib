@@ -230,6 +230,11 @@ MODULE_RSOBJS += $(MODULE_CRATE_OUTPUT)
 $(MODULE_CRATE_OUTPUT): MODULE_RUSTFLAGS := $(MODULE_RUSTFLAGS) --crate-type=staticlib
 endif
 
+ifneq ($(filter bin,$(MODULE_RUST_CRATE_TYPES)),)
+# Used in trusted_app.mk
+TRUSTY_APP_RUST_MAIN_SRC := $(filter %.rs,$(MODULE_SRCS))
+endif
+
 MODULE_CRATE_OUTPUT :=
 
 endif
