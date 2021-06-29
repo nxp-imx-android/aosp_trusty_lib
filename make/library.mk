@@ -91,6 +91,10 @@ ifeq ($(call TOBOOL,$(TRUSTY_APP)),false)
 BUILDDIR := $(TRUSTY_LIBRARY_BUILDDIR)
 endif
 
+ifneq ($(filter %.rs,$(MODULE_SRCS)$(MODULE_SRCS_FIRST)),)
+MODULE_IS_RUST := true
+endif
+
 # Add any common flags to the module
 include make/common_flags.mk
 
@@ -119,6 +123,10 @@ ifneq ($(MODULE_OPTFLAGS),)
 $(error $(MODULE) sets MODULE_OPTFLAGS, which is deprecated. Please move these flags to another variable.)
 endif
 
+ifneq ($(MODULE_EXPORT_RUSTFLAGS),)
+$(error $(MODULE) sets MODULE_EXPORT_RUSTFLAGS, which is not supported)
+endif
+
 ifneq ($(strip $(MODULE_DEPS)),)
 $(warning $(MODULE) is a userspace library module but has deprecated MODULE_DEPS: $(MODULE_DEPS).)
 endif
@@ -141,7 +149,11 @@ _MODULES_$(MODULE)_CPPFLAGS := $(MODULE_EXPORT_CPPFLAGS)
 _MODULES_$(MODULE)_ASMFLAGS := $(MODULE_EXPORT_ASMFLAGS)
 _MODULES_$(MODULE)_INCLUDES := $(MODULE_EXPORT_INCLUDES)
 _MODULES_$(MODULE)_LDFLAGS := $(MODULE_EXPORT_LDFLAGS)
+ifeq ($(call TOBOOL,$(MODULE_IS_RUST)),true)
+_MODULES_$(MODULE)_LIBRARIES := $(call TOBUILDDIR,lib$(MODULE_CRATE_NAME)).rlib
+else
 _MODULES_$(MODULE)_LIBRARIES := $(call TOBUILDDIR,$(MODULE)).mod.a
+endif
 
 DEPENDENCY_MODULE :=
 
@@ -173,10 +185,66 @@ include make/gen_manifest.mk
 ifneq ($(MODULE_SRCS)$(MODULE_SRCS_FIRST),)
 # Not a header-only library, so we need to build the source files
 
+ifeq ($(call TOBOOL,$(MODULE_IS_RUST)),true)
+
+ifneq ($(strip $(MODULE_SRCS_FIRST)),)
+$(error $(MODULE) sets MODULE_SRCS_FIRST but is a Rust module, which does not support MODULE_SRCS_FIRST)
+endif
+
+ifneq ($(filter-out %.rs,$(MODULE_SRCS)),)
+$(error $(MODULE) includes both Rust source files and other source files. Rust modules must only contain Rust sources.)
+endif
+
+ifneq ($(words $(filter %.rs,$(MODULE_SRCS))),1)
+$(error $(MODULE) includes more than one Rust file in MODULE_SRCS)
+endif
+
+ifneq ($(filter-out rlib staticlib bin,$(MODULE_RUST_CRATE_TYPES)),)
+$(error $(MODULE) contains unrecognized crate type $(filter-out rlib staticlib bin,$(MODULE_RUST_CRATE_TYPES)) in MODULE_RUST_CRATE_TYPES)
+endif
+
+ifeq ($(MODULE_CRATE_NAME),)
+$(error $(MODULE) is a Rust module but does not set MODULE_CRATE_NAME)
+endif
+
+MODULE_RUSTFLAGS += --crate-name=$(MODULE_CRATE_NAME)
+
+ifeq ($(strip $(MODULE_RUST_CRATE_TYPES)),)
+MODULE_RUST_CRATE_TYPES := rlib
+endif
+
+MODULE_RUSTFLAGS += $(addprefix --extern ,$(MODULE_RLIBS))
+
+MODULE_RSOBJS :=
+
+ifneq ($(filter rlib,$(MODULE_RUST_CRATE_TYPES)),)
+MODULE_CRATE_OUTPUT := $(call TOBUILDDIR,lib$(MODULE_CRATE_NAME).rlib)
+MODULE_RSOBJS += $(MODULE_CRATE_OUTPUT)
+$(MODULE_CRATE_OUTPUT): MODULE_RUSTFLAGS := $(MODULE_RUSTFLAGS) --crate-type=rlib
+MODULE_EXPORT_RLIBS += $(MODULE_CRATE_NAME)=$(MODULE_CRATE_OUTPUT)
+endif
+
+ifneq ($(filter staticlib,$(MODULE_RUST_CRATE_TYPES)),)
+MODULE_CRATE_OUTPUT := $(call TOBUILDDIR,lib$(MODULE_CRATE_NAME).a)
+MODULE_RSOBJS += $(MODULE_CRATE_OUTPUT)
+$(MODULE_CRATE_OUTPUT): MODULE_RUSTFLAGS := $(MODULE_RUSTFLAGS) --crate-type=staticlib
+endif
+
+MODULE_CRATE_OUTPUT :=
+
+endif
+
 # Save our current module because module.mk clears it.
 LIB_SAVED_MODULE := $(MODULE)
 
+# Save the rust flags for use in trusted_app.mk. userspace_recurse.mk will clean
+# up after us.
+LIB_SAVED_MODULE_RUSTFLAGS := $(MODULE_RUSTFLAGS)
+
 ALLMODULE_OBJS :=
+
+$(MODULE_RSOBJS): ARCH_RUSTFLAGS := $(ARCH_$(ARCH)_RUSTFLAGS)
+$(MODULE_RSOBJS): GLOBAL_RUSTFLAGS := $(GLOBAL_SHARED_RUSTFLAGS) $(GLOBAL_USER_RUSTFLAGS)
 
 include make/module.mk
 
@@ -184,12 +252,14 @@ include make/module.mk
 include make/recurse.mk
 
 MODULE := $(LIB_SAVED_MODULE)
+MODULE_RUSTFLAGS := $(LIB_SAVED_MODULE_RUSTFLAGS)
 
 ifeq ($(call TOBOOL,$(CLANGBUILD)), true)
 $(BUILDDIR)/%: CC := $(CCACHE) $(CLANG_BINDIR)/clang
 else
 $(BUILDDIR)/%: CC := $(CCACHE) $(ARCH_$(ARCH)_TOOLCHAIN_PREFIX)gcc
 endif
+$(BUILDDIR)/%: RUSTC := $(RUST_BINDIR)/rustc
 $(BUILDDIR)/%.o: GLOBAL_OPTFLAGS := $(GLOBAL_SHARED_OPTFLAGS) $(GLOBAL_USER_OPTFLAGS) $(ARCH_OPTFLAGS)
 $(BUILDDIR)/%.o: GLOBAL_COMPILEFLAGS := $(GLOBAL_SHARED_COMPILEFLAGS) $(GLOBAL_USER_COMPILEFLAGS)
 $(BUILDDIR)/%.o: GLOBAL_CFLAGS   := $(GLOBAL_SHARED_CFLAGS) $(GLOBAL_USER_CFLAGS)
@@ -202,7 +272,11 @@ $(BUILDDIR)/%.o: THUMBCFLAGS := $(ARCH_$(ARCH)_THUMBCFLAGS)
 $(BUILDDIR)/%.o: ARCH_CPPFLAGS := $(ARCH_$(ARCH)_CPPFLAGS)
 $(BUILDDIR)/%.o: ARCH_ASMFLAGS := $(ARCH_$(ARCH)_ASMFLAGS)
 
+ifeq ($(call TOBOOL,$(MODULE_IS_RUST)),true)
+LIBRARY_ARCHIVE := $(filter %.rlib,$(ALLMODULE_OBJS))
+else
 LIBRARY_ARCHIVE := $(filter %.mod.a,$(ALLMODULE_OBJS))
+endif
 
 MODULE_EXPORT_LIBRARIES += $(LIBRARY_ARCHIVE)
 MODULE_EXPORT_EXTRA_OBJECTS += $(filter-out $(LIBRARY_ARCHIVE),$(ALLMODULE_OBJS))
@@ -214,19 +288,25 @@ endif # MODULE is not a header-only library
 
 _MODULES_$(MODULE)_LIBRARIES := $(MODULE_EXPORT_LIBRARIES)
 _MODULES_$(MODULE)_EXTRA_OBJECTS := $(MODULE_EXPORT_EXTRA_OBJECTS)
+_MODULES_$(MODULE)_RLIBS := $(MODULE_EXPORT_RLIBS)
 _MODULES_$(MODULE)_LDFLAGS := $(MODULE_EXPORT_LDFLAGS)
 
 endif # building userspace module
 
 # Reset all variables for the next module
 MODULE :=
+MODULE_CRATE_NAME :=
 MODULE_LIBRARY_DEPS :=
 MODULE_LIBRARY_EXPORTED_DEPS :=
 MODULE_LIBRARIES :=
+MODULE_RLIBS :=
+MODULE_RSOBJS :=
 LIB_SAVED_MODULE :=
 LIB_SAVED_ALLMODULE_OBJS :=
+MODULE_RUST_CRATE_TYPES :=
 
 MODULE_EXPORT_LIBRARIES :=
+MODULE_EXPORT_RLIBS :=
 MODULE_EXPORT_EXTRA_OBJECTS :=
 MODULE_EXPORT_DEFINES :=
 MODULE_EXPORT_COMPILEFLAGS :=

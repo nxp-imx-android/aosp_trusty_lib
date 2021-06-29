@@ -1,5 +1,7 @@
 ifeq ($(call TOBOOL,$(MODULE_ADD_IMPLICIT_DEPS)),true)
+ifeq ($(call TOBOOL,$(MODULE_IS_RUST)),false)
 MODULE_LIBRARY_DEPS += trusty/user/base/lib/libc-trusty
+endif
 endif
 
 # Remaining flags only apply to the trusty userspace, not the test-runner, which
@@ -10,6 +12,9 @@ ifeq (true,$(call TOBOOL,$(TRUSTY_USERSPACE)))
 ifneq ($(ASLR), false)
     # Generate PIE code to allow ASLR to be applied
     MODULE_COMPILEFLAGS += -fPIC
+	MODULE_RUSTFLAGS += -C relocation-model=pic
+else
+	MODULE_RUSTFLAGS += -C relocation-model=static
 endif
 
 # LTO
@@ -20,6 +25,8 @@ endif
 
 # CFI
 MODULE_CFI_ENABLED := false
+# TODO(192512327): Re-enable CFI for Rust modules
+ifeq ($(call TOBOOL,$(MODULE_IS_RUST)),false)
 ifneq (true,$(call TOBOOL,$(MODULE_DISABLE_CFI)))
 ifeq (true,$(call TOBOOL,$(CFI_ENABLED)))
 MODULE_CFI_ENABLED := true
@@ -29,6 +36,7 @@ ifdef USER_CFI_ENABLED
 MODULE_CFI_ENABLED := $(call TOBOOL,$(USER_CFI_ENABLED))
 endif
 endif # !MODULE_DISABLE_CFI
+endif
 
 ifeq (true,$(call TOBOOL,$(MODULE_CFI_ENABLED)))
 MODULE_COMPILEFLAGS += \
@@ -66,6 +74,15 @@ ifeq (false,$(call TOBOOL,$(MODULE_DISABLE_SCS)))
 # a register for the shadow call stack in their toolchain.mk file
 MODULE_COMPILEFLAGS += \
 	-fsanitize=shadow-call-stack \
+
+ifeq ($(TRUSTY_USER_ARCH),arm64)
+# LLVM reserves x18 by default on AArch64 Android, so rust in AOSP doesn't need
+# to specify this. We aren't using the Android target so we need to explicitly
+# reserve x18 if we want to use SCS.
+MODULE_RUSTFLAGS += \
+	-C target-feature=+reserve-x18 \
+
+endif
 
 endif
 else  # TRUSTY_APP_DISABLE_SCS
