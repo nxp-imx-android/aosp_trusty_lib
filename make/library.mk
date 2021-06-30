@@ -215,6 +215,8 @@ endif
 
 MODULE_RUSTFLAGS += $(addprefix --extern ,$(MODULE_RLIBS))
 
+MODULE_RUSTFLAGS += --emit link
+
 MODULE_RSOBJS :=
 
 ifneq ($(filter rlib,$(MODULE_RUST_CRATE_TYPES)),)
