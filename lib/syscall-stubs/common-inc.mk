@@ -19,7 +19,7 @@
 #
 # SYSCALL_MODULE      - syscall stub module
 # SYSCALL_SRCS_DIR    - location of generated sources
-# SYSCALL_H/SYSCALL_S - names of individual generated files
+# SYSCALL_{H,S,RS}    - names of individual generated files
 # SYSCALL_SRCS        - list of all generated files
 #
 
@@ -32,6 +32,7 @@ SYSCALL_SRCS_DIR := $(TRUSTY_TOP_LEVEL_BUILDDIR)/generated/$(SYSCALL_MODULE)
 # Need to generate these
 SYSCALL_H := $(SYSCALL_SRCS_DIR)/trusty_syscalls.h
 SYSCALL_S := $(SYSCALL_SRCS_DIR)/trusty_syscalls.S
+SYSCALL_RS := $(SYSCALL_SRCS_DIR)/trusty_syscalls.rs
 
 # all generated files
-SYSCALL_SRCS := $(SYSCALL_H) $(SYSCALL_S)
+SYSCALL_SRCS := $(SYSCALL_H) $(SYSCALL_S) $(SYSCALL_RS)
