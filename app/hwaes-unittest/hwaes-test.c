@@ -33,6 +33,12 @@
 
 #define HWAES_GCM_IV_SIZE 12
 
+#if WITH_HWCRYPTO_UNITTEST
+#define DISABLED_WITHOUT_HWCRYPTO_UNITTEST(name) name
+#else
+#define DISABLED_WITHOUT_HWCRYPTO_UNITTEST(name) DISABLED_##name
+#endif
+
 /**
  * struct hwaes_iov - an wrapper of an array of iovec.
  * @iovs: array of iovec.
@@ -854,7 +860,7 @@ static const uint8_t opaque_key_ciphertext[] = {
 
 #define HWKEY_OPAQUE_KEY_ID "com.android.trusty.hwaes.unittest.opaque_handle"
 
-TEST_F(hwaes, EncryptWithOpaqueKey) {
+TEST_F(hwaes, DISABLED_WITHOUT_HWCRYPTO_UNITTEST(EncryptWithOpaqueKey)) {
     long rc = hwkey_open();
     ASSERT_GE(rc, 0, "Could not connect to hwkey");
     hwkey_session_t hwkey_session = (hwkey_session_t)rc;
@@ -883,7 +889,7 @@ TEST_F(hwaes, EncryptWithOpaqueKey) {
 test_abort:;
 }
 
-TEST_F(hwaes, DecryptWithOpaqueKey) {
+TEST_F(hwaes, DISABLED_WITHOUT_HWCRYPTO_UNITTEST(DecryptWithOpaqueKey)) {
     long rc = hwkey_open();
     ASSERT_GE(rc, 0, "Could not connect to hwkey");
     hwkey_session_t hwkey_session = (hwkey_session_t)rc;
@@ -918,7 +924,7 @@ TEST_F(hwaes, DecryptWithOpaqueKey) {
 test_abort:;
 }
 
-TEST_F(hwaes, RunOpaqueEncryptMany) {
+TEST_F(hwaes, DISABLED_WITHOUT_HWCRYPTO_UNITTEST(RunOpaqueEncryptMany)) {
     long rc = hwkey_open();
     ASSERT_GE(rc, 0, "Could not connect to hwkey");
     hwkey_session_t hwkey_session = (hwkey_session_t)rc;
@@ -952,7 +958,7 @@ TEST_F(hwaes, RunOpaqueEncryptMany) {
 test_abort:;
 }
 
-TEST_F(hwaes, InvalidOpaqueKeySize) {
+TEST_F(hwaes, DISABLED_WITHOUT_HWCRYPTO_UNITTEST(InvalidOpaqueKeySize)) {
     long rc = hwkey_open();
     ASSERT_GE(rc, 0, "Could not connect to hwkey");
     hwkey_session_t hwkey_session = (hwkey_session_t)rc;
@@ -972,7 +978,7 @@ TEST_F(hwaes, InvalidOpaqueKeySize) {
 test_abort:;
 }
 
-TEST_F(hwaes, InvalidOpaqueKeyTerminator) {
+TEST_F(hwaes, DISABLED_WITHOUT_HWCRYPTO_UNITTEST(InvalidOpaqueKeyTerminator)) {
     long rc = hwkey_open();
     ASSERT_GE(rc, 0, "Could not connect to hwkey");
     hwkey_session_t hwkey_session = (hwkey_session_t)rc;
@@ -995,7 +1001,7 @@ TEST_F(hwaes, InvalidOpaqueKeyTerminator) {
 test_abort:;
 }
 
-TEST_F(hwaes, OutdatedOpaqueHandle) {
+TEST_F(hwaes, DISABLED_WITHOUT_HWCRYPTO_UNITTEST(OutdatedOpaqueHandle)) {
     long rc = hwkey_open();
     ASSERT_GE(rc, 0, "Could not connect to hwkey");
     hwkey_session_t hwkey_session = (hwkey_session_t)rc;
