@@ -30,6 +30,15 @@ extern "C" {
 int trusty_gettime(clockid_t clock_id, int64_t* time);
 int trusty_nanosleep(clockid_t clock_id, uint32_t flags, uint64_t sleep_time);
 
+/*
+ * The trusty_nanosleep() can sleep longer than expected in certain scenarios (like
+ * CPUIdle is enabled). trusty_nanodelay() is less likely to oversleep, but at the
+ * cost of additional CPU usage.
+ * Use trusty_nanodelay() when working with hardware with precise timing requirements.
+ * But avoid using trusty_nanodelay() with large sleep_time values.
+ */
+int trusty_nanodelay(clockid_t clock_id, uint32_t flags, uint64_t sleep_time);
+
 #ifdef __cplusplus
 }
 #endif

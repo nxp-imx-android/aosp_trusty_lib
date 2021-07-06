@@ -29,6 +29,28 @@ int trusty_nanosleep(clockid_t clock_id, uint32_t flags, uint64_t sleep_time) {
     return _trusty_nanosleep(clock_id, flags, sleep_time);
 }
 
+int trusty_nanodelay(clockid_t clock_id, uint32_t flags, uint64_t sleep_time) {
+    int64_t target, time;
+    int rc;
+
+    /* TODO validate clock_ids. */
+    /* No flags, yet. */
+    assert(flags == 0);
+
+    rc = trusty_gettime(clock_id, &time);
+    if (rc)
+        return rc;
+    target = time + sleep_time;
+
+    while (time < target) {
+        rc = trusty_gettime(clock_id, &time);
+        if (rc)
+            return rc;
+    }
+
+    return 0;
+}
+
 int clock_nanosleep(clockid_t clock_id,
                     int flags,
                     const struct timespec* req,
