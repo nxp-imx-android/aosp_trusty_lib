@@ -35,8 +35,7 @@ pub struct uuid {
     pub clock_seq_and_node: [u8; 8],
 }
 
-#[repr(transparent)]
-pub struct handle_t(i32);
+pub type handle_t = i32;
 
 /*
  *  Is used by wait and wait_any calls to return information
