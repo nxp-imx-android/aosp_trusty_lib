@@ -43,6 +43,16 @@ __WEAK void CRYPTO_sysrand(uint8_t* out, size_t requested) {
     }
 }
 
+/*
+ * We want to seed the BoringSSL RNG from the hardware RNG directly, if
+ * available.
+ */
+__WEAK void CRYPTO_sysrand_for_seed(uint8_t* out, size_t requested) {
+    if (trusty_rng_hw_rand(out, requested) != NO_ERROR) {
+        abort();
+    }
+}
+
 #else
 
 int RAND_poll(void) {
