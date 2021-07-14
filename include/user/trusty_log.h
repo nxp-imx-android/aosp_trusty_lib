@@ -68,11 +68,10 @@ __END_CDECLS
     } while (0)
 
 /* info */
-#define TLOGI(x, ...)                      \
+#define TLOGI(x...)                      \
     do {                                 \
         if (TLOG_LVL >= TLOG_LVL_INFO) { \
-            fprintf(stderr, "%s: " x, TLOG_TAG, ##__VA_ARGS__); \
-            unittest_printf("%s: " x, TLOG_TAG, ##__VA_ARGS__); \
+            TLOG(x);                      \
         }                                \
     } while (0)
 
