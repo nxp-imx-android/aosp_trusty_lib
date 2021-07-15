@@ -16,7 +16,13 @@
 
 #define TLOG_TAG "acvp"
 
+#include "acvp.h"
+
+// NOTE: modulewrapper.h is not guarded against double inclusion and
+// keymaster_ckdf.h uses it, so we need to include it before keymaster_ckdf.h
 #include "modulewrapper.h"
+
+#include "keymaster_ckdf.h"
 
 #include <string>
 #include <vector>
@@ -37,6 +43,30 @@
 // Keep modulewrapper.h and acvp.h in sync
 static_assert(bssl::acvp::kMaxArgs == ACVP_MAX_NUM_ARGUMENTS);
 static_assert(bssl::acvp::kMaxNameLength == ACVP_MAX_NAME_LENGTH);
+
+static constexpr char kAdditionalConfig[] = R"(,
+{
+        "algorithm": "KDF",
+        "revision": "1.0",
+        "capabilities": [{
+            "kdfMode": "counter",
+            "macMode": [
+                "CMAC-AES128",
+                "CMAC-AES256"
+            ],
+            "supportedLengths": [{
+                "min": 1,
+                "max": 4096,
+                "increment": 1
+            }],
+            "fixedDataOrder": [
+                "before fixed data"
+            ],
+            "counterLength": [
+                32
+            ]
+        }]
+}])";
 
 static struct tipc_port_acl kAcvpPortAcl = {
         .flags = IPC_PORT_ALLOW_TA_CONNECT | IPC_PORT_ALLOW_NS_CONNECT,
@@ -209,6 +239,28 @@ static int AcvpOnConnect(const struct tipc_port* port,
     return NO_ERROR;
 }
 
+static bool RewriteConfig(TrustyAcvpTool& tool,
+                          const std::vector<bssl::Span<const uint8_t>>& args) {
+    assert(args.size() == 1);
+    auto config = args[0];
+    const uint8_t* loc = config.cend() - 1;
+    for (; loc >= config.cbegin(); loc--) {
+        if (*loc == '}') {
+            break;
+        }
+    }
+    assert(loc >= config.cbegin() && loc < config.cend());
+    size_t pos = loc - config.cbegin() + 1;
+
+    std::unique_ptr<uint8_t[]> buf(
+            new (std::nothrow) uint8_t[pos + sizeof(kAdditionalConfig) - 1]);
+
+    memcpy(buf.get(), config.cbegin(), pos);
+    memcpy(&buf[pos], kAdditionalConfig, sizeof(kAdditionalConfig) - 1);
+    return tool.WriteReply({bssl::Span<uint8_t>(
+            buf.get(), pos + sizeof(kAdditionalConfig) - 1)});
+}
+
 static int AcvpOnMessage(const struct tipc_port* port,
                          handle_t chan,
                          void* ctx) {
@@ -244,6 +296,9 @@ static int AcvpOnMessage(const struct tipc_port* port,
     }
 
     auto handler = bssl::acvp::FindHandler(bssl::Span(args, request->num_args));
+    if (!handler && StringEq(args[0], "KDF-counter")) {
+        handler = KeymasterCKDF;
+    }
     if (!handler) {
         const std::string name(reinterpret_cast<const char*>(args[0].data()),
                                args[0].size());
@@ -251,9 +306,15 @@ static int AcvpOnMessage(const struct tipc_port* port,
         return ERR_NOT_FOUND;
     }
 
-    bssl::acvp::ReplyCallback callback = [tool](auto spans) {
-        return tool->WriteReply(spans);
-    };
+    // We need to intercept getConfig and append our own config to it.
+    bool is_config = StringEq(args[0], "getConfig");
+
+    bssl::acvp::ReplyCallback callback;
+    if (is_config) {
+        callback = [tool](auto spans) { return RewriteConfig(*tool, spans); };
+    } else {
+        callback = [tool](auto spans) { return tool->WriteReply(spans); };
+    }
 
     if (!handler(&args[1], callback)) {
         const std::string name(reinterpret_cast<const char*>(args[0].data()),

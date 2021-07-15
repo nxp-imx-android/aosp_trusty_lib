@@ -16,17 +16,25 @@
 LOCAL_DIR := $(GET_LOCAL_DIR)
 
 MODULEWRAPPER_ROOT := external/boringssl/src/util/fipstools/acvp/modulewrapper
+KEYMASTER_ROOT := system/keymaster
 
 MODULE := $(LOCAL_DIR)
 
 MANIFEST := $(LOCAL_DIR)/manifest.json
 
 MODULE_INCLUDES += \
-	$(MODULEWRAPPER_ROOT)
+	$(MODULEWRAPPER_ROOT) \
+	$(KEYMASTER_ROOT)/include \
+	$(TRUSTY_TOP)/hardware/libhardware/include \
 
 MODULE_SRCS += \
 	$(LOCAL_DIR)/acvp.cpp \
+	$(LOCAL_DIR)/keymaster_ckdf.cpp \
 	$(MODULEWRAPPER_ROOT)/modulewrapper.cc \
+	$(KEYMASTER_ROOT)/android_keymaster/android_keymaster_utils.cpp \
+	$(KEYMASTER_ROOT)/android_keymaster/logger.cpp \
+	$(KEYMASTER_ROOT)/km_openssl/ckdf.cpp \
+	$(KEYMASTER_ROOT)/km_openssl/openssl_err.cpp \
 
 MODULE_LIBRARY_DEPS += \
 	trusty/user/base/interface/acvp \
