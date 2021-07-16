@@ -87,11 +87,18 @@ uint32_t hwaes_aes_op(const struct hwaes_aes_op_args* args);
 /**
  * add_hwaes_service() - Add hwaes service
  * @hset: Handle set created by tipc_hset_create()
+ * @allowed_clients: Array of pointers to allowed client UUIDs
+ * @allowed_clients_len: Length of @allowed_clients
  *
  * Client should call tipc_run_event_loop at some point after this call returns.
  *
+ * This function does not take ownership of @allowed_clients. The array must
+ * live at least as long as the service.
+ *
  * Return: 0 on success, or an error code < 0 on failure.
  */
-int add_hwaes_service(struct tipc_hset* hset);
+int add_hwaes_service(struct tipc_hset* hset,
+                      const uuid_t** allowed_clients,
+                      size_t allowed_clients_len);
 
 __END_CDECLS

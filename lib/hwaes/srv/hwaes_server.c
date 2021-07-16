@@ -504,10 +504,15 @@ free_handles:
     return rc;
 }
 
-int add_hwaes_service(struct tipc_hset* hset) {
+int add_hwaes_service(struct tipc_hset* hset,
+                      const uuid_t** allowed_clients,
+                      size_t allowed_clients_len) {
     static struct tipc_port_acl acl = {
             .flags = IPC_PORT_ALLOW_TA_CONNECT,
     };
+    acl.uuid_num = allowed_clients_len;
+    acl.uuids = allowed_clients;
+
     static struct tipc_port port = {
             .name = HWAES_PORT,
             .msg_max_size = HWAES_MAX_MSG_SIZE,
