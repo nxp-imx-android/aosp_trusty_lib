@@ -17,7 +17,7 @@ include trusty/user/app/keymaster/usertests-inc.mk
 include trusty/user/app/sample/usertests-inc.mk
 include trusty/user/app/storage/usertests-inc.mk
 
-TRUSTY_ALL_USER_TASKS += \
+TRUSTY_USER_TESTS += \
 	trusty/user/base/app/acvp \
 	trusty/user/base/app/apploader/tests \
 	trusty/user/base/app/crash-test \
@@ -34,19 +34,19 @@ TRUSTY_ALL_USER_TASKS += \
 	trusty/user/base/lib/uirq/test \
 
 ifeq (true,$(call TOBOOL,$(USER_COVERAGE_ENABLED)))
-TRUSTY_ALL_USER_TASKS += \
+TRUSTY_USER_TESTS += \
 	trusty/user/base/lib/sancov/test/srv \
 
 endif
 
 ifeq (true,$(call TOBOOL,$(USER_HWASAN_ENABLED)))
-TRUSTY_ALL_USER_TASKS += \
+TRUSTY_USER_TESTS += \
 	trusty/user/base/lib/hwasan/test \
 
 endif
 
 ifeq (true,$(call TOBOOL,$(USER_CFI_ENABLED)))
-TRUSTY_ALL_USER_TASKS += \
+TRUSTY_USER_TESTS += \
 	trusty/user/base/app/cfi-test \
 	trusty/user/base/app/cfi-test/cfi-crasher \
 
@@ -54,7 +54,7 @@ endif
 
 ifeq (false,$(call TOBOOL,$(KERNEL_32BIT)))
 ifeq (false,$(call TOBOOL,$(USER_32BIT)))
-TRUSTY_ALL_USER_TASKS += \
+TRUSTY_USER_TESTS += \
 	trusty/user/base/lib/scudo/test \
 	trusty/user/base/lib/scudo/test/srv \
 
