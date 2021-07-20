@@ -55,9 +55,9 @@ static constexpr char kAdditionalConfig[] = R"(,
                 "CMAC-AES256"
             ],
             "supportedLengths": [{
-                "min": 1,
+                "min": 8,
                 "max": 4096,
-                "increment": 1
+                "increment": 8
             }],
             "fixedDataOrder": [
                 "before fixed data"

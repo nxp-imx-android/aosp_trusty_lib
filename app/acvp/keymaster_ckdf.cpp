@@ -26,6 +26,7 @@
 #include <openssl/span.h>
 #include <string.h>
 #include <trusty_log.h>
+#include "keymaster/android_keymaster_utils.h"
 #include "keymaster/km_openssl/ckdf.h"
 #include "openssl/rand.h"
 
@@ -90,7 +91,10 @@ bool KeymasterCKDF(const bssl::Span<const uint8_t> args[],
         return false;
     }
 
-    size_t fixed_data_size = label.data_length + 1 + context.data_length;
+    const uint32_t L = out_len * 8;  // bits
+    const uint32_t net_order_L = keymaster::hton(L);
+
+    size_t fixed_data_size = label.data_length + 1 + context.data_length + 4;
     std::unique_ptr<uint8_t[]> fixed_data(new (std::nothrow)
                                                   uint8_t[fixed_data_size]);
 
@@ -98,6 +102,8 @@ bool KeymasterCKDF(const bssl::Span<const uint8_t> args[],
     fixed_data[label.data_length] = 0x00;
     memcpy(&fixed_data[label.data_length + 1], context.data,
            context.data_length);
+    memcpy(&fixed_data[label.data_length + 1 + context.data_length],
+           &net_order_L, 4);
 
     return write_reply({
             bssl::Span<const uint8_t>(key.key_material, key.key_material_size),
