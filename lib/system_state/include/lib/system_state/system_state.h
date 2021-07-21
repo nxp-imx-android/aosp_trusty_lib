@@ -72,4 +72,36 @@ static inline bool system_state_app_loading_unlocked(void) {
                                          false);
 }
 
+/**
+ * system_state_app_loading_skip_version_check() - Check if rollback version
+ * check should be skipped when loading apps.
+ *
+ * Return: %true if the version check should be skipped, %false otherwise.
+ */
+static inline bool system_state_app_loading_skip_version_check(void) {
+    return system_state_get_flag_default(
+                   SYSTEM_STATE_FLAG_APP_LOADING_VERSION_CHECK,
+                   SYSTEM_STATE_FLAG_APP_LOADING_VERSION_CHECK_VALUE_REQUIRED) ==
+           SYSTEM_STATE_FLAG_APP_LOADING_VERSION_CHECK_VALUE_SKIP_CHECK;
+}
+
+/**
+ * system_state_app_loading_skip_version_update() - Check if rollback version
+ * update should be skipped when loading apps.
+ *
+ * Version update is always skipped when
+ * system_state_app_loading_skip_version_check() returns true.
+ *
+ * Return: %true if the version update should be skipped, %false otherwise.
+ */
+static inline bool system_state_app_loading_skip_version_update(void) {
+    uint64_t value = system_state_get_flag_default(
+            SYSTEM_STATE_FLAG_APP_LOADING_VERSION_CHECK,
+            SYSTEM_STATE_FLAG_APP_LOADING_VERSION_CHECK_VALUE_REQUIRED);
+    return value ==
+                   SYSTEM_STATE_FLAG_APP_LOADING_VERSION_CHECK_VALUE_SKIP_CHECK ||
+           value ==
+                   SYSTEM_STATE_FLAG_APP_LOADING_VERSION_CHECK_VALUE_SKIP_UPDATE;
+}
+
 __END_CDECLS

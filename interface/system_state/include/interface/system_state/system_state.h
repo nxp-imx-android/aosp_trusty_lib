@@ -57,6 +57,14 @@ enum system_state_flag {
      *     is allowed.
      */
     SYSTEM_STATE_FLAG_APP_LOADING_UNLOCKED = 2,
+
+    /**
+     * @SYSTEM_STATE_FLAG_APP_LOADING_VERSION_CHECK:
+     *     Flag used to permit skipping of app version checks or rollback
+     *     version updates. Contains a value of type enum
+     *     system_state_flag_app_loading_version_check.
+     */
+    SYSTEM_STATE_FLAG_APP_LOADING_VERSION_CHECK = 3,
 };
 
 /**
@@ -73,6 +81,24 @@ enum system_state_flag_provisioning_allowed {
     SYSTEM_STATE_FLAG_PROVISIONING_ALLOWED_VALUE_NOT_ALLOWED = 0,
     SYSTEM_STATE_FLAG_PROVISIONING_ALLOWED_VALUE_ALLOWED = 1,
     SYSTEM_STATE_FLAG_PROVISIONING_ALLOWED_VALUE_ALLOWED_AT_BOOT = 2,
+};
+
+/**
+ * enum system_state_flag_app_loading_version_check - App loading version check
+ * states
+ * @SYSTEM_STATE_FLAG_APP_LOADING_VERSION_CHECK_VALUE_REQUIRED
+ *     Rollback version check and updating is required
+ * @SYSTEM_STATE_FLAG_APP_LOADING_VERSION_CHECK_VALUE_SKIP_UPDATE
+ *     Rollback version check is required, but the rollback version will not be
+ *     updated.
+ * @SYSTEM_STATE_FLAG_APP_LOADING_VERSION_CHECK_VALUE_SKIP_CHECK
+ *     Rollback version check should be skipped (rollback version will not be
+ *     updated)
+ */
+enum system_state_flag_app_loading_version_check {
+    SYSTEM_STATE_FLAG_APP_LOADING_VERSION_CHECK_VALUE_REQUIRED = 0,
+    SYSTEM_STATE_FLAG_APP_LOADING_VERSION_CHECK_VALUE_SKIP_UPDATE = 1,
+    SYSTEM_STATE_FLAG_APP_LOADING_VERSION_CHECK_VALUE_SKIP_CHECK = 2,
 };
 
 /**

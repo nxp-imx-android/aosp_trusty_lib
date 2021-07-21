@@ -45,6 +45,9 @@ int system_state_server_get_flag(uint32_t flag, uint64_t* valuep) {
     case SYSTEM_STATE_FLAG_APP_LOADING_UNLOCKED:
         *valuep = STATIC_SYSTEM_STATE_FLAG_APP_LOADING_UNLOCKED;
         return 0;
+    case SYSTEM_STATE_FLAG_APP_LOADING_VERSION_CHECK:
+        *valuep = STATIC_SYSTEM_STATE_FLAG_APP_LOADING_VERSION_CHECK;
+        return 0;
     default:
         return ERR_INVALID_ARGS;
     }
