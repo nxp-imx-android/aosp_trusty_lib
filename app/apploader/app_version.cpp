@@ -20,6 +20,7 @@
 #include <inttypes.h>
 #include <lib/app_manifest/app_manifest.h>
 #include <lib/storage/storage.h>
+#include <lib/system_state/system_state.h>
 #include <stdarg.h>
 #include <trusty_log.h>
 #include <uapi/err.h>
@@ -197,8 +198,8 @@ extern "C" bool apploader_check_app_version(
         return false;
     }
 
-    /* TODO: disable the version update for A/B */
-    if (manifest_version > storage_version) {
+    if (!system_state_app_loading_skip_version_update() &&
+        manifest_version > storage_version) {
         rc = update_app_version(&app_uuid, manifest_version);
         if (rc < 0) {
             TLOGE("Error updating application version in storage (%d)\n", rc);

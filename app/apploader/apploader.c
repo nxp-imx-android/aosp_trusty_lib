@@ -22,6 +22,7 @@
 #include <interface/apploader/apploader_secure.h>
 #include <inttypes.h>
 #include <lib/app_manifest/app_manifest.h>
+#include <lib/system_state/system_state.h>
 #include <lib/tipc/tipc.h>
 #include <lib/tipc/tipc_srv.h>
 #include <lk/err_ptr.h>
@@ -409,7 +410,8 @@ static int apploader_handle_cmd_load_app(handle_t chan,
         goto err_elf_not_found;
     }
 
-    if (!apploader_check_app_version(&pkg_meta)) {
+    if (!system_state_app_loading_skip_version_check() &&
+        !apploader_check_app_version(&pkg_meta)) {
         TLOGE("Failed application version check\n");
         resp_error = APPLOADER_ERR_INVALID_VERSION;
         goto err_version_check;

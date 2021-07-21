@@ -33,6 +33,7 @@ MODULE_LIBRARY_DEPS += \
 	trusty/user/base/lib/hwaes \
 	trusty/user/base/lib/hwkey \
 	trusty/user/base/lib/storage \
+	trusty/user/base/lib/system_state \
 	trusty/user/base/interface/apploader \
 	external/boringssl \
 	external/libcppbor \

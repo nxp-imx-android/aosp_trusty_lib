@@ -17,6 +17,7 @@
 #include <interface/apploader/apploader.h>
 #include <interface/apploader/apploader_secure.h>
 #include <inttypes.h>
+#include <lib/system_state/system_state.h>
 #include <lib/tipc/tipc.h>
 #include <lib/unittest/unittest.h>
 #include <memref.h>
@@ -372,7 +373,15 @@ TEST_F(apploader_user, AppVersionTest) {
     error = load_test_app(_state->channel, version_test_app_v1_start,
                           version_test_app_v1_end);
     ASSERT_EQ(false, HasFailure());
-    ASSERT_EQ(error, APPLOADER_ERR_INVALID_VERSION);
+
+    if (system_state_app_loading_skip_version_update()) {
+        trusty_unittest_printf(
+                "[  SKIPPED ] AppVersionTest - version update is disabled\n");
+        ASSERT_EQ(true, error == APPLOADER_NO_ERROR ||
+                                error == APPLOADER_ERR_ALREADY_EXISTS);
+    } else {
+        ASSERT_EQ(error, APPLOADER_ERR_INVALID_VERSION);
+    }
 
 test_abort:;
 }
