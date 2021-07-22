@@ -32,6 +32,8 @@
 #include <lib/tipc/tipc.h>
 #include <lib/tipc/tipc_srv.h>
 #include <lk/err_ptr.h>
+#include <openssl/digest.h>
+#include <openssl/hkdf.h>
 #include <openssl/span.h>
 #include <sys/auxv.h>
 #include <sys/mman.h>
@@ -66,6 +68,40 @@ static constexpr char kAdditionalConfig[] = R"(,
                 32
             ]
         }]
+},
+{
+        "algorithm": "KAS-KDF",
+        "mode": "TwoStep",
+        "revision": "Sp800-56Cr2",
+        "capabilities": [{
+            "macSaltMethods": [
+                "random",
+                "default"
+            ],
+            "fixedInfoPattern": "uPartyInfo||vPartyInfo",
+            "encoding": [
+                "concatenation"
+            ],
+            "kdfMode": "feedback",
+            "macMode": [
+                "HMAC-SHA2-256"
+            ],
+            "supportedLengths": [{
+                "min": 128,
+                "max": 1024,
+                "increment": 64
+            }],
+            "fixedDataOrder": [
+                "after fixed data"
+            ],
+            "counterLength": [
+                8
+            ],
+            "requiresEmptyIv": true,
+            "supportsEmptyIv": true
+        }],
+        "l": 1024,
+        "z": [256, 384]
 }])";
 
 static struct tipc_port_acl kAcvpPortAcl = {
@@ -85,6 +121,31 @@ static struct tipc_port kAcvpPort = {
 
 static inline size_t AlignUpToPage(size_t size) {
     return (size + (PAGE_SIZE - 1)) & ~(PAGE_SIZE - 1);
+}
+
+template <const EVP_MD* HashFunc()>
+static bool KAS_HKDF(const bssl::Span<const uint8_t> args[],
+                     bssl::acvp::ReplyCallback write_reply) {
+    const bssl::Span<const uint8_t> secret = args[0];
+    const bssl::Span<const uint8_t> salt = args[1];
+    const bssl::Span<const uint8_t> info = args[2];
+    const bssl::Span<const uint8_t> out_len_bytes = args[3];
+
+    uint32_t out_len;
+    if (out_len_bytes.size() != sizeof(out_len)) {
+        return false;
+    }
+    memcpy(&out_len, out_len_bytes.data(), sizeof(out_len));
+
+    std::vector<uint8_t> out(static_cast<size_t>(out_len));
+    int res = HKDF(out.data(), out.size(), HashFunc(), secret.data(),
+                   secret.size(), salt.data(), salt.size(), info.data(),
+                   info.size());
+    if (res != 1) {
+        return false;
+    }
+
+    return write_reply({out});
 }
 
 class TrustyAcvpTool {
@@ -261,6 +322,37 @@ static bool RewriteConfig(TrustyAcvpTool& tool,
             buf.get(), pos + sizeof(kAdditionalConfig) - 1)});
 }
 
+static constexpr struct {
+    char name[bssl::acvp::kMaxNameLength + 1];
+    uint8_t num_expected_args;
+    bool (*handler)(const bssl::Span<const uint8_t> args[],
+                    bssl::acvp::ReplyCallback write_reply);
+} kFunctions[] = {
+        {"KDF-counter", 5, KeymasterCKDF},
+        {"HKDF/SHA2-256", 4, KAS_HKDF<EVP_sha256>},
+};
+
+static bssl::acvp::Handler FindTrustyHandler(
+        bssl::Span<const bssl::Span<const uint8_t>> args) {
+    const bssl::Span<const uint8_t> algorithm = args[0];
+    for (const auto& func : kFunctions) {
+        if (StringEq(algorithm, func.name)) {
+            if (args.size() - 1 != func.num_expected_args) {
+                TLOGE("\'%s\' operation received %zu arguments but expected %u.\n",
+                      func.name, args.size() - 1, func.num_expected_args);
+                return nullptr;
+            }
+
+            return func.handler;
+        }
+    }
+
+    const std::string name(reinterpret_cast<const char*>(algorithm.data()),
+                           algorithm.size());
+    TLOGE("Unknown operation: %s\n", name.c_str());
+    return nullptr;
+}
+
 static int AcvpOnMessage(const struct tipc_port* port,
                          handle_t chan,
                          void* ctx) {
@@ -296,8 +388,8 @@ static int AcvpOnMessage(const struct tipc_port* port,
     }
 
     auto handler = bssl::acvp::FindHandler(bssl::Span(args, request->num_args));
-    if (!handler && StringEq(args[0], "KDF-counter")) {
-        handler = KeymasterCKDF;
+    if (!handler) {
+        handler = FindTrustyHandler(bssl::Span(args, request->num_args));
     }
     if (!handler) {
         const std::string name(reinterpret_cast<const char*>(args[0].data()),
