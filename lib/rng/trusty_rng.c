@@ -30,6 +30,7 @@
 
 #include <interface/hwrng/hwrng.h>
 #include <openssl/aes.h>
+#include <openssl/rand.h>
 
 /*
  *	This is the generic part of the trusty app rng service.
@@ -83,6 +84,22 @@ done:
 }
 
 int trusty_rng_secure_rand(uint8_t* data, size_t len) {
+    if (!data || !len)
+        return ERR_INVALID_ARGS;
+
+    int ssl_err = RAND_bytes(data, len);
+    if (ssl_err != 1) {
+        /*
+         * BoringSSL never returns anything but success, so we should never hit
+         * this.
+         */
+        return ERR_GENERIC;
+    }
+
+    return NO_ERROR;
+}
+
+int trusty_rng_internal_system_rand(uint8_t* data, size_t len) {
     int err = NO_ERROR;
 
     if (!data || !len)

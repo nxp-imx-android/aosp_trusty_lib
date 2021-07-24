@@ -31,14 +31,18 @@
 #include <uapi/err.h>
 
 #include <lib/rng/trusty_rng.h>
+#include <lib/rng/trusty_rng_internal.h>
 #include <openssl/rand.h>
 
 #if defined(OPENSSL_IS_BORINGSSL)
 
-/* CRYPTO_sysrand is called by BoringSSL to obtain entropy from the OS. By
- * default, BoringSSL's RNG calls this function without buffering. */
+/*
+ * CRYPTO_sysrand is called by BoringSSL to obtain entropy from the OS on every
+ * query for randomness. This needs to be fast, so we provide our own AES-CTR
+ * PRNG seeded from hardware randomness, if available.
+ */
 __WEAK void CRYPTO_sysrand(uint8_t* out, size_t requested) {
-    if (trusty_rng_secure_rand(out, requested) != NO_ERROR) {
+    if (trusty_rng_internal_system_rand(out, requested) != NO_ERROR) {
         abort();
     }
 }
