@@ -36,6 +36,7 @@
 // remove it if needed
 #![feature(min_specialization)]
 #![feature(nonnull_slice_from_raw_parts)]
+#![feature(panic_info_message)]
 #![feature(rustc_attrs)]
 #![feature(slice_internals)]
 #![feature(slice_ptr_get)]
@@ -43,6 +44,7 @@
 pub mod alloc;
 pub mod ffi;
 pub mod io;
+mod panicking;
 mod util;
 
 pub use core::write;
