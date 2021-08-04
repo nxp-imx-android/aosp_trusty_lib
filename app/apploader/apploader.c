@@ -452,9 +452,7 @@ err_invalid_package:
 err_copy_package:
     close(secure_chan);
 err_connect_secure:
-err_package_too_small:
 err_invalid_req_handle:
-err_invalid_num_handles:
     return apploader_send_response(chan, APPLOADER_CMD_LOAD_APPLICATION,
                                    resp_error);
 }
