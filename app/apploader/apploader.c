@@ -104,7 +104,7 @@ static int apploader_send_response(handle_t chan,
         return rc;
     }
 
-    if (rc != (int)sizeof(resp)) {
+    if ((size_t)rc != sizeof(resp)) {
         TLOGE("Failed to send message (%d). Expected to send %zu bytes.\n", rc,
               sizeof(resp));
         return ERR_BAD_LEN;
@@ -176,7 +176,7 @@ static uint32_t apploader_send_secure_get_memory_command(
     };
     int rc = tipc_send2(secure_chan, &hdr, sizeof(hdr), &get_memory_req,
                         sizeof(get_memory_req));
-    if (rc != sizeof(hdr) + sizeof(get_memory_req)) {
+    if ((size_t)rc != sizeof(hdr) + sizeof(get_memory_req)) {
         TLOGE("Failed to send get_memory message (%d)\n", rc);
         return apploader_translate_error(rc);
     }
@@ -246,7 +246,7 @@ static uint32_t apploader_send_secure_load_command(
 
     struct apploader_secure_resp resp;
     rc = tipc_recv1(secure_chan, sizeof(resp), &resp, sizeof(resp));
-    if (rc != sizeof(resp)) {
+    if ((size_t)rc != sizeof(resp)) {
         TLOGE("Failed to read response for load application command\n");
         return apploader_translate_error(rc);
     }
