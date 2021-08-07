@@ -32,6 +32,7 @@
 #![feature(alloc_error_handler)]
 #![feature(alloc_layout_extra)]
 #![feature(core_intrinsics)]
+#![feature(lang_items)]
 // min_specialization is only used to optimize CString::try_new(), so we can
 // remove it if needed
 #![feature(min_specialization)]
@@ -45,6 +46,7 @@ pub mod alloc;
 pub mod ffi;
 pub mod io;
 mod panicking;
+mod rt;
 mod util;
 
 pub use core::write;
