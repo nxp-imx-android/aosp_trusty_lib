@@ -37,6 +37,7 @@
 //! removed.
 
 use crate::alloc::{AllocError, TryAllocInto};
+use crate::TryClone;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use core::ascii;
@@ -513,6 +514,14 @@ impl CString {
     #[inline]
     pub fn as_c_str(&self) -> &CStr {
         &*self
+    }
+}
+
+impl TryClone for CString {
+    type Error = AllocError;
+
+    fn try_clone(&self) -> Result<Self, Self::Error> {
+        Ok(Self { inner: self.inner.try_clone()? })
     }
 }
 

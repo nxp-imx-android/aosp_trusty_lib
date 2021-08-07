@@ -33,20 +33,25 @@
 #![feature(alloc_layout_extra)]
 #![feature(core_intrinsics)]
 #![feature(lang_items)]
+#![feature(maybe_uninit_extra)]
 // min_specialization is only used to optimize CString::try_new(), so we can
 // remove it if needed
 #![feature(min_specialization)]
+#![feature(new_uninit)]
 #![feature(nonnull_slice_from_raw_parts)]
 #![feature(panic_info_message)]
 #![feature(rustc_attrs)]
 #![feature(slice_internals)]
 #![feature(slice_ptr_get)]
+#![feature(vec_spare_capacity)]
 
 pub mod alloc;
+mod clone;
 pub mod ffi;
 pub mod io;
 mod panicking;
 mod rt;
 mod util;
 
+pub use clone::TryClone;
 pub use core::write;
