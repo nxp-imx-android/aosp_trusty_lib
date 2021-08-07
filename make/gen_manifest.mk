@@ -41,11 +41,14 @@ ifeq ($(strip $(MANIFEST_COMPILER)),)
 MANIFEST_COMPILER := trusty/user/base/tools/manifest_compiler.py
 endif
 
-# build manifest objects if manifest config json provided
-# generate shared constants headers if constants provided
-ifneq ($(strip $(MANIFEST)),)
+# build manifest objects if we are building an app, otherwise generate shared
+# constants headers if constants provided
+ifeq ($(call TOBOOL,$(TRUSTY_APP)),true)
 
 TRUSTY_APP_MANIFEST_BIN := $(BUILDDIR)/$(TRUSTY_APP_NAME).manifest
+
+# Save the manifest path for use in user-tasks.mk
+_MODULES_$(MODULE)_TRUSTY_APP_MANIFEST_BIN := $(TRUSTY_APP_MANIFEST_BIN)
 $(info generating manifest for $(MODULE): $(TRUSTY_APP_MANIFEST_BIN))
 
 # TODO Until the SDK supports library variants, this flag will only work as
@@ -74,7 +77,9 @@ $(TRUSTY_APP_MANIFEST_BIN): $(MANIFEST) $(MANIFEST_COMPILER) $(MODULE_CONSTANTS)
 # We need the constants headers to be generated before the sources are compiled
 MODULE_SRCDEPS += $(TRUSTY_APP_MANIFEST_BIN)
 
-else # MANIFEST is empty
+else # we are not building an app
+
+ifneq ($(strip $(MODULE_CONSTANTS)),)
 
 # generate shared constants headers if only constants and no manifest provided
 $(CONSTANTS_HEADER_DIR): MANIFEST_COMPILER := $(MANIFEST_COMPILER)
@@ -87,7 +92,9 @@ $(CONSTANTS_HEADER_DIR): $(MANIFEST_COMPILER) $(MODULE_CONSTANTS)
 
 MODULE_SRCDEPS += $(CONSTANTS_HEADER_DIR)
 
-endif
+endif # MODULE_CONSTANTS is non-empty
+
+endif # TRUSTY_APP = false
 
 endif # MODULE_CONSTANTS and/or MANIFEST is non-empty
 

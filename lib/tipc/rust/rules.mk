@@ -36,4 +36,9 @@ MODULE_BINDGEN_ALLOW_VARS := \
 
 MODULE_BINDGEN_SRC_HEADER := $(LOCAL_DIR)/bindings.h
 
+MODULE_RUST_TESTS := true
+
+# For test service
+MANIFEST := $(LOCAL_DIR)/manifest.json
+
 include make/library.mk

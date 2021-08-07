@@ -43,6 +43,8 @@
 # MODULE_ARM_OVERRIDE_SRCS : list of source files, local path that should be
 # 		force compiled with ARM (if applicable)
 # MODULE_RUST_EDITION : Rust edition to compile this crate for (optional)
+# MODULE_RUST_TESTS : If true, this module will be built as both a crate library
+#       and a Rust test service (optional, default is false)
 # MANIFEST : App manifest JSON file, only applicable if this module is an app
 #
 # Exported flags:
@@ -79,6 +81,23 @@ GLOBAL_INCLUDES += $(MODULE_EXPORT_INCLUDES)
 include make/module.mk
 
 else  # TRUSTY_NEW_MODULE_SYSTEM is true
+
+ifeq ($(call TOBOOL,$(BUILD_AS_RUST_TEST_MODULE)),true)
+$(info Building $(MODULE) as a rust test service)
+MODULE := $(MODULE)-test
+MODULE_RUSTFLAGS += --test
+MODULE_RUST_CRATE_TYPES := bin
+MODULE_LIBRARY_DEPS += trusty/user/base/lib/unittest-rust
+MODULE_RUST_ENV += TRUSTY_TEST_PORT=com.android.trusty.rust.$(MODULE_CRATE_NAME).test
+MODULE_RUST_TESTS :=
+TRUSTY_APP_NAME := $(MODULE_CRATE_NAME)-test
+BUILD_AS_RUST_TEST_MODULE :=
+
+TRUSTY_RUST_USER_TESTS += $(MODULE)
+
+include make/trusted_app.mk
+
+else # Not building rust test app
 
 # Build with the new module system. Currently, the Trusty userspace libraries
 # and apps use the new module system, as does the bootloader/test-runner binary.
@@ -173,6 +192,7 @@ _MODULES_$(MODULE)_LIBRARIES := $(call TOBUILDDIR,$(MODULE)).mod.a
 endif
 
 DEPENDENCY_MODULE :=
+DEPENDENCY_MODULE_PATH :=
 
 # Recurse into dependencies that this module re-exports flags from. This needs
 # to happen before we recurse into regular dependencies in the case of recursive
@@ -269,6 +289,8 @@ endif
 ifneq ($(filter bin,$(MODULE_RUST_CRATE_TYPES)),)
 # Used in trusted_app.mk
 TRUSTY_APP_RUST_MAIN_SRC := $(filter %.rs,$(MODULE_SRCS))
+
+TRUSTY_APP_RUST_SRCDEPS := $(MODULE_SRCDEPS)
 endif
 
 MODULE_CRATE_OUTPUT :=
@@ -350,6 +372,15 @@ _MODULES_$(MODULE)_EXTRA_OBJECTS := $(MODULE_EXPORT_EXTRA_OBJECTS)
 _MODULES_$(MODULE)_RLIBS := $(MODULE_EXPORT_RLIBS)
 _MODULES_$(MODULE)_LDFLAGS := $(MODULE_EXPORT_LDFLAGS)
 
+ifeq ($(call TOBOOL,$(MODULE_RUST_TESTS)),true)
+# Rebuild this module as a test service as well
+BUILD_AS_RUST_TEST_MODULE := true
+DEPENDENCY_MODULE := $(MODULE)-test
+DEPENDENCY_MODULE_PATH := $(MODULE)
+include make/userspace_recurse.mk
+endif
+
+endif # not building rust test app
 endif # building userspace module
 
 # Reset all variables for the next module
@@ -363,6 +394,7 @@ MODULE_RSOBJS :=
 LIB_SAVED_MODULE :=
 LIB_SAVED_ALLMODULE_OBJS :=
 MODULE_RUST_CRATE_TYPES :=
+MODULE_RUST_TESTS :=
 
 MODULE_EXPORT_LIBRARIES :=
 MODULE_EXPORT_RLIBS :=

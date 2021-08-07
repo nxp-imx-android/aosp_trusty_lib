@@ -45,3 +45,11 @@ pub use err::{Result, TipcError};
 pub use handle::Handle;
 pub use serialization::{Deserialize, Serialize, Serializer};
 pub use service::{Manager, PortCfg, Service, Uuid};
+
+#[cfg(test)]
+mod test {
+    #[test]
+    fn test() {}
+
+    test::init!();
+}
