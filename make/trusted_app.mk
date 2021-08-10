@@ -48,6 +48,11 @@ endif
 TRUSTY_APP := true
 BUILDDIR := $(TRUSTY_APP_BUILDDIR)/$(MODULE)
 
+TRUSTY_APP_ELF := $(BUILDDIR)/$(TRUSTY_APP_NAME).elf
+
+# Save the path to the output elf file for user-tasks.mk
+_MODULES_$(MODULE)_TRUSTY_APP_ELF := $(TRUSTY_APP_ELF)
+
 ifneq ($(filter-out bin,$(MODULE_RUST_CRATE_TYPES)),)
 $(error $(MODULE) is an app but MODULE_RUST_CRATE_TYPES is not set to "bin")
 endif
@@ -91,7 +96,6 @@ TRUSTY_APP_STRIP := $(TRUSTY_APP_TOOLCHAIN_PREFIX)strip
 
 # App build rules
 TRUSTY_APP_BIN := $(BUILDDIR)/$(TRUSTY_APP_NAME).bin
-TRUSTY_APP_ELF := $(BUILDDIR)/$(TRUSTY_APP_NAME).elf
 TRUSTY_APP_SYMS_ELF := $(BUILDDIR)/$(TRUSTY_APP_NAME).syms.elf
 TRUSTY_APP_ALL_OBJS := $(ALLMODULE_OBJS) $(MODULE_EXTRA_OBJECTS)
 
