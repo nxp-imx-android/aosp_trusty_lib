@@ -24,5 +24,6 @@ MODULE_CRATE_NAME := test
 MODULE_LIBRARY_DEPS += \
 	trusty/user/base/lib/trusty-log \
 	trusty/user/base/lib/trusty-std \
+	trusty/user/base/lib/tipc/rust \
 
 include make/library.mk
