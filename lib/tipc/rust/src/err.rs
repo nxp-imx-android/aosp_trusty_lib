@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+use alloc::alloc::AllocError;
 use alloc::collections::TryReserveError;
 use core::num::TryFromIntError;
 use trusty_std::ffi::TryNewError;
@@ -86,5 +87,11 @@ impl From<TryReserveError> for TipcError {
 impl From<TryFromIntError> for TipcError {
     fn from(_err: TryFromIntError) -> Self {
         TipcError::OutOfBounds
+    }
+}
+
+impl From<AllocError> for TipcError {
+    fn from(_err: AllocError) -> Self {
+        TipcError::AllocError
     }
 }

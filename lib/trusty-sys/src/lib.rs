@@ -30,6 +30,10 @@ mod sys {
     use crate as trusty_sys;
 
     include!(env!("BINDGEN_INC_FILE"));
+
+    impl uevent {
+        pub const ALL_EVENTS: u32 = u32::MAX;
+    }
 }
 
 pub use err::*;

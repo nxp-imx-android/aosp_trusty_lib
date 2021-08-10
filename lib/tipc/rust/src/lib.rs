@@ -26,6 +26,9 @@
 //! handle is closed.
 
 #![no_std]
+#![feature(allocator_api)]
+// To construct arrays with const generic bounds
+#![feature(array_from_fn)]
 
 #[allow(non_camel_case_types)]
 #[allow(unused)]
@@ -36,7 +39,9 @@ mod sys {
 mod err;
 mod handle;
 mod serialization;
+mod service;
 
 pub use err::{Result, TipcError};
 pub use handle::Handle;
 pub use serialization::{Deserialize, Serialize, Serializer};
+pub use service::{Manager, PortCfg, Service, Uuid};

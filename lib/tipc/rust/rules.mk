@@ -22,6 +22,7 @@ MODULE_SRCS := $(LOCAL_DIR)/src/lib.rs
 MODULE_CRATE_NAME := tipc
 
 MODULE_LIBRARY_DEPS += \
+	trusty/user/base/lib/log-rust \
 	trusty/user/base/lib/trusty-std \
 	trusty/user/base/lib/trusty-sys \
 
@@ -29,6 +30,7 @@ MODULE_BINDGEN_ALLOW_TYPES := \
 	handle_t \
 
 MODULE_BINDGEN_ALLOW_VARS := \
+	HSET_.* \
 	IPC_.* \
 	INFINITE_TIME \
 

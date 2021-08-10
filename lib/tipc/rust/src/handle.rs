@@ -33,10 +33,11 @@ use trusty_sys::c_long;
 /// Do not rely on the connection being closed for protocol correctness, as the
 /// drop method may not always be called.
 #[repr(transparent)]
+#[derive(Eq, PartialEq, Debug)]
 pub struct Handle(handle_t);
 
 /// Maximum number of handles that can be transferred in an IPC message at once.
-const MAX_MSG_HANDLES: usize = 8;
+pub(crate) const MAX_MSG_HANDLES: usize = 8;
 
 impl Handle {
     /// Open a client connection to the given service.
@@ -72,6 +73,14 @@ impl Handle {
         }
     }
 
+    pub(crate) fn from_raw(fd: i32) -> crate::Result<Self> {
+        if fd < 0 {
+            Err(TipcError::from_uapi(fd as c_long))
+        } else {
+            Ok(Self(fd))
+        }
+    }
+
     /// Send an IPC message.
     ///
     /// Serializes `msg` using its [`Serialize`] implementation and send it
@@ -104,7 +113,7 @@ impl Handle {
     /// Returns a tuple of the number of bytes written into the buffer and the
     /// number of handles received. `handles` should have space for at least
     /// [`MAX_MSG_HANDLES`].
-    fn recv_vectored(
+    pub(crate) fn recv_vectored(
         &self,
         buffers: &mut [&mut [u8]],
         handles: &mut [Handle],
@@ -200,7 +209,7 @@ impl Handle {
     }
 
     /// Get the raw file descriptor of this handle.
-    fn as_raw_fd(&self) -> i32 {
+    pub(crate) fn as_raw_fd(&self) -> i32 {
         self.0
     }
 
