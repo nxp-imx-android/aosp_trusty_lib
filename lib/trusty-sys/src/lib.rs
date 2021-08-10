@@ -22,6 +22,7 @@
 #![no_std]
 #![allow(non_camel_case_types)]
 
+mod err;
 mod syscalls;
 mod types;
 
@@ -31,6 +32,7 @@ mod sys {
     include!(env!("BINDGEN_INC_FILE"));
 }
 
+pub use err::*;
 pub use syscalls::*;
 pub use types::*;
 

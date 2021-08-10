@@ -43,6 +43,10 @@ MODULE_BINDGEN_ALLOW_TYPES := \
 	ipc_msg \
 	ipc_msg_info \
 
+MODULE_BINDGEN_ALLOW_VARS := \
+	NO_ERROR \
+	ERR_.* \
+
 MODULE_BINDGEN_SRC_HEADER := $(LOCAL_DIR)/bindings.h
 
 # Derive eq and hash for uuid
