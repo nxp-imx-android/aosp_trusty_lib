@@ -100,5 +100,6 @@ uint32_t hwaes_aes_op(const struct hwaes_aes_op_args* args);
 int add_hwaes_service(struct tipc_hset* hset,
                       const uuid_t** allowed_clients,
                       size_t allowed_clients_len);
+int hwaes_handle_message(handle_t chan);
 
 __END_CDECLS
