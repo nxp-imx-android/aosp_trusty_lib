@@ -524,3 +524,53 @@ int add_hwaes_service(struct tipc_hset* hset,
     };
     return tipc_add_service(hset, &port, 1, 1, &ops);
 }
+
+int hwaes_handle_message(handle_t chan) {
+    int rc;
+
+    uint8_t req_msg_buf[HWAES_MAX_MSG_SIZE] = {0};
+    uint8_t resp_msg_buf[HWAES_MAX_MSG_SIZE] = {0};
+
+    handle_t shm_handles[HWAES_MAX_NUM_HANDLES];
+    size_t num_handles;
+    size_t req_msg_size;
+
+    rc = hwaes_read_req(chan, req_msg_buf, shm_handles, &num_handles,
+                        &req_msg_size);
+    if (rc != NO_ERROR) {
+        TLOGE("failed (%d) to hwaes_read_req()\n", rc);
+        return rc;
+    };
+
+    struct hwaes_req* req_header = (struct hwaes_req*)req_msg_buf;
+    if (req_header->reserved) {
+        TLOGE("bad general header, reserved not 0, (%d)\n",
+              req_header->reserved);
+        rc = ERR_NOT_VALID;
+        goto free_handles;
+    }
+
+    struct hwaes_resp* resp_header = (struct hwaes_resp*)resp_msg_buf;
+
+    resp_header->cmd = req_header->cmd;
+
+    /* handle it */
+    switch (req_header->cmd) {
+    case HWAES_AES:
+        rc = hwaes_handle_aes_cmd(chan, req_msg_buf, req_msg_size, resp_msg_buf,
+                                  shm_handles, num_handles);
+        break;
+
+    default:
+        TLOGE("unsupported request: %d\n", (int)req_header->cmd);
+        resp_header->result = HWAES_ERR_NOT_IMPLEMENTED;
+        rc = hwaes_send_resp(chan, resp_header, sizeof(*resp_header));
+    }
+
+free_handles:
+    for (size_t i = 0; i <= num_handles; i++) {
+        close(shm_handles[i]);
+    }
+
+    return rc;
+}
