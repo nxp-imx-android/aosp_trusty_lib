@@ -166,6 +166,7 @@ _MODULES_$(MODULE)_INCLUDES := $(MODULE_EXPORT_INCLUDES)
 _MODULES_$(MODULE)_LDFLAGS := $(MODULE_EXPORT_LDFLAGS)
 ifeq ($(call TOBOOL,$(MODULE_IS_RUST)),true)
 _MODULES_$(MODULE)_LIBRARIES := $(call TOBUILDDIR,lib$(MODULE_CRATE_NAME)).rlib
+_MODULES_$(MODULE)_CRATE_NAME := $(MODULE_CRATE_NAME)
 else
 _MODULES_$(MODULE)_LIBRARIES := $(call TOBUILDDIR,$(MODULE)).mod.a
 endif
@@ -234,6 +235,10 @@ ifeq ($(MODULE_CRATE_NAME),)
 $(error $(MODULE) is a Rust module but does not set MODULE_CRATE_NAME)
 endif
 
+ifeq ($(MODULE_RUST_EDITION),)
+MODULE_RUST_EDITION := 2018
+endif
+
 MODULE_RUSTFLAGS += --crate-name=$(MODULE_CRATE_NAME)
 
 ifeq ($(strip $(MODULE_RUST_CRATE_TYPES)),)
@@ -265,6 +270,24 @@ TRUSTY_APP_RUST_MAIN_SRC := $(filter %.rs,$(MODULE_SRCS))
 endif
 
 MODULE_CRATE_OUTPUT :=
+
+_MODULES_$(MODULE)_CRATE_INDEX := $(GLOBAL_CRATE_COUNT)
+GLOBAL_CRATE_COUNT := $(shell echo $$(($(GLOBAL_CRATE_COUNT)+1)))
+
+define CRATE_CONFIG :=
+{
+	"display_name": "$(MODULE_CRATE_NAME)",
+	"root_module": "$(filter %.rs,$(MODULE_SRCS))",
+	"edition": "$(MODULE_RUST_EDITION)",
+	"deps": [
+		$(call STRIP_TRAILING_COMMA,$(foreach dep,$(sort $(MODULE_LIBRARY_DEPS)),\
+				$(if $(_MODULES_$(dep)_CRATE_NAME),{"name": "$(_MODULES_$(dep)_CRATE_NAME)"$(COMMA) "crate": $(_MODULES_$(dep)_CRATE_INDEX)}$(COMMA))))
+	]
+},
+
+endef
+RUST_ANALYZER_CRATES := $(RUST_ANALYZER_CRATES)$(CRATE_CONFIG)
+CRATE_CONFIG :=
 
 endif
 
