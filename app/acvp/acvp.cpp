@@ -40,7 +40,7 @@
 #include <trusty_ipc.h>
 #include <trusty_log.h>
 
-#define PAGE_SIZE getauxval(AT_PAGESZ)
+#define ACVP_PAGE_SIZE getauxval(AT_PAGESZ)
 
 // Keep modulewrapper.h and acvp.h in sync
 static_assert(bssl::acvp::kMaxArgs == ACVP_MAX_NUM_ARGUMENTS);
@@ -120,7 +120,7 @@ static struct tipc_port kAcvpPort = {
 };
 
 static inline size_t AlignUpToPage(size_t size) {
-    return (size + (PAGE_SIZE - 1)) & ~(PAGE_SIZE - 1);
+    return (size + (ACVP_PAGE_SIZE - 1)) & ~(ACVP_PAGE_SIZE - 1);
 }
 
 template <const EVP_MD* HashFunc()>
