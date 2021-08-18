@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python3
 
 '''
 This program will take trusted application's manifest config JSON file as
@@ -92,9 +92,8 @@ USAGE:
 '''
 
 import argparse
-import cStringIO
+import io
 import json
-import optparse
 import os.path
 import struct
 import sys
@@ -261,6 +260,12 @@ class Log(object):
         return self.error_count > 0
 
 
+def bytes2hex(b):
+    """Convert bytes into hex string similar to bytes.hex() in Python 3.5+"""
+    from binascii import hexlify
+    return hexlify(b).decode("ascii")
+
+
 '''
 For the given manifest JSON field it returns its literal value type mapped.
 '''
@@ -312,8 +317,7 @@ def get_string(manifest_dict, key, constants, log, optional=False,
 
 
 def coerce_to_string(value, key, log):
-    if not isinstance(value, str) and \
-            not isinstance(value, unicode):
+    if not isinstance(value, str):
         log.error(
                 "Invalid value for" +
                 " {} - \"{}\", Valid string value is expected"
@@ -347,7 +351,7 @@ def coerce_to_int(value, key, log):
     if isinstance(value, int) and \
             not isinstance(value, bool):
         return value
-    elif isinstance(value, basestring):
+    elif isinstance(value, str):
         try:
             return int(value, 0)
         except ValueError:
@@ -486,8 +490,8 @@ def parse_uuid(uuid, log):
         return None
 
     try:
-        uuid_data = [part.decode("hex") for part in uuid_data]
-    except TypeError as ex:
+        uuid_data = [bytearray.fromhex(part) for part in uuid_data]
+    except ValueError as ex:
         log.error("Invalid UUID {}, {}".format(uuid, ex))
         return None
 
@@ -499,8 +503,7 @@ def parse_uuid(uuid, log):
         log.error("Wrong grouping of UUID - {}".format(uuid))
         return None
 
-    return "".join(uuid_data)
-
+    return b"".join(uuid_data)
 
 '''
 Validate memory size value.
@@ -767,7 +770,7 @@ packed data includes length + string + null + padding
 def pack_inline_string(value):
     size = len(value) + 1
     pad_len = 3 - (size + 3) % 4
-    packed = struct.pack("I", size) + value + '\0' + pad_len * '\0'
+    packed = struct.pack("I", size) + value.encode() + b'\0' + pad_len * b'\0'
     assert len(packed) % 4 == 0
     return packed
 
@@ -788,7 +791,7 @@ def pack_manifest_data(manifest, log):
     #        TRUSTY_APP_CONFIG_KEY_VERSION, version
     #        TRUSTY_APP_CONFIG_KEY_MIN_SHADOW_STACK_SIZE, min_shadow_stack,
     #      }
-    out = cStringIO.StringIO()
+    out = io.BytesIO()
 
     uuid = swap_uuid_bytes(manifest.uuid)
     out.write(uuid)
@@ -861,7 +864,7 @@ def unpack_binary_manifest_to_data(packed_data):
     # Extract UUID
     uuid, packed_data = packed_data[:16], packed_data[16:]
     uuid = swap_uuid_bytes(uuid)
-    uuid = uuid.encode("hex")
+    uuid = bytes2hex(uuid)
     uuid = uuid[:8] + "-" \
             + uuid[8:12] + "-" \
             + uuid[12:16] + "-" \
@@ -876,7 +879,7 @@ def unpack_binary_manifest_to_data(packed_data):
             "I", packed_data[:4]), packed_data[4:]
     # read the name without a trailing null character
     manifest[APP_NAME], packed_data = \
-            packed_data[:name_size-1], packed_data[name_size-1:]
+            packed_data[:name_size-1].decode(), packed_data[name_size-1:]
     # discard trailing null characters
     # it includes trailing null character of a string and null padding
     pad_len = 1 + 3 - (name_size + 3) % 4
@@ -950,7 +953,7 @@ def unpack_binary_manifest_to_data(packed_data):
                     "I", packed_data[:4]), packed_data[4:]
             # read the name without a trailing null character
             start_port_entry[START_PORT_NAME], packed_data = \
-                    packed_data[:name_size-1], packed_data[name_size-1:]
+                    packed_data[:name_size-1].decode(), packed_data[name_size-1:]
             # discard trailing null characters
             # it includes trailing null character of a string and null padding
             pad_len = 1 + 3 - (name_size + 3) % 4
@@ -1039,7 +1042,7 @@ def define_bool_const_entry(const, log):
 
 
 def define_uuid_const_entry(const, log):
-    uuid = const.value.encode("hex")
+    uuid = bytes2hex(const.value)
 
     part = ", ".join(
             ["0x" + uuid[index:index+2] for index in range(16, len(uuid), 2)])
@@ -1106,7 +1109,7 @@ def parse_constant(constant, log):
     elif const_type == CONST_INT:
         unsigned = get_boolean(constant, CONST_UNSIGNED, {}, log)
         text_value = constant.get(CONST_VALUE)
-        hex_num = isinstance(text_value, basestring) and \
+        hex_num = isinstance(text_value, str) and \
                 text_value.startswith("0x")
         value = get_int(constant, CONST_VALUE, {}, log)
         return Constant(name, value, const_type, unsigned, hex_num)

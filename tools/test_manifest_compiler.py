@@ -1,8 +1,8 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python3
 
 '''
 Command to run tests:
-  python2 -m unittest -v test_manifest_compiler
+  python3 -m unittest -v test_manifest_compiler
 '''
 
 import unittest
@@ -349,7 +349,8 @@ class TestManifest(unittest.TestCase):
         uuid_in = "5f902ace-5e5c-4cd8-ae54-87b88c22ddaf"
         data = manifest_compiler.parse_uuid(uuid_in, log)
         self.assertFalse(log.error_occurred())
-        self.assertEqual(data.encode("hex"), uuid_in.replace("-", ""))
+        self.assertEqual(manifest_compiler.bytes2hex(data),
+                         uuid_in.replace("-", ""))
 
     '''
     Test with invalid UUID containing one byte less
@@ -968,7 +969,8 @@ class TestManifest(unittest.TestCase):
                                                            log)
         self.assertFalse(log.error_occurred())
         self.assertIsNotNone(manifest)
-        self.assertEqual(manifest.uuid.encode("hex"), uuid_in.replace("-", ""))
+        self.assertEqual(manifest_compiler.bytes2hex(manifest.uuid),
+                         uuid_in.replace("-", ""))
         self.assertEqual(manifest.min_heap, min_heap)
         self.assertEqual(manifest.min_stack, min_stack)
         self.assertEqual(manifest.app_name, default_app_name)
@@ -1094,7 +1096,8 @@ class TestManifest(unittest.TestCase):
                 config_data, manifest_compiler.START_PORT_NAME, constants, log)
         self.assertEqual(len(config_data), 0)
         self.assertFalse(log.error_occurred())
-        self.assertEqual(data_uuid.encode("hex"), uuid.replace("-", ""))
+        self.assertEqual(manifest_compiler.bytes2hex(data_uuid),
+                         uuid.replace("-", ""))
         self.assertEqual(data_port, port)
 
     '''
