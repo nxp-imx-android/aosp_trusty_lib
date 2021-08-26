@@ -42,7 +42,10 @@ pub use self::options::{ColorConfig, Options, OutputFormat, RunIgnored, ShouldPa
 pub use self::types::TestName::*;
 pub use self::types::*;
 
+pub mod asserts;
 mod bench;
+mod context;
+mod macros;
 mod options;
 mod types;
 
