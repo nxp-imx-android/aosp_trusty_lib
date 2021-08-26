@@ -300,3 +300,74 @@ impl<'a> Serializer<'a> for BorrowingSerializer<'a> {
         self.handles.try_push(Handle(handle.as_raw_fd())).or(Err(TipcError::AllocError))
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::Handle;
+    use crate::TipcError;
+    use test::expect_eq;
+    use trusty_sys::Error;
+
+    const INVALID_IPC_HANDLE: Handle = Handle(-1);
+
+    // Expected limits: should be in sync with kernel settings
+    // TODO: Derive these from tipc/test/include/app/ipc_unittest/common.h when
+    // we have easier bindgen support
+
+    /// First user handle ID
+    const USER_BASE_HANDLE: i32 = 1000;
+
+    /// Maximum number of user handles
+    const MAX_USER_HANDLES: i32 = 64;
+
+    // HACK: Ports 0 and 1 are standard out and error, then we have a port for
+    // the test service and another for the connection handle. Therefore the
+    // first free index is 4.
+    const FIRST_FREE_HANDLE_INDEX: i32 = 4;
+
+    #[test]
+    fn wait_negative() {
+        let timeout = Some(1000); // 1 sec
+
+        expect_eq!(
+            INVALID_IPC_HANDLE.wait(timeout).err(),
+            Some(TipcError::InvalidHandle),
+            "wait on invalid handle"
+        );
+
+        //   call wait on an invalid (out of range) handle
+        //
+        //   check handling of the following cases:
+        //     - handle is on the upper boundary of valid handle range
+        //     - handle is above of the upper boundary of valid handle range
+        //     - handle is below of valid handle range
+        //
+        //   in all cases, the expected result is ERR_BAD_HANDLE error.
+        expect_eq!(
+            Handle(USER_BASE_HANDLE + MAX_USER_HANDLES).wait(timeout).err(),
+            Some(TipcError::InvalidHandle),
+            "wait on invalid handle"
+        );
+
+        expect_eq!(
+            Handle(USER_BASE_HANDLE + MAX_USER_HANDLES + 1).wait(timeout).err(),
+            Some(TipcError::InvalidHandle),
+            "wait on invalid handle"
+        );
+
+        expect_eq!(
+            Handle(USER_BASE_HANDLE - 1).wait(timeout).err(),
+            Some(TipcError::InvalidHandle),
+            "wait on invalid handle"
+        );
+
+        // wait on non-existent handle in valid range
+        for i in FIRST_FREE_HANDLE_INDEX..MAX_USER_HANDLES {
+            expect_eq!(
+                Handle(USER_BASE_HANDLE + i).wait(timeout).err(),
+                Some(TipcError::SystemError(Error::NotFound)),
+                "wait on invalid handle"
+            );
+        }
+    }
+}
