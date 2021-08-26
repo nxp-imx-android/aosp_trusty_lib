@@ -31,6 +31,8 @@
 #![feature(allocator_api)]
 #![feature(alloc_error_handler)]
 #![feature(alloc_layout_extra)]
+// Used in println! and eprintln!
+#![feature(allow_internal_unstable)]
 #![feature(core_intrinsics)]
 #![feature(lang_items)]
 #![feature(maybe_uninit_extra)]
@@ -49,9 +51,12 @@ pub mod alloc;
 mod clone;
 pub mod ffi;
 pub mod io;
+mod macros;
 mod panicking;
 mod rt;
 mod util;
 
 pub use clone::TryClone;
-pub use core::write;
+pub use core::{write, writeln};
+
+pub use core::format_args;

@@ -70,3 +70,13 @@ fn _write(fd: u32, message: &[u8]) -> fmt::Result {
         iov.iov_len -= ret;
     }
 }
+
+#[doc(hidden)]
+pub fn _print(args: fmt::Arguments<'_>) {
+    stdout().write_fmt(args).expect("Write to stdout failed");
+}
+
+#[doc(hidden)]
+pub fn _eprint(args: fmt::Arguments<'_>) {
+    stderr().write_fmt(args).expect("Write to stderr failed");
+}
