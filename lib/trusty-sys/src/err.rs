@@ -15,6 +15,7 @@
  */
 
 use crate::sys::*;
+use crate::types::c_long;
 
 /// Trusty system error
 ///
@@ -73,11 +74,11 @@ pub enum Error {
     UserBase = ERR_USER_BASE,
 }
 
-impl From<i64> for Error {
-    fn from(rc: i64) -> Self {
+impl From<c_long> for Error {
+    fn from(rc: c_long) -> Self {
         use Error::*;
 
-        if rc > i32::MAX as i64 || rc < i32::MIN as i64 {
+        if rc > i32::MAX as c_long || rc < i32::MIN as c_long {
             return Generic;
         }
         match rc as i32 {

@@ -18,7 +18,7 @@ use alloc::alloc::AllocError;
 use alloc::collections::TryReserveError;
 use core::num::TryFromIntError;
 use trusty_std::ffi::TryNewError;
-use trusty_sys::c_long;
+use trusty_sys::{c_long, Error};
 
 /// A specialized [`Result`] type for IPC operations.
 ///
@@ -28,9 +28,9 @@ use trusty_sys::c_long;
 pub type Result<T> = core::result::Result<T, TipcError>;
 
 /// Errors that an IPC connection may encounter.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum TipcError {
-    /// The handle ID returned by the kernel was invalid.
+    /// The handle ID provided or returned by the kernel was invalid.
     InvalidHandle,
 
     /// The provided port was invalid.
@@ -60,12 +60,18 @@ pub enum TipcError {
 
     /// The channel was closed before the operation could be completed.
     ChannelClosed,
+
+    /// Some other system error
+    SystemError(Error),
 }
 
 impl TipcError {
-    pub(crate) fn from_uapi(_rc: c_long) -> Self {
-        // TODO: convert from C return codes to useful errors
-        Self::UnknownError
+    pub(crate) fn from_uapi(rc: c_long) -> Self {
+        let sys_err: Error = rc.into();
+        match sys_err {
+            Error::BadHandle => TipcError::InvalidHandle,
+            e => TipcError::SystemError(e),
+        }
     }
 }
 
