@@ -47,8 +47,11 @@
 #![feature(slice_ptr_get)]
 #![feature(vec_spare_capacity)]
 
+// Import alloc with a different name to not clash with our local module
+extern crate alloc as alloc_crate;
+
 pub mod alloc;
-mod clone;
+mod clone_ext;
 pub mod ffi;
 pub mod io;
 mod macros;
@@ -56,7 +59,23 @@ mod panicking;
 mod rt;
 mod util;
 
-pub use clone::TryClone;
-pub use core::{write, writeln};
+pub use clone_ext::TryClone;
 
-pub use core::format_args;
+// Re-exports from core and alloc
+pub use alloc_crate::{borrow, boxed, fmt, format, rc, slice, str, string, vec};
+
+pub use core::{
+    any, arch, array, cell, char, clone, cmp, convert, default, future, hash, hint, i128, i16, i32,
+    i64, i8, intrinsics, isize, iter, marker, mem, ops, option, pin, primitive, ptr, result, u128,
+    u16, u32, u64, u8, usize,
+};
+
+pub use core::{
+    assert_eq, assert_ne, debug_assert, debug_assert_eq, debug_assert_ne, matches, todo,
+    unimplemented, unreachable, write, writeln,
+};
+
+pub use core::{
+    assert, cfg, column, compile_error, concat, env, file, format_args, include, include_bytes,
+    include_str, line, module_path, option_env, stringify,
+};
