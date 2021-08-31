@@ -49,6 +49,8 @@ mod macros;
 mod options;
 mod types;
 
+use context::CONTEXT;
+
 extern "Rust" {
     static TEST_PORT: &'static str;
 }
@@ -107,6 +109,10 @@ impl<'m, 's> Serialize<'s> for TestMessage<'m> {
     }
 }
 
+fn print_status(test: &TestDesc, msg: &str) {
+    log::info!("[ {} ] {}", msg, test.name);
+}
+
 struct TestService {
     tests: Vec<TestDescAndFn>,
 }
@@ -121,15 +127,38 @@ impl Service for TestService {
         handle: &Handle,
         _peer: &Uuid,
     ) -> Result<Option<()>, TipcError> {
+        let mut failed_tests = 0;
+        let mut total_ran = 0;
         for test in &self.tests {
+            CONTEXT.reset();
+            total_ran += 1;
+            print_status(&test.desc, "RUN     ");
             match test.testfn {
                 StaticTestFn(f) => f(),
                 StaticBenchFn(_f) => panic!("Test harness does not support benchmarking"),
                 _ => panic!("non-static tests passed to test::test_main_static"),
             }
+            if CONTEXT.all_ok() {
+                print_status(&test.desc, "      OK");
+            } else {
+                print_status(&test.desc, " FAILED ");
+                failed_tests += 1;
+            }
+            if CONTEXT.hard_fail() {
+                break;
+            }
         }
 
-        handle.send(&TestMessage::Passed)?;
+        log::info!("[==========] {} tests ran.", total_ran);
+        if failed_tests < total_ran {
+            log::info!("[  PASSED  ] {} tests.", total_ran - failed_tests);
+        }
+        if failed_tests > 0 {
+            log::info!("[  FAILED  ] {} tests.", failed_tests);
+        }
+
+        let response = if failed_tests == 0 { TestMessage::Passed } else { TestMessage::Failed };
+        handle.send(&response)?;
 
         // Tell the manager we want to close the connection
         Ok(None)

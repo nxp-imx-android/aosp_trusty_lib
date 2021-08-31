@@ -33,4 +33,17 @@ impl TestContext {
         self.all_ok.store(false, Ordering::Relaxed);
         self.hard_fail.fetch_or(hard_fail, Ordering::Relaxed);
     }
+
+    pub(crate) fn reset(&self) {
+        self.all_ok.store(true, Ordering::Relaxed);
+        self.hard_fail.store(false, Ordering::Relaxed);
+    }
+
+    pub(crate) fn all_ok(&self) -> bool {
+        self.all_ok.load(Ordering::Relaxed)
+    }
+
+    pub(crate) fn hard_fail(&self) -> bool {
+        self.hard_fail.load(Ordering::Relaxed)
+    }
 }
