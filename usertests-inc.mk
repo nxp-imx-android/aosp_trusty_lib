@@ -24,6 +24,7 @@ TRUSTY_USER_TESTS += \
 	trusty/user/base/app/crash-test/crasher \
 	trusty/user/base/app/metrics/test/crasher \
 	trusty/user/base/app/hwaes-unittest \
+	trusty/user/base/lib/hwbcc/test \
 	trusty/user/base/lib/keymaster/test \
 	trusty/user/base/lib/libc-trusty/test \
 	trusty/user/base/lib/libstdc++-trusty/test \
