@@ -1,4 +1,6 @@
-#!/usr/bin/env python3
+#!/bin/sh
+"." "`dirname $0`/../../../vendor/google/aosp/scripts/envsetup.sh"
+"exec" "$PY3" "$0" "$@"
 
 '''
 This program will take trusted application's manifest config JSON file as
