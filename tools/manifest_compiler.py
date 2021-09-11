@@ -262,12 +262,6 @@ class Log(object):
         return self.error_count > 0
 
 
-def bytes2hex(b):
-    """Convert bytes into hex string similar to bytes.hex() in Python 3.5+"""
-    from binascii import hexlify
-    return hexlify(b).decode("ascii")
-
-
 '''
 For the given manifest JSON field it returns its literal value type mapped.
 '''
@@ -866,7 +860,7 @@ def unpack_binary_manifest_to_data(packed_data):
     # Extract UUID
     uuid, packed_data = packed_data[:16], packed_data[16:]
     uuid = swap_uuid_bytes(uuid)
-    uuid = bytes2hex(uuid)
+    uuid = uuid.hex()
     uuid = uuid[:8] + "-" \
             + uuid[8:12] + "-" \
             + uuid[12:16] + "-" \
@@ -1044,7 +1038,7 @@ def define_bool_const_entry(const, log):
 
 
 def define_uuid_const_entry(const, log):
-    uuid = bytes2hex(const.value)
+    uuid = const.value.hex()
 
     part = ", ".join(
             ["0x" + uuid[index:index+2] for index in range(16, len(uuid), 2)])
