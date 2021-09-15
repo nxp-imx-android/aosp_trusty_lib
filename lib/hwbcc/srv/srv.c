@@ -21,6 +21,7 @@
 #include <lib/hwbcc/srv/srv.h>
 #include <lib/tipc/tipc.h>
 #include <lib/tipc/tipc_srv.h>
+#include <string.h>
 #include <trusty_ipc.h>
 #include <trusty_log.h>
 #include <uapi/err.h>
@@ -57,13 +58,17 @@ static const struct uuid hwbcc_test_uuid = {
         {0xbb, 0x47, 0xe1, 0xdd, 0x08, 0x91, 0x0e, 0x16},
 };
 
+/* ZERO UUID to allow connections from non-secure world */
+static const struct uuid zero_uuid = UUID_INITIAL_VALUE(zero_uuid);
+
 static const struct uuid* allowed_uuids[] = {
         &km_uuid,
         &hwbcc_test_uuid,
+        &zero_uuid,
 };
 
 static struct tipc_port_acl acl = {
-        .flags = IPC_PORT_ALLOW_TA_CONNECT,
+        .flags = IPC_PORT_ALLOW_TA_CONNECT | IPC_PORT_ALLOW_NS_CONNECT,
         .uuids = allowed_uuids,
         .uuid_num = countof(allowed_uuids),
 };
@@ -79,7 +84,8 @@ static struct tipc_port port = {
 static const struct hwbcc_ops* hwbcc_ops;
 
 static int hwbcc_check_ops(const struct hwbcc_ops* ops) {
-    if (!ops->init || !ops->close || !ops->sign_mac || !ops->get_bcc) {
+    if (!ops->init || !ops->close || !ops->sign_mac || !ops->get_bcc ||
+        !ops->get_dice_artifacts || !ops->ns_deprivilege) {
         TLOGE("NULL ops pointers\n");
         return ERR_INVALID_ARGS;
     }
@@ -173,6 +179,65 @@ static int handle_get_bcc(hwbcc_session_t s,
     return NO_ERROR;
 }
 
+static int handle_get_dice_artifacts(hwbcc_session_t s,
+                                     handle_t chan,
+                                     uint64_t context) {
+    int rc;
+    struct hwbcc_resp resp = {0};
+    size_t payload_size = 0;
+
+    assert(hwbcc_ops);
+
+    rc = hwbcc_ops->get_dice_artifacts(s, context, resp.payload,
+                                       sizeof(resp.payload), &payload_size);
+
+    if (rc != NO_ERROR) {
+        TLOGE("HWBCC_CMD_GET_DICE_ARTIFACTS failure: %d\n", rc);
+    }
+
+    resp.hdr.cmd = HWBCC_CMD_GET_DICE_ARTIFACTS | HWBCC_CMD_RESP_BIT;
+    resp.hdr.status = rc;
+    resp.hdr.payload_size = payload_size;
+
+    rc = tipc_send1(chan, &resp, sizeof(resp.hdr) + payload_size);
+    if (rc < 0) {
+        return rc;
+    }
+
+    if ((size_t)rc != sizeof(resp.hdr) + payload_size) {
+        return ERR_BAD_LEN;
+    }
+
+    return NO_ERROR;
+}
+
+static int handle_ns_deprivilege(hwbcc_session_t s, handle_t chan) {
+    int rc;
+    struct hwbcc_resp resp = {0};
+
+    assert(hwbcc_ops);
+
+    rc = hwbcc_ops->ns_deprivilege(s);
+
+    if (rc != NO_ERROR) {
+        TLOGE("HWBCC_CMD_NS_DEPRIVILEGE failure: %d\n", rc);
+    }
+
+    resp.hdr.cmd = HWBCC_CMD_NS_DEPRIVILEGE | HWBCC_CMD_RESP_BIT;
+    resp.hdr.status = rc;
+
+    rc = tipc_send1(chan, &resp, sizeof(resp.hdr));
+    if (rc < 0) {
+        return rc;
+    }
+
+    if ((size_t)rc != sizeof(resp.hdr)) {
+        return ERR_BAD_LEN;
+    }
+
+    return NO_ERROR;
+}
+
 static int on_message(const struct tipc_port* port, handle_t chan, void* ctx) {
     int rc;
     struct hwbcc_req req;
@@ -207,6 +272,20 @@ static int on_message(const struct tipc_port* port, handle_t chan, void* ctx) {
         }
 
         return handle_get_bcc(s, chan, req.hdr.test_mode);
+
+    case HWBCC_CMD_GET_DICE_ARTIFACTS:
+        if (rc != sizeof(req.hdr)) {
+            return ERR_BAD_LEN;
+        }
+
+        return handle_get_dice_artifacts(s, chan, req.hdr.context);
+
+    case HWBCC_CMD_NS_DEPRIVILEGE:
+        if (rc != sizeof(req.hdr)) {
+            return ERR_BAD_LEN;
+        }
+
+        return handle_ns_deprivilege(s, chan);
 
     default:
         TLOGE("Received unknown command %x\n", req.hdr.cmd);

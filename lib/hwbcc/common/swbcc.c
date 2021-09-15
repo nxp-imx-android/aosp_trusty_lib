@@ -17,6 +17,7 @@
 #define TLOG_TAG "swbcc"
 
 #include <assert.h>
+#include <dice/android/bcc.h>
 #include <dice/cbor_writer.h>
 #include <dice/dice.h>
 #include <dice/ops.h>
@@ -26,12 +27,50 @@
 #include <lib/hwbcc/common/swbcc.h>
 #include <lib/hwkey/hwkey.h>
 #include <lib/rng/trusty_rng.h>
+#include <lib/system_state/system_state.h>
 #include <stdlib.h>
 #include <string.h>
 #include <trusty_log.h>
 #include <uapi/err.h>
 
 static const uint8_t kdf_ctx[] = "RkpDerivCtx";
+static const uint8_t uds_ctx[] = "UdsDeriveCtx";
+
+/* ZERO UUID represents non-secure world */
+static const struct uuid zero_uuid = UUID_INITIAL_VALUE(zero_uuid);
+
+/* Set of information required to derive DICE artifacts for the child node. */
+struct ChildNodeInfo {
+    uint8_t code_hash[DICE_HASH_SIZE];
+    uint8_t authority_hash[DICE_HASH_SIZE];
+    BccConfigValues config_descriptor;
+};
+
+struct dice_root_state {
+    /* Unique Device Secret - A hardware backed secret */
+    uint8_t UDS[DICE_CDI_SIZE];
+    /* Public key of the key pair derived from a seed derived from UDS. */
+    uint8_t UDS_pub_key[DICE_PUBLIC_KEY_SIZE];
+    /* Secret (of size: DICE_HIDDEN_SIZE) with factory reset life time. */
+    uint8_t FRS[DICE_HIDDEN_SIZE];
+    /**
+     * Information about the child node of Trusty in the DICE chain in
+     * non-secure world (e.g. ABL).
+     */
+    struct ChildNodeInfo child_node_info;
+};
+
+struct swbcc_srv_state {
+    void* dice_ctx;
+    struct dice_root_state dice_root;
+    /**
+     * This is set to 1 when a deprivileged call is received from non-secure
+     * world. Assumption: there are no concurrent calls to this app.
+     */
+    bool ns_deprivileged;
+};
+
+static struct swbcc_srv_state srv_state;
 
 static int dice_result_to_err(DiceResult result) {
     switch (result) {
@@ -46,7 +85,7 @@ static int dice_result_to_err(DiceResult result) {
     }
 }
 
-struct swbcc_state {
+struct swbcc_session {
     uint8_t key_seed[DICE_PRIVATE_KEY_SEED_SIZE];
     uint8_t pub_key[DICE_PUBLIC_KEY_SIZE];
     uint8_t priv_key[DICE_PRIVATE_KEY_SIZE];
@@ -55,8 +94,28 @@ struct swbcc_state {
     uint8_t test_pub_key[DICE_PUBLIC_KEY_SIZE];
     uint8_t test_priv_key[DICE_PRIVATE_KEY_SIZE];
 
-    void* dice_ctx;
+    struct uuid client_uuid;
 };
+
+/* Max size of COSE_Sign1 including payload. */
+#define MAX_CERTIFICATE_SIZE 512
+
+/* Set of DICE artifacts passed on from one stage to the next */
+struct DICEArtifacts {
+    uint8_t next_cdi_attest[DICE_CDI_SIZE];
+    uint8_t next_cdi_seal[DICE_CDI_SIZE];
+    uint8_t next_certificate[MAX_CERTIFICATE_SIZE];
+    size_t next_certificate_size;
+};
+
+/* Checks if the call to the TA is from non-secure world. */
+static bool is_zero_uuid(const struct uuid peer) {
+    if (memcmp(&peer, &zero_uuid, sizeof(zero_uuid))) {
+        return false;
+    } else {
+        return true;
+    }
+}
 
 static int derive_seed(uint8_t* ctx, uint8_t* seed) {
     long rc = hwkey_open();
@@ -81,14 +140,109 @@ out:
     return (int)rc;
 }
 
+int swbcc_glob_init(const uint8_t FRS[DICE_HIDDEN_SIZE],
+                    const uint8_t code_hash[DICE_HASH_SIZE],
+                    const uint8_t authority_hash[DICE_HASH_SIZE],
+                    const BccConfigValues* config_descriptor) {
+    assert(FRS);
+
+    srv_state.ns_deprivileged = false;
+
+    memcpy(srv_state.dice_root.FRS, FRS, DICE_HIDDEN_SIZE);
+
+    memcpy(srv_state.dice_root.child_node_info.code_hash, code_hash,
+           DICE_HIDDEN_SIZE);
+    memcpy(srv_state.dice_root.child_node_info.authority_hash, authority_hash,
+           DICE_HIDDEN_SIZE);
+    srv_state.dice_root.child_node_info.config_descriptor.inputs =
+            config_descriptor->inputs;
+    /* Component name is not copied, assuming it points to string literals which
+     * are static. */
+    srv_state.dice_root.child_node_info.config_descriptor.component_name =
+            config_descriptor->component_name;
+    srv_state.dice_root.child_node_info.config_descriptor.component_version =
+            config_descriptor->component_version;
+
+    int rc;
+    DiceResult result;
+    uint8_t ctx[DICE_PRIVATE_KEY_SEED_SIZE];
+
+    memset(ctx, 0, sizeof(ctx));
+    memcpy(ctx, uds_ctx, sizeof(uds_ctx));
+
+    /* Init UDS */
+    rc = derive_seed(ctx, srv_state.dice_root.UDS);
+    if (rc != NO_ERROR) {
+        TLOGE("Failed to derive a hardware backed key for UDS.\n");
+        return rc;
+    }
+
+    /* Derive private key seed */
+    uint8_t private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE];
+    result = DiceDeriveCdiPrivateKeySeed(NULL, srv_state.dice_root.UDS,
+                                         private_key_seed);
+    rc = dice_result_to_err(result);
+    if (rc != NO_ERROR) {
+        TLOGE("Failed to derive a seed for UDS key pair.\n");
+        return rc;
+    }
+    /**
+     * Derive UDS key pair. UDS public key is kept in dice_root to construct
+     * the certificate chain for the child nodes. UDS private key is derived in
+     * every DICE operation which uses it.
+     */
+    uint8_t UDS_private_key[DICE_PRIVATE_KEY_SIZE];
+    result = DiceKeypairFromSeed(NULL, private_key_seed,
+                                 srv_state.dice_root.UDS_pub_key,
+                                 UDS_private_key);
+
+    rc = dice_result_to_err(result);
+    if (rc != NO_ERROR) {
+        TLOGE("Failed to derive UDS key pair.\n");
+        return rc;
+    }
+
+    return rc;
+}
+
 int swbcc_init(swbcc_session_t* s, const struct uuid* client) {
     int rc;
     DiceResult result;
     uint8_t ctx[DICE_PRIVATE_KEY_SEED_SIZE];
 
-    struct swbcc_state* state = (struct swbcc_state*)calloc(1, sizeof(*state));
-    if (!state) {
+    struct swbcc_session* session =
+            (struct swbcc_session*)calloc(1, sizeof(*session));
+    if (!session) {
         return ERR_NO_MEMORY;
+    }
+
+    session->client_uuid = *client;
+
+    /**
+     * If the call to hwbcc is to obtain the DICE artifacts, we do not need to
+     * initialize anything other than the UUID in the session, because the
+     * common UDS is initialized during the initialization of the service. We
+     * only need to track the client UUID in that case in order to retrieve the
+     * client's CDI inputs (e.g. code hash). But at this point we do not know
+     * which API method the client is going to call. However, we know that if
+     * the call is from non-secure world, the goal is to retrieve the DICE
+     * artifacts. Therefore, we filter based on the zero UUID for now. But in
+     * the future, we can filter the legacy case of creating a KM specific BCC
+     * via the KM UUID, because the main purpose of hwbcc service is to provide
+     * the DICE artifacts to the clients.
+     */
+    if (is_zero_uuid(session->client_uuid)) {
+        *s = (swbcc_session_t)session;
+
+        /**
+         * Stop serving calls from non-secure world after receiving
+         * `ns_deprivilege` call.
+         */
+        if (srv_state.ns_deprivileged) {
+            return ERR_NOT_ALLOWED;
+        }
+
+        return NO_ERROR;
     }
 
     STATIC_ASSERT(sizeof(ctx) >= sizeof(*client) + sizeof(kdf_ctx));
@@ -98,13 +252,13 @@ int swbcc_init(swbcc_session_t* s, const struct uuid* client) {
     memcpy(ctx + sizeof(*client), kdf_ctx, sizeof(kdf_ctx));
 
     /* Init BCC keys */
-    rc = derive_seed(ctx, state->key_seed);
+    rc = derive_seed(ctx, session->key_seed);
     if (rc != NO_ERROR) {
         goto err;
     }
 
-    result = DiceKeypairFromSeed(state->dice_ctx, state->key_seed,
-                                 state->pub_key, state->priv_key);
+    result = DiceKeypairFromSeed(srv_state.dice_ctx, session->key_seed,
+                                 session->pub_key, session->priv_key);
     rc = dice_result_to_err(result);
     if (rc != NO_ERROR) {
         TLOGE("Failed to generate keypair: %d\n", rc);
@@ -112,26 +266,31 @@ int swbcc_init(swbcc_session_t* s, const struct uuid* client) {
     }
 
     /* Init test keys */
-    rc = trusty_rng_secure_rand(state->test_key_seed,
-                                sizeof(state->test_key_seed));
+    rc = trusty_rng_secure_rand(session->test_key_seed,
+                                sizeof(session->test_key_seed));
     if (rc != NO_ERROR) {
         goto err;
     }
 
-    result = DiceKeypairFromSeed(state->dice_ctx, state->test_key_seed,
-                                 state->test_pub_key, state->test_priv_key);
+    result = DiceKeypairFromSeed(srv_state.dice_ctx, session->test_key_seed,
+                                 session->test_pub_key, session->test_priv_key);
     rc = dice_result_to_err(result);
     if (rc != NO_ERROR) {
         TLOGE("Failed to generate test keypair: %d\n", rc);
         return rc;
     }
 
-    *s = (swbcc_session_t)state;
+    *s = (swbcc_session_t)session;
     return NO_ERROR;
 
 err:
-    free(state);
+    free(session);
     return rc;
+}
+
+int swbcc_ns_deprivilege(swbcc_session_t s) {
+    srv_state.ns_deprivileged = true;
+    return NO_ERROR;
 }
 
 void swbcc_close(swbcc_session_t s) {
@@ -167,7 +326,7 @@ int swbcc_sign_mac(swbcc_session_t s,
     int rc;
     DiceResult result;
     const uint8_t* signing_key;
-    struct swbcc_state* state = s;
+    struct swbcc_session* session = s;
 
     assert(s);
     assert(mac_key);
@@ -181,10 +340,10 @@ int swbcc_sign_mac(swbcc_session_t s,
         return ERR_NOT_SUPPORTED;
     }
 
-    signing_key = test_mode ? state->test_priv_key : state->priv_key;
+    signing_key = test_mode ? session->test_priv_key : session->priv_key;
 
     result = DiceCoseSignAndEncodeSign1(
-            state->dice_ctx, mac_key, HWBCC_MAC_KEY_SIZE, aad, aad_size,
+            srv_state.dice_ctx, mac_key, HWBCC_MAC_KEY_SIZE, aad, aad_size,
             signing_key, cose_sign1_buf_size, cose_sign1, cose_sign1_size);
     rc = dice_result_to_err(result);
     if (rc != NO_ERROR) {
@@ -249,7 +408,7 @@ int swbcc_get_bcc(swbcc_session_t s,
     const uint8_t* seed;
     const uint8_t* pub_key;
     size_t bcc_used;
-    struct swbcc_state* state = s;
+    struct swbcc_session* session = s;
 
     assert(s);
     assert(bcc);
@@ -257,11 +416,11 @@ int swbcc_get_bcc(swbcc_session_t s,
     assert(bcc_buf_size >= BCC_TOTAL_SIZE);
 
     if (test_mode) {
-        seed = state->test_key_seed;
-        pub_key = state->test_pub_key;
+        seed = session->test_key_seed;
+        pub_key = session->test_pub_key;
     } else {
-        seed = state->key_seed;
-        pub_key = state->pub_key;
+        seed = session->key_seed;
+        pub_key = session->pub_key;
     }
 
     /* Encode BCC */
@@ -275,7 +434,7 @@ int swbcc_get_bcc(swbcc_session_t s,
     *bcc_size = bcc_used;
 
     /* Encode first entry in the array which is a COSE_Key */
-    result = DiceCoseEncodePublicKey(state->dice_ctx, pub_key, bcc_buf_size,
+    result = DiceCoseEncodePublicKey(srv_state.dice_ctx, pub_key, bcc_buf_size,
                                      bcc, &bcc_used);
     rc = dice_result_to_err(result);
     if (rc != NO_ERROR) {
@@ -288,7 +447,7 @@ int swbcc_get_bcc(swbcc_session_t s,
     *bcc_size += bcc_used;
 
     /* Encode second entry in the array which is a COSE_Sign1 */
-    rc = encode_degenerate_cert(state->dice_ctx, seed, bcc, bcc_buf_size,
+    rc = encode_degenerate_cert(srv_state.dice_ctx, seed, bcc, bcc_buf_size,
                                 &bcc_used);
     if (rc != NO_ERROR) {
         TLOGE("Failed to generate certificate: %d\n", rc);
@@ -296,5 +455,129 @@ int swbcc_get_bcc(swbcc_session_t s,
     }
 
     *bcc_size += bcc_used;
+    return NO_ERROR;
+}
+
+#define CONFIG_DESCRIPTOR_TOTAL_SIZE 48
+
+/*
+ * Format and size of a DICE artifacts handed over from root is:
+ * Map header + Two CDIs = 72
+ * Bcc (root pub key + certificate) = 509
+ * Total BCC Handover = 581
+ */
+#define DICE_ARTIFACTS_FROM_ROOT_TOTAL_SIZE 587
+
+int swbcc_get_dice_artifacts(swbcc_session_t s,
+                             uint64_t context,
+                             uint8_t* dice_artifacts,
+                             size_t dice_artifacts_buf_size,
+                             size_t* dice_artifacts_size) {
+    assert(s);
+
+    int rc;
+    DiceResult result;
+    assert(dice_artifacts);
+    assert(dice_artifacts_size);
+    assert(dice_artifacts_buf_size >= DICE_ARTIFACTS_FROM_ROOT_TOTAL_SIZE);
+
+    struct DICEArtifacts dice_artifacts_for_target = {};
+
+    /* Initialize the DICE input values. */
+    DiceInputValues input_values = {};
+    memcpy(input_values.code_hash,
+           srv_state.dice_root.child_node_info.code_hash,
+           sizeof(srv_state.dice_root.child_node_info.code_hash));
+
+    input_values.config_type = kDiceConfigTypeDescriptor;
+
+    uint8_t config_descriptor_encoded[CONFIG_DESCRIPTOR_TOTAL_SIZE];
+    size_t config_descriptor_encoded_size = 0;
+
+    result = BccFormatConfigDescriptor(
+            &(srv_state.dice_root.child_node_info.config_descriptor),
+            sizeof(config_descriptor_encoded), config_descriptor_encoded,
+            &config_descriptor_encoded_size);
+
+    rc = dice_result_to_err(result);
+
+    if (rc != NO_ERROR) {
+        TLOGE("Failed to format config descriptor : %d\n", rc);
+        return rc;
+    }
+
+    input_values.config_descriptor = config_descriptor_encoded;
+    input_values.config_descriptor_size = config_descriptor_encoded_size;
+
+    memcpy(input_values.authority_hash,
+           srv_state.dice_root.child_node_info.authority_hash,
+           sizeof(srv_state.dice_root.child_node_info.authority_hash));
+
+    /* Set the mode */
+    if (system_state_app_loading_unlocked()) {
+        input_values.mode = kDiceModeDebug;
+    } else {
+        input_values.mode = kDiceModeNormal;
+    }
+
+    memcpy(input_values.hidden, srv_state.dice_root.FRS,
+           sizeof(srv_state.dice_root.FRS));
+
+    result = DiceMainFlow(NULL, srv_state.dice_root.UDS,
+                          srv_state.dice_root.UDS, &input_values,
+                          sizeof(dice_artifacts_for_target.next_certificate),
+                          dice_artifacts_for_target.next_certificate,
+                          &dice_artifacts_for_target.next_certificate_size,
+                          dice_artifacts_for_target.next_cdi_attest,
+                          dice_artifacts_for_target.next_cdi_seal);
+    rc = dice_result_to_err(result);
+
+    if (rc != NO_ERROR) {
+        TLOGE("Failed to do the DICE derivation : %d\n", rc);
+        return rc;
+    }
+
+    /*
+     * Encode DICE artifacts to be handed over from root to the child nodes.
+     * BccHandover = {
+     *	1 : bstr .size 32,	// CDI_Attest
+     *	2 : bstr .size 32,	// CDI_Seal
+     *	3 : bstr .cbor Bcc,	// Cert_Chain
+     * }
+     */
+    struct CborOut out;
+    CborOutInit(dice_artifacts, dice_artifacts_buf_size, &out);
+    CborWriteMap(3, &out);
+    CborWriteInt(1, &out);
+    CborWriteBstr(DICE_CDI_SIZE, dice_artifacts_for_target.next_cdi_attest,
+                  &out);
+    CborWriteInt(2, &out);
+    CborWriteBstr(DICE_CDI_SIZE, dice_artifacts_for_target.next_cdi_seal, &out);
+    CborWriteInt(3, &out);
+    CborWriteArray(2, &out);
+    assert(!CborOutOverflowed(&out));
+    size_t encoded_size_used = CborOutSize(&out);
+
+    dice_artifacts += encoded_size_used;
+    dice_artifacts_buf_size -= encoded_size_used;
+    *dice_artifacts_size = encoded_size_used;
+
+    size_t encoded_pub_key_size = 0;
+    result = DiceCoseEncodePublicKey(NULL, srv_state.dice_root.UDS_pub_key,
+                                     dice_artifacts_buf_size, dice_artifacts,
+                                     &encoded_pub_key_size);
+    rc = dice_result_to_err(result);
+    if (rc != NO_ERROR) {
+        TLOGE("Failed to encode the public key : %d\n", rc);
+        return rc;
+    }
+
+    dice_artifacts += encoded_pub_key_size;
+    dice_artifacts_buf_size -= encoded_pub_key_size;
+    *dice_artifacts_size += encoded_pub_key_size;
+
+    memcpy(dice_artifacts, dice_artifacts_for_target.next_certificate,
+           dice_artifacts_for_target.next_certificate_size);
+    *dice_artifacts_size += dice_artifacts_for_target.next_certificate_size;
     return NO_ERROR;
 }

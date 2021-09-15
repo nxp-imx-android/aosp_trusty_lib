@@ -29,24 +29,40 @@ __BEGIN_CDECLS
  * @HWBCC_CMD_RESP_BIT:  Bit indicating that this is a response.
  * @HWBCC_CMD_SIGN_MAC:  Sign the provided MAC key.
  * @HWBCC_CMD_GET_BCC:   Get BCC.
+ * @HWBCC_CMD_GET_DICE_ARTIFACTS: Retrieves DICE artifacts for
+ * a child node in the DICE chain/tree.
+ * @HWBCC_CMD_NS_DEPRIVILEGE: Deprivilege hwbcc from serving calls
+ * to non-secure clients.
  */
 enum hwbcc_cmd {
     HWBCC_CMD_REQ_SHIFT = 1,
     HWBCC_CMD_RESP_BIT = 1,
     HWBCC_CMD_SIGN_MAC = 1 << HWBCC_CMD_REQ_SHIFT,
-    HWBCC_CMD_GET_BCC = 2 << HWBCC_CMD_REQ_SHIFT
+    HWBCC_CMD_GET_BCC = 2 << HWBCC_CMD_REQ_SHIFT,
+    HWBCC_CMD_GET_DICE_ARTIFACTS = 3 << HWBCC_CMD_REQ_SHIFT,
+    HWBCC_CMD_NS_DEPRIVILEGE = 4 << HWBCC_CMD_REQ_SHIFT,
 };
 
 /**
  * struct hwbcc_req_hdr - Generic header for all hwbcc requests.
  * @cmd:       The command to be run. Commands are described in hwbcc_cmd.
  * @test_mode: Whether or not RKP is making a test request.
+ * @context:   Device specific context information passed in by the client.
+ *             This is opaque to the generic Trusty code. This is required
+ *             to make decisions about device specific behavior in the
+ *             implementations of certain hwbcc interface methods. For e.g.
+ *             w.r.t get_dice_artifacts, context can supply information
+ *             about which secure/non-secure DICE child node is requesting
+ *             the dice_artifacts and the implementations can use such
+ *             information to derive dice artifacts specific to the
+ *             particular child node.
  */
 struct hwbcc_req_hdr {
     uint32_t cmd;
     uint32_t test_mode;
+    uint64_t context;
 };
-STATIC_ASSERT(sizeof(struct hwbcc_req_hdr) == 8);
+STATIC_ASSERT(sizeof(struct hwbcc_req_hdr) == 16);
 
 #define HWBCC_MAC_KEY_SIZE 32
 
@@ -89,6 +105,6 @@ struct hwbcc_resp_hdr {
 };
 STATIC_ASSERT(sizeof(struct hwbcc_resp_hdr) == 12);
 
-#define HWBCC_MAX_RESP_PAYLOAD_SIZE 512
+#define HWBCC_MAX_RESP_PAYLOAD_SIZE 1024
 
 __END_CDECLS

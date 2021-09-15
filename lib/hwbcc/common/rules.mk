@@ -27,5 +27,6 @@ MODULE_LIBRARY_DEPS := \
 	trusty/user/base/interface/hwbcc \
 	trusty/user/base/lib/hwkey \
 	trusty/user/base/lib/rng \
+	trusty/user/base/lib/system_state \
 
 include make/library.mk

@@ -16,6 +16,8 @@
 
 #pragma once
 
+#include <dice/android/bcc.h>
+#include <dice/dice.h>
 #include <lk/compiler.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -24,6 +26,24 @@
 __BEGIN_CDECLS
 
 typedef void* swbcc_session_t;
+
+/**
+ * swbcc_glob_init()  - Initialize the global state in hwbcc TA.
+ * @code_hash:        - Code hash of the child node in DICE chain.
+ * @authority_hash:   - Hash of the key used to verify the signature over the
+ *                      code hash of the child node in DICE chain.
+ * @FRS:              - A secret (of size: DICE_HIDDEN_SIZE) with factory reset
+ *                      life time, which is stored in tamper-evident storage.
+ * @child_node_info:  - Information about the child node of Trusty in the DICE
+ *                      chain in non-secure world (e.g. ABL). This is required
+ *                      to derive DICE artifacts for the child node.
+ *
+ * Return: 0 on success, or an error code < 0 on failure.
+ */
+int swbcc_glob_init(const uint8_t FRS[DICE_HIDDEN_SIZE],
+                    const uint8_t code_hash[DICE_HASH_SIZE],
+                    const uint8_t authority_hash[DICE_HASH_SIZE],
+                    const BccConfigValues* config_descriptor);
 
 int swbcc_init(swbcc_session_t* s, const struct uuid* client);
 
@@ -44,5 +64,13 @@ int swbcc_get_bcc(swbcc_session_t s,
                   uint8_t* bcc,
                   size_t bcc_buf_size,
                   size_t* bcc_size);
+
+int swbcc_get_dice_artifacts(swbcc_session_t s,
+                             uint64_t context,
+                             uint8_t* dice_artifacts,
+                             size_t dice_artifacts_buf_size,
+                             size_t* dice_artifacts_size);
+
+int swbcc_ns_deprivilege(swbcc_session_t s);
 
 __END_CDECLS

@@ -65,6 +65,7 @@ static int recv_resp(handle_t chan,
 
     if (resp.payload_size > HWBCC_MAX_RESP_PAYLOAD_SIZE ||
         resp.payload_size > buf_size) {
+        TLOGE("Response payload size: %d\n", resp.payload_size);
         return ERR_BAD_LEN;
     }
 
@@ -206,6 +207,108 @@ int hwbcc_get_protected_data(uint8_t test_mode,
         TLOGE("Failed get_bcc(): %d\n", rc);
         goto out;
     }
+
+out:
+    close(chan);
+    return rc;
+}
+
+int hwbcc_get_dice_artifacts(uint64_t context,
+                             uint8_t* dice_artifacts,
+                             size_t dice_artifacts_buf_size,
+                             size_t* dice_artifacts_size) {
+    int rc;
+    handle_t chan;
+
+    rc = tipc_connect(&chan, HWBCC_PORT);
+    if (rc < 0) {
+        TLOGE("Failed to connect to %s: %d\n", HWBCC_PORT, rc);
+        return rc;
+    }
+
+    assert(dice_artifacts);
+    assert(dice_artifacts_size);
+
+    struct hwbcc_req_hdr hdr;
+    hdr.cmd = HWBCC_CMD_GET_DICE_ARTIFACTS;
+    hdr.context = context;
+
+    rc = tipc_send1(chan, &hdr, sizeof(hdr));
+    if (rc < 0) {
+        TLOGE("Unable to send get_dice_artifacts request: %d\n", rc);
+        goto out;
+    }
+
+    if ((size_t)rc != sizeof(hdr)) {
+        TLOGE("Only sent %d bytes of get_dice_artifacts request.\n", rc);
+        goto out;
+    }
+
+    rc = recv_resp(chan, &hdr, dice_artifacts, dice_artifacts_buf_size,
+                   dice_artifacts_size);
+    if (rc != NO_ERROR) {
+        TLOGE("Failed get_dice_artifacts(): %d\n", rc);
+        goto out;
+    }
+
+out:
+    close(chan);
+    return rc;
+}
+
+int hwbcc_ns_deprivilege(void) {
+    int rc;
+    handle_t chan;
+
+    rc = tipc_connect(&chan, HWBCC_PORT);
+    if (rc < 0) {
+        TLOGE("Failed to connect to %s: %d\n", HWBCC_PORT, rc);
+        return rc;
+    }
+
+    struct hwbcc_req_hdr hdr;
+
+    hdr.cmd = HWBCC_CMD_NS_DEPRIVILEGE;
+    rc = tipc_send1(chan, &hdr, sizeof(hdr));
+    if (rc < 0) {
+        TLOGE("Unable to send deprivilege request: %d\n", rc);
+        goto out;
+    }
+
+    if ((size_t)rc != sizeof(hdr)) {
+        TLOGE("Only sent %d bytes of deprivilege request.\n", rc);
+        goto out;
+    }
+
+    /*Receive respose which only contains a header*/
+    uevent_t uevt;
+    struct hwbcc_resp_hdr resp;
+
+    rc = wait(chan, &uevt, INFINITE_TIME);
+    if (rc != NO_ERROR) {
+        TLOGE("Failure while waiting for response: %d\n", rc);
+        goto out;
+    }
+
+    rc = tipc_recv1(chan, sizeof(resp), &resp, sizeof(resp));
+    if (rc < 0) {
+        TLOGE("Failure on receiving response: %d\n", rc);
+        goto out;
+    }
+
+    if (resp.cmd != (hdr.cmd | HWBCC_CMD_RESP_BIT)) {
+        TLOGE("Unknown response cmd: %x\n", resp.cmd);
+        rc = ERR_CMD_UNKNOWN;
+        goto out;
+    }
+
+    if (resp.status != NO_ERROR) {
+        TLOGE("Status is not SUCCESS. Actual: %d\n", resp.status);
+        rc = resp.status;
+        goto out;
+    }
+
+    rc = NO_ERROR;
 
 out:
     close(chan);

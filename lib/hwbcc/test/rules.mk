@@ -24,10 +24,12 @@ MODULE_SRCS := \
 MODULE_LIBRARY_DEPS := \
 	external/boringssl \
 	external/libcppbor \
+	external/open-dice \
 	trusty/user/base/lib/hwbcc/client \
 	trusty/user/base/lib/hwbcc/common \
 	trusty/user/base/lib/libc-trusty \
 	trusty/user/base/lib/libstdc++-trusty \
+	trusty/user/base/lib/system_state \
 	trusty/user/base/lib/unittest \
 
 include make/trusted_app.mk

@@ -38,6 +38,10 @@ typedef void* hwbcc_session_t;
  * @close:    Closes a session previously initialized by @init.
  * @sign_mac: Signs a MAC key and returns a COSE_Sign1 message.
  * @get_bcc:  Retrieves the Boot Certificate Chain for the device.
+ * @get_dice_artifacts: Retrieves DICE artifacts for
+ * a child node in the DICE chain/tree.
+ * @ns_deprivilege: Deprivilege hwbcc from serving calls to
+ * non-secure clients.
  *
  * Callbacks defined here are meant to be implemented by the "backend" of HWBCC
  * service. See the "frontend" interface for more details:
@@ -60,6 +64,12 @@ struct hwbcc_ops {
                    uint8_t* bcc,
                    size_t bcc_buf_size,
                    size_t* bcc_size);
+    int (*get_dice_artifacts)(hwbcc_session_t s,
+                              uint64_t context,
+                              uint8_t* dice_artifacts,
+                              size_t dice_artifacts_buf_size,
+                              size_t* dice_artifacts_size);
+    int (*ns_deprivilege)(hwbcc_session_t s);
 };
 
 /**

@@ -56,4 +56,29 @@ int hwbcc_get_protected_data(uint8_t test_mode,
                              size_t bcc_buf_size,
                              size_t* bcc_size);
 
+/**
+ * hwbcc_get_dice_artifacts() - Retrieves DICE artifacts for a child node in the
+ * DICE chain/tree.
+ * @context:                    Device specific context information passed
+ *                              in by the client.
+ * @dice_artifacts:             Pointer to a buffer to store the CBOR encoded
+ *                              DICE artifacts.
+ * @dice_artifacts_buf_size:    Size of the buffer pointed by @dice_artifacts.
+ * @dice_artifacts_size:        Actual size of the buffer used.
+ *
+ * Return: 0 on success, or an error code < 0 on failure.
+ */
+int hwbcc_get_dice_artifacts(uint64_t context,
+                             uint8_t* dice_artifacts,
+                             size_t dice_artifacts_buf_size,
+                             size_t* dice_artifacts_size);
+
+/**
+ * hwbcc_ns_deprivilege() - Deprivileges hwbcc from serving calls to non-secure
+ * clients.
+ *
+ * Return: 0 on success, or an error code < 0 on failure.
+ */
+int hwbcc_ns_deprivilege(void);
+
 __END_CDECLS
