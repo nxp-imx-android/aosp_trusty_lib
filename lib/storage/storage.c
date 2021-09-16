@@ -29,6 +29,10 @@
 #define TLOGE(fmt, ...) \
     fprintf(stderr, "%s: %d: " fmt, LOG_TAG, __LINE__, ##__VA_ARGS__)
 
+#define TLOGE_APP_NAME(fmt, ...)                                       \
+    fprintf(stderr, "%s: %d: %s: " fmt, LOG_TAG, __LINE__, __progname, \
+            ##__VA_ARGS__)
+
 #if LOCAL_TRACE
 #define TLOGI(fmt, ...) \
     fprintf(stderr, "%s: %d: " fmt, LOG_TAG, __LINE__, ##__VA_ARGS__)
@@ -37,6 +41,12 @@
 #endif
 
 #define MAX_CHUNK_SIZE 4040
+
+/* At what delay threshold should wait_infinite_logged() start logging? */
+#define WAIT_INFINITE_LOG_THRESHOLD_MSEC 1000
+
+/* Initialized by __init_libc in ./trusty/musl/src/env/__libc_start_main.c */
+extern char* __progname;
 
 static inline file_handle_t make_file_handle(storage_session_t s,
                                              uint32_t fid) {
@@ -106,6 +116,34 @@ static ssize_t check_response(struct storage_msg* msg, ssize_t res) {
     return ERR_IO;
 }
 
+int wait_infinite_logged(storage_session_t session,
+                         uevent_t* ev,
+                         const char* caller) {
+    unsigned long wait_time = WAIT_INFINITE_LOG_THRESHOLD_MSEC;
+
+    /* wait for reply */
+    int rc;
+    do {
+        rc = wait(session, ev, wait_time);
+        if (rc == ERR_TIMED_OUT) {
+            TLOGE_APP_NAME(
+                    "Timed out after %ld milliseconds, retrying; "
+                    "called by %s\n",
+                    wait_time, caller);
+            wait_time = wait_time * 2;
+        }
+    } while (rc == ERR_TIMED_OUT);
+
+    if (wait_time != WAIT_INFINITE_LOG_THRESHOLD_MSEC) {
+        TLOGE_APP_NAME(
+                "Finally succeeded (last wait: < %ld milliseconds); "
+                "called by %s\n",
+                wait_time, caller);
+    }
+
+    return rc;
+}
+
 static ssize_t get_response(storage_session_t session,
                             struct iovec* rx_iovs,
                             uint32_t rx_iovcnt)
@@ -122,7 +160,7 @@ static ssize_t get_response(storage_session_t session,
         return 0;
 
     /* wait for reply */
-    int rc = wait(session, &ev, INFINITE_TIME);
+    int rc = wait_infinite_logged(session, &ev, __func__);
     if (rc != NO_ERROR) {
         TLOGE("%s: interrupted waiting for response", __func__);
         return rc;
@@ -154,7 +192,7 @@ static int wait_to_send(handle_t session, struct ipc_msg* msg) {
     int rc;
     struct uevent ev;
 
-    rc = wait(session, &ev, -1);
+    rc = wait_infinite_logged(session, &ev, __func__);
     if (rc < 0) {
         TLOGE("failed to wait for outgoing queue to free up\n");
         return rc;
