@@ -325,14 +325,14 @@ class TestManifest(unittest.TestCase):
         self.assertIsNone(data)
 
     def test_validate_uuid_7(self):
-        """Test with invalid UUID value"""
+        """Test with UUID containing invalid hex digits"""
         log = manifest_compiler.Log()
-        uuid = "12345678-9111-1222-3333-222111233222"
+        uuid = "12345678-gggg-1222-3333-222111233222"
         data = manifest_compiler.parse_uuid(uuid, log)
         self.assertTrue(log.error_occurred())
         self.assertIsNone(data)
 
-    def test_validate_uuid_7(self):
+    def test_validate_uuid_8(self):
         """Test with invalid UUID value"""
         log = manifest_compiler.Log()
         uuid = ""

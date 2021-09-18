@@ -472,24 +472,24 @@ def parse_uuid(uuid, log):
 
     # Example UUID: "5f902ace-5e5c-4cd8-ae54-87b88c22ddaf"
     if len(uuid) != 36:
-        log.error(
-            "Invalid UUID " +
-            "{}, uuid should be of length 16 bytes of hex values"
-            .format(uuid))
+        log.error(f"Invalid UUID {uuid}. UUID should be 16 bytes long")
         return None
 
     uuid_data = uuid.split("-")
     if len(uuid_data) != 5:
         log.error(
-            "Invalid UUID {}".format(uuid) +
-            "uuid should be of length 16 bytes of hex divided into 5 groups"
+            f"Invalid UUID {uuid}. UUID should be 16 hexadecimal numbers"
+            " divided into 5 groups by hyphens (-)"
         )
         return None
 
     try:
         uuid_data = [bytearray.fromhex(part) for part in uuid_data]
-    except ValueError as ex:
-        log.error("Invalid UUID {}, {}".format(uuid, ex))
+    except ValueError:
+        log.error(
+            f"Invalid UUID {uuid}. UUID should only contain hexadecimal"
+            " numbers (separated by hyphens)"
+        )
         return None
 
     if len(uuid_data[0]) != 4 or \
@@ -497,7 +497,7 @@ def parse_uuid(uuid, log):
             len(uuid_data[2]) != 2 or \
             len(uuid_data[3]) != 2 or \
             len(uuid_data[4]) != 6:
-        log.error("Wrong grouping of UUID - {}".format(uuid))
+        log.error(f"Wrong grouping of UUID {uuid}")
         return None
 
     return b"".join(uuid_data)
