@@ -2,7 +2,7 @@
 "." "`dirname $0`/../../../vendor/google/aosp/scripts/envsetup.sh"
 "exec" "$PY3" "$0" "$@"
 
-'''
+"""
 This program will take trusted application's manifest config JSON file as
 input. Processes the JSON config file and creates packed data
 mapping to C structures and dumps in binary format.
@@ -91,7 +91,7 @@ USAGE:
             }
         ]
     }
-'''
+"""
 
 import argparse
 import io
@@ -99,7 +99,6 @@ import json
 import os.path
 import struct
 import sys
-
 
 # Manifest properties
 UUID = "uuid"
@@ -218,10 +217,11 @@ class MgmtFlags(object):
         self.non_critical_app = non_critical_app
 
 
-'''
-Holds Manifest data to be used for packing
-'''
 class Manifest(object):
+    """
+    Holds Manifest data to be used for packing
+    """
+
     def __init__(
             self,
             uuid,
@@ -247,10 +247,11 @@ class Manifest(object):
         self.version = version
 
 
-'''
-Tracks errors during manifest compilation
-'''
 class Log(object):
+    """
+    Tracks errors during manifest compilation
+    """
+
     def __init__(self):
         self.error_count = 0
 
@@ -262,10 +263,10 @@ class Log(object):
         return self.error_count > 0
 
 
-'''
-For the given manifest JSON field it returns its literal value type mapped.
-'''
 def get_string_sub_type(field):
+    """
+    For the given manifest JSON field it returns its literal value type mapped.
+    """
     if field == UUID:
         return CONST_UUID
     elif field == START_PORT_NAME:
@@ -288,12 +289,12 @@ def get_constant(constants, key, type_, log):
     return const.value
 
 
-'''
-Determines whether the value for the given key in dictionary is of type string
-and if it is a string then returns the value.
-'''
 def get_string(manifest_dict, key, constants, log, optional=False,
                default=None):
+    """
+    Determines whether the value for the given key in dictionary is of type string
+    and if it is a string then returns the value.
+    """
     if key not in manifest_dict:
         if not optional:
             log.error("Manifest is missing required attribute - {}"
@@ -315,20 +316,20 @@ def get_string(manifest_dict, key, constants, log, optional=False,
 def coerce_to_string(value, key, log):
     if not isinstance(value, str):
         log.error(
-                "Invalid value for" +
-                " {} - \"{}\", Valid string value is expected"
-                .format(key, value))
+            "Invalid value for" +
+            " {} - \"{}\", Valid string value is expected"
+            .format(key, value))
         return None
 
     return value
 
 
-'''
-Determines whether the value for the given key in dictionary is of type integer
-and if it is int then returns the value
-'''
 def get_int(manifest_dict, key, constants, log, optional=False,
             default=None):
+    """
+    Determines whether the value for the given key in dictionary is of type integer
+    and if it is int then returns the value
+    """
     if key not in manifest_dict:
         if not optional:
             log.error("Manifest is missing required attribute - {}"
@@ -340,7 +341,7 @@ def get_int(manifest_dict, key, constants, log, optional=False,
     if const_value is not None:
         return const_value
 
-    return coerce_to_int(value, key,log)
+    return coerce_to_int(value, key, log)
 
 
 def coerce_to_int(value, key, log):
@@ -362,11 +363,11 @@ def coerce_to_int(value, key, log):
         return None
 
 
-'''
-Determines whether the value for the given key in dictionary is of type List
-and if it is List then returns the value
-'''
 def get_list(manifest_dict, key, log, optional=False, default=None):
+    """
+    Determines whether the value for the given key in dictionary is of type List
+    and if it is List then returns the value
+    """
     if key not in manifest_dict:
         if not optional:
             log.error("Manifest is missing required attribute - {}"
@@ -386,12 +387,12 @@ def coerce_to_list(value, key, log):
     return value
 
 
-'''
-Determines whether the value for the given
-key in dictionary is of type Dictionary
-and if it is Dictionary then returns the value
-'''
 def get_dict(manifest_dict, key, log, optional=False, default=None):
+    """
+    Determines whether the value for the given
+    key in dictionary is of type Dictionary
+    and if it is Dictionary then returns the value
+    """
     if key not in manifest_dict:
         if not optional:
             log.error("Manifest is missing required attribute - {}"
@@ -411,12 +412,12 @@ def coerce_to_dict(value, key, log):
     return value
 
 
-'''
-Determines whether the value for the given key in dictionary is of type boolean
-and if it is boolean then returns the value
-'''
 def get_boolean(manifest_dict, key, constants, log, optional=False,
                 default=None):
+    """
+    Determines whether the value for the given key in dictionary is of type boolean
+    and if it is boolean then returns the value
+    """
     if key not in manifest_dict:
         if not optional:
             log.error("Manifest is missing required attribute - {}"
@@ -434,9 +435,9 @@ def get_boolean(manifest_dict, key, constants, log, optional=False,
 def coerce_to_boolean(value, key, log):
     if not isinstance(value, bool):
         log.error(
-                "Invalid value for" +
-                " {} - \"{}\", Valid boolean value is expected"
-                .format(key, value))
+            "Invalid value for" +
+            " {} - \"{}\", Valid boolean value is expected"
+            .format(key, value))
         return None
 
     return value
@@ -461,28 +462,28 @@ def get_port(port, key, constants, log, optional=False, default=None):
     return get_string(port, key, constants, log, optional, default)
 
 
-'''
-Validate and arrange UUID byte order
-If its valid UUID then returns 16 byte UUID
-'''
 def parse_uuid(uuid, log):
+    """
+    Validate and arrange UUID byte order
+    If its valid UUID then returns 16 byte UUID
+    """
     if uuid is None:
         return None
 
     # Example UUID: "5f902ace-5e5c-4cd8-ae54-87b88c22ddaf"
     if len(uuid) != 36:
         log.error(
-                "Invalid UUID " +
-                "{}, uuid should be of length 16 bytes of hex values"
-                .format(uuid))
+            "Invalid UUID " +
+            "{}, uuid should be of length 16 bytes of hex values"
+            .format(uuid))
         return None
 
     uuid_data = uuid.split("-")
     if len(uuid_data) != 5:
         log.error(
-                "Invalid UUID {}".format(uuid) +
-                "uuid should be of length 16 bytes of hex divided into 5 groups"
-                )
+            "Invalid UUID {}".format(uuid) +
+            "uuid should be of length 16 bytes of hex divided into 5 groups"
+        )
         return None
 
     try:
@@ -501,25 +502,26 @@ def parse_uuid(uuid, log):
 
     return b"".join(uuid_data)
 
-'''
-Validate memory size value.
-if success return memory size value else return None
-'''
+
 def parse_memory_size(memory_size, memory_kind, log, zero_is_ok=True):
+    """
+    Validate memory size value.
+    if success return memory size value else return None
+    """
     if memory_size is None:
         return None
 
     if memory_size == 0 and not zero_is_ok:
         log.error(
-                "{}: Minimum memory size cannot be zero."
+            "{}: Minimum memory size cannot be zero."
                 .format(memory_kind)
         )
         return None
     elif memory_size < 0 or memory_size % 4096 != 0:
         log.error(
-                "{}: {}, Minimum memory size should be "
-                .format(memory_kind, memory_size) +
-                "non-negative multiple of 4096")
+            "{}: {}, Minimum memory size should be "
+            .format(memory_kind, memory_size) +
+            "non-negative multiple of 4096")
         return None
 
     return memory_size
@@ -537,9 +539,9 @@ def parse_shadow_stack_size(stack_size, log):
     ptr_size = 8
     if stack_size < 0 or stack_size % ptr_size != 0:
         log.error(
-                "{}: {}, Minimum shadow stack size should be "
-                .format(MIN_SHADOW_STACK, stack_size) +
-                "non-negative multiple of the native pointer size")
+            "{}: {}, Minimum shadow stack size should be "
+            .format(MIN_SHADOW_STACK, stack_size) +
+            "non-negative multiple of the native pointer size")
         return None
 
     return stack_size
@@ -565,16 +567,16 @@ def parse_mem_map(mem_maps, key, constants, log):
         if mem_map_entry is None:
             continue
         mem_map = MemIOMap(
-                get_int(mem_map_entry, MEM_MAP_ID, constants, log),
-                get_int(mem_map_entry, MEM_MAP_ADDR, constants, log),
-                get_int(mem_map_entry, MEM_MAP_SIZE, constants, log),
-                parse_mem_map_type(
-                        get_string(mem_map_entry, MEM_MAP_TYPE, constants, log,
-                                   optional=True,
-                                   default=MEM_MAP_TYPE_UNCACHED_DEVICE), log),
-                get_boolean(mem_map_entry, MEM_MAP_NON_SECURE, constants, log,
-                            optional=True)
-                )
+            get_int(mem_map_entry, MEM_MAP_ID, constants, log),
+            get_int(mem_map_entry, MEM_MAP_ADDR, constants, log),
+            get_int(mem_map_entry, MEM_MAP_SIZE, constants, log),
+            parse_mem_map_type(
+                get_string(mem_map_entry, MEM_MAP_TYPE, constants, log,
+                           optional=True,
+                           default=MEM_MAP_TYPE_UNCACHED_DEVICE), log),
+            get_boolean(mem_map_entry, MEM_MAP_NON_SECURE, constants, log,
+                        optional=True)
+        )
         if mem_map_entry:
             log.error("Unknown attributes in mem_map entries in manifest: {} "
                       .format(mem_map_entry))
@@ -588,9 +590,13 @@ def parse_mgmt_flags(flags, constants, log):
         return None
 
     mgmt_flags = MgmtFlags(
-            get_boolean(flags, MGMT_FLAG_RESTART_ON_EXIT, constants, log, optional=True),
-            get_boolean(flags, MGMT_FLAG_DEFERRED_START, constants, log, optional=True),
-            get_boolean(flags, MGMT_FLAG_NON_CRITICAL_APP, constants, log, optional=True))
+        get_boolean(flags, MGMT_FLAG_RESTART_ON_EXIT, constants, log,
+                    optional=True),
+        get_boolean(flags, MGMT_FLAG_DEFERRED_START, constants, log,
+                    optional=True),
+        get_boolean(flags, MGMT_FLAG_NON_CRITICAL_APP, constants, log,
+                    optional=True)
+    )
 
     if flags:
         log.error("Unknown attributes in mgmt_flags entries in manifest: {} "
@@ -616,10 +622,10 @@ def parse_app_start_ports(start_port_list, key, constants, log):
         start_ports_flag = None
         if flags:
             start_ports_flag = StartPortFlags(
-                    get_boolean(flags, START_PORT_ALLOW_TA_CONNECT, constants,
-                                log),
-                    get_boolean(flags, START_PORT_ALLOW_NS_CONNECT, constants,
-                                log))
+                get_boolean(flags, START_PORT_ALLOW_TA_CONNECT, constants,
+                            log),
+                get_boolean(flags, START_PORT_ALLOW_NS_CONNECT, constants,
+                            log))
 
         if port_entry:
             log.error("Unknown attributes in start_ports entries" +
@@ -644,10 +650,8 @@ def parse_app_name(app_name, log):
     return app_name.strip()
 
 
-'''
-validate the manifest config and extract key, values
-'''
 def parse_manifest_config(manifest_dict, constants, default_app_name, log):
+    """validate the manifest config and extract key, values"""
     # UUID
     uuid = get_uuid(manifest_dict, UUID, constants, log)
 
@@ -661,42 +665,43 @@ def parse_manifest_config(manifest_dict, constants, default_app_name, log):
 
     # MIN_SHADOW_STACK
     min_shadow_stack = parse_shadow_stack_size(get_int(manifest_dict,
-                                                       MIN_SHADOW_STACK, constants,
-                                                       log, optional=True), log)
+                                                       MIN_SHADOW_STACK,
+                                                       constants, log,
+                                                       optional=True), log)
 
     # MEM_MAP
     mem_io_maps = parse_mem_map(
-            get_list(manifest_dict, MEM_MAP, log, optional=True, default=[]),
-            MEM_MAP,
-            constants, log)
+        get_list(manifest_dict, MEM_MAP, log, optional=True, default=[]),
+        MEM_MAP,
+        constants, log)
 
     # MGMT_FLAGS
     mgmt_flags = parse_mgmt_flags(
-            get_dict(manifest_dict, MGMT_FLAGS, log, optional=True,
-                     default={
-                             MGMT_FLAG_RESTART_ON_EXIT: False,
-                             MGMT_FLAG_DEFERRED_START: False,
-                             MGMT_FLAG_NON_CRITICAL_APP: False}),
-                     constants, log)
+        get_dict(manifest_dict, MGMT_FLAGS, log, optional=True,
+                 default={
+                     MGMT_FLAG_RESTART_ON_EXIT: False,
+                     MGMT_FLAG_DEFERRED_START: False,
+                     MGMT_FLAG_NON_CRITICAL_APP: False}),
+        constants, log)
 
     # START_PORTS
     start_ports = parse_app_start_ports(
-            get_list(manifest_dict, START_PORTS, log,
-                     optional=True, default=[]),
-            START_PORTS,
-            constants,
-            log)
+        get_list(manifest_dict, START_PORTS, log,
+                 optional=True, default=[]),
+        START_PORTS,
+        constants,
+        log)
 
-    #APP_NAME
+    # APP_NAME
     app_name = parse_app_name(
-            get_string(manifest_dict, APP_NAME, constants, log,
-                       optional=True, default=default_app_name), log)
+        get_string(manifest_dict, APP_NAME, constants, log,
+                   optional=True, default=default_app_name), log)
 
-    #PINNED_CPU
+    # PINNED_CPU
     pinned_cpu = get_int(manifest_dict, PINNED_CPU, constants, log,
                          optional=True)
 
-    #VERSION
+    # VERSION
     version = get_int(manifest_dict, VERSION, constants, log, optional=True)
 
     # look for any extra attributes
@@ -710,13 +715,13 @@ def parse_manifest_config(manifest_dict, constants, default_app_name, log):
                     mem_io_maps, mgmt_flags, start_ports, pinned_cpu, version)
 
 
-'''
-This script represents UUIDs in a purely big endian order.
-Trusty stores the first three components of the UUID in little endian order.
-Rearrange the byte order accordingly by doing inverse
-on first three components of UUID
-'''
 def swap_uuid_bytes(uuid):
+    """
+    This script represents UUIDs in a purely big endian order.
+    Trusty stores the first three components of the UUID in little endian order.
+    Rearrange the byte order accordingly by doing inverse
+    on first three components of UUID
+    """
     return uuid[3::-1] + uuid[5:3:-1] + uuid[7:5:-1] + uuid[8:]
 
 
@@ -758,12 +763,12 @@ def pack_start_port_flags(flags):
     return start_port_flags
 
 
-'''
-Pack a given string with null padding to make its size
-multiple of 4.
-packed data includes length + string + null + padding
-'''
 def pack_inline_string(value):
+    """
+    Pack a given string with null padding to make its size
+    multiple of 4.
+    packed data includes length + string + null + padding
+    """
     size = len(value) + 1
     pad_len = 3 - (size + 3) % 4
     packed = struct.pack("I", size) + value.encode() + b'\0' + pad_len * b'\0'
@@ -771,11 +776,11 @@ def pack_inline_string(value):
     return packed
 
 
-'''
-Creates Packed data from extracted manifest data
-Writes the packed data to binary file
-'''
 def pack_manifest_data(manifest, log):
+    """
+    Creates Packed data from extracted manifest data
+    Writes the packed data to binary file
+    """
     # PACK {
     #        uuid, app_name_size, app_name,
     #        TRUSTY_APP_CONFIG_KEY_MIN_HEAP_SIZE, min_heap,
@@ -795,7 +800,7 @@ def pack_manifest_data(manifest, log):
     out.write(pack_inline_string(manifest.app_name))
 
     if manifest.min_heap is not None:
-        out.write(struct.pack("II",TRUSTY_APP_CONFIG_KEY_MIN_HEAP_SIZE,
+        out.write(struct.pack("II", TRUSTY_APP_CONFIG_KEY_MIN_HEAP_SIZE,
                               manifest.min_heap))
 
     if manifest.min_stack is not None:
@@ -819,7 +824,7 @@ def pack_manifest_data(manifest, log):
         out.write(struct.pack("II",
                               TRUSTY_APP_CONFIG_KEY_START_PORT,
                               pack_start_port_flags(
-                                      port_entry.start_port_flags)))
+                                  port_entry.start_port_flags)))
         out.write(pack_inline_string(port_entry.name))
 
     if manifest.pinned_cpu is not None:
@@ -839,10 +844,8 @@ def pack_manifest_data(manifest, log):
     return out.getvalue()
 
 
-'''
-Creates manifest JSON string from packed manifest data
-'''
 def unpack_binary_manifest_to_json(packed_data):
+    """Creates manifest JSON string from packed manifest data"""
     return manifest_data_to_json(unpack_binary_manifest_to_data(packed_data))
 
 
@@ -850,11 +853,11 @@ def manifest_data_to_json(manifest):
     return json.dumps(manifest, sort_keys=True, indent=4)
 
 
-'''
-This method can be used for extracting manifest data from packed binary.
-UUID should be present in packed data.
-'''
 def unpack_binary_manifest_to_data(packed_data):
+    """
+    This method can be used for extracting manifest data from packed binary.
+    UUID should be present in packed data.
+    """
     manifest = {}
 
     # Extract UUID
@@ -862,20 +865,20 @@ def unpack_binary_manifest_to_data(packed_data):
     uuid = swap_uuid_bytes(uuid)
     uuid = uuid.hex()
     uuid = uuid[:8] + "-" \
-            + uuid[8:12] + "-" \
-            + uuid[12:16] + "-" \
-            + uuid[16:20] + "-" \
-            + uuid[20:]
+           + uuid[8:12] + "-" \
+           + uuid[12:16] + "-" \
+           + uuid[16:20] + "-" \
+           + uuid[20:]
 
     manifest[UUID] = uuid
 
     # Extract APP_NAME
     # read size of the name, this includes a null character
     (name_size,), packed_data = struct.unpack(
-            "I", packed_data[:4]), packed_data[4:]
+        "I", packed_data[:4]), packed_data[4:]
     # read the name without a trailing null character
     manifest[APP_NAME], packed_data = \
-            packed_data[:name_size-1].decode(), packed_data[name_size-1:]
+        packed_data[:name_size - 1].decode(), packed_data[name_size - 1:]
     # discard trailing null characters
     # it includes trailing null character of a string and null padding
     pad_len = 1 + 3 - (name_size + 3) % 4
@@ -884,54 +887,54 @@ def unpack_binary_manifest_to_data(packed_data):
     # Extract remaining app configurations
     while len(packed_data) > 0:
         (tag,), packed_data = struct.unpack(
-                "I", packed_data[:4]), packed_data[4:]
+            "I", packed_data[:4]), packed_data[4:]
 
         if tag == TRUSTY_APP_CONFIG_KEY_MIN_HEAP_SIZE:
             assert MIN_HEAP not in manifest
             (manifest[MIN_HEAP],), packed_data = struct.unpack(
-                    "I", packed_data[:4]), packed_data[4:]
+                "I", packed_data[:4]), packed_data[4:]
         elif tag == TRUSTY_APP_CONFIG_KEY_MIN_STACK_SIZE:
             assert MIN_STACK not in manifest
             (manifest[MIN_STACK],), packed_data = struct.unpack(
-                    "I", packed_data[:4]), packed_data[4:]
+                "I", packed_data[:4]), packed_data[4:]
         elif tag == TRUSTY_APP_CONFIG_KEY_MIN_SHADOW_STACK_SIZE:
             assert MIN_SHADOW_STACK not in manifest
             (manifest[MIN_SHADOW_STACK],), packed_data = struct.unpack(
-                    "I", packed_data[:4]), packed_data[4:]
+                "I", packed_data[:4]), packed_data[4:]
         elif tag == TRUSTY_APP_CONFIG_KEY_MAP_MEM:
             if MEM_MAP not in manifest:
                 manifest[MEM_MAP] = []
             mem_map_entry = {}
             (id_,), packed_data = struct.unpack(
-                    "I", packed_data[:4]), packed_data[4:]
+                "I", packed_data[:4]), packed_data[4:]
             (addr,), packed_data = struct.unpack(
-                    "Q", packed_data[:8]), packed_data[8:]
+                "Q", packed_data[:8]), packed_data[8:]
             (size,), packed_data = struct.unpack(
-                    "Q", packed_data[:8]), packed_data[8:]
+                "Q", packed_data[:8]), packed_data[8:]
             (arch_mmu_flags,), packed_data = struct.unpack(
-                    "I", packed_data[:4]), packed_data[4:]
+                "I", packed_data[:4]), packed_data[4:]
             mem_map_entry[MEM_MAP_ID] = id_
             mem_map_entry[MEM_MAP_ADDR] = hex(addr)
             mem_map_entry[MEM_MAP_SIZE] = hex(size)
             mem_map_entry[MEM_MAP_TYPE] = {
-                    ARCH_MMU_FLAG_CACHED: MEM_MAP_TYPE_CACHED,
-                    ARCH_MMU_FLAG_UNCACHED: MEM_MAP_TYPE_UNCACHED,
-                    ARCH_MMU_FLAG_UNCACHED_DEVICE: MEM_MAP_TYPE_UNCACHED_DEVICE,
-                    }[arch_mmu_flags & ARCH_MMU_FLAG_CACHE_MASK]
+                ARCH_MMU_FLAG_CACHED: MEM_MAP_TYPE_CACHED,
+                ARCH_MMU_FLAG_UNCACHED: MEM_MAP_TYPE_UNCACHED,
+                ARCH_MMU_FLAG_UNCACHED_DEVICE: MEM_MAP_TYPE_UNCACHED_DEVICE,
+            }[arch_mmu_flags & ARCH_MMU_FLAG_CACHE_MASK]
             mem_map_entry[MEM_MAP_NON_SECURE] = bool(arch_mmu_flags &
                                                      ARCH_MMU_FLAG_NS)
             manifest[MEM_MAP].append(mem_map_entry)
         elif tag == TRUSTY_APP_CONFIG_KEY_MGMT_FLAGS:
             (flag,), packed_data = struct.unpack(
-                    "I", packed_data[:4]), packed_data[4:]
+                "I", packed_data[:4]), packed_data[4:]
             mgmt_flag = {
-                    MGMT_FLAG_RESTART_ON_EXIT: False,
-                    MGMT_FLAG_DEFERRED_START: False,
-                    MGMT_FLAG_NON_CRITICAL_APP: False
+                MGMT_FLAG_RESTART_ON_EXIT: False,
+                MGMT_FLAG_DEFERRED_START: False,
+                MGMT_FLAG_NON_CRITICAL_APP: False
             }
             if flag & TRUSTY_APP_MGMT_FLAGS_RESTART_ON_EXIT:
                 mgmt_flag[MGMT_FLAG_RESTART_ON_EXIT] = True
-            if flag &  TRUSTY_APP_MGMT_FLAGS_DEFERRED_START:
+            if flag & TRUSTY_APP_MGMT_FLAGS_DEFERRED_START:
                 mgmt_flag[MGMT_FLAG_DEFERRED_START] = True
             if flag & TRUSTY_APP_MGMT_FLAGS_NON_CRITICAL_APP:
                 mgmt_flag[MGMT_FLAG_NON_CRITICAL_APP] = True
@@ -942,22 +945,22 @@ def unpack_binary_manifest_to_data(packed_data):
             start_port_entry = {}
 
             (flag,), packed_data = struct.unpack(
-                    "I", packed_data[:4]), packed_data[4:]
+                "I", packed_data[:4]), packed_data[4:]
 
             # read size of the name, this includes a null character
             (name_size,), packed_data = struct.unpack(
-                    "I", packed_data[:4]), packed_data[4:]
+                "I", packed_data[:4]), packed_data[4:]
             # read the name without a trailing null character
             start_port_entry[START_PORT_NAME], packed_data = \
-                    packed_data[:name_size-1].decode(), packed_data[name_size-1:]
+                packed_data[:name_size - 1].decode(), packed_data[name_size - 1:]
             # discard trailing null characters
             # it includes trailing null character of a string and null padding
             pad_len = 1 + 3 - (name_size + 3) % 4
             packed_data = packed_data[pad_len:]
 
             start_port_flags = {
-                    START_PORT_ALLOW_TA_CONNECT: False,
-                    START_PORT_ALLOW_NS_CONNECT: False
+                START_PORT_ALLOW_TA_CONNECT: False,
+                START_PORT_ALLOW_NS_CONNECT: False
             }
             if flag & IPC_PORT_ALLOW_TA_CONNECT:
                 start_port_flags[START_PORT_ALLOW_TA_CONNECT] = True
@@ -969,12 +972,12 @@ def unpack_binary_manifest_to_data(packed_data):
         elif tag == TRUSTY_APP_CONFIG_KEY_PINNED_CPU:
             assert PINNED_CPU not in manifest
             (pinned_cpu,), packed_data = struct.unpack(
-                    "I", packed_data[:4]), packed_data[4:]
+                "I", packed_data[:4]), packed_data[4:]
             manifest[PINNED_CPU] = pinned_cpu
         elif tag == TRUSTY_APP_CONFIG_KEY_VERSION:
             assert VERSION not in manifest
             (version,), packed_data = struct.unpack(
-                    "I", packed_data[:4]), packed_data[4:]
+                "I", packed_data[:4]), packed_data[4:]
             manifest[VERSION] = version
         else:
             raise Exception("Unknown tag: {}".format(tag))
@@ -983,24 +986,24 @@ def unpack_binary_manifest_to_data(packed_data):
 
 
 def write_packed_data_to_bin_file(packed_data, output_file, log):
-    # Write packed data to binary file
+    """Write packed data to binary file"""
     try:
         with open(output_file, "wb") as out_file:
             out_file.write(packed_data)
             out_file.close()
     except IOError as ex:
         log.error(
-                "Unable to write to output file: {}"
-                .format(output_file) + "\n" + str(ex))
+            "Unable to write to output file: {}"
+            .format(output_file) + "\n" + str(ex))
 
 
 def read_json_config_file(input_file, log):
     try:
-       read_file = open(input_file, "r")
+        read_file = open(input_file, "r")
     except IOError as ex:
         log.error(
-                "Unable to open input file: {}"
-                .format(input_file) + "\n" + str(ex))
+            "Unable to open input file: {}"
+            .format(input_file) + "\n" + str(ex))
         return None
 
     try:
@@ -1008,7 +1011,7 @@ def read_json_config_file(input_file, log):
         return manifest_dict
     except ValueError as ex:
         log.error(
-                "Unable to parse config JSON - {}"
+            "Unable to parse config JSON - {}"
                 .format(str(ex)))
         return None
 
@@ -1041,10 +1044,10 @@ def define_uuid_const_entry(const, log):
     uuid = const.value.hex()
 
     part = ", ".join(
-            ["0x" + uuid[index:index+2] for index in range(16, len(uuid), 2)])
+        ["0x" + uuid[index:index + 2] for index in range(16, len(uuid), 2)])
 
     value = "{{0x{}, 0x{}, 0x{}, {{ {} }}}}\n".format(
-            uuid[:8], uuid[8:12], uuid[12:16], part)
+        uuid[:8], uuid[8:12], uuid[12:16], part)
 
     return "#define {} {}".format(const.name, value)
 
@@ -1062,10 +1065,8 @@ def create_header_entry(constant, log):
         raise Exception("Unknown tag: {}".format(constant.type))
 
 
-'''
-Writes given constants to header file in given header directory.
-'''
 def write_consts_to_header_file(const_config, header_dir, log):
+    """Writes given constants to header file in given header directory."""
     # Construct header file path
     header_file = os.path.join(header_dir, const_config.header)
     # Check whether the output directory of header file exist
@@ -1083,14 +1084,12 @@ def write_consts_to_header_file(const_config, header_dir, log):
                 out_file.write(header_entries)
     except IOError as ex:
         log.error(
-                "Unable to write to header file: {}"
-                .format(header_file) + "\n" + str(ex))
+            "Unable to write to header file: {}"
+            .format(header_file) + "\n" + str(ex))
 
 
-'''
-Parse a give JSON constant data structure
-'''
 def parse_constant(constant, log):
+    """Parse a give JSON constant data structure"""
     const_type = get_string(constant, CONST_TYPE, {}, log)
     if const_type is None:
         return None
@@ -1105,8 +1104,7 @@ def parse_constant(constant, log):
     elif const_type == CONST_INT:
         unsigned = get_boolean(constant, CONST_UNSIGNED, {}, log)
         text_value = constant.get(CONST_VALUE)
-        hex_num = isinstance(text_value, str) and \
-                text_value.startswith("0x")
+        hex_num = isinstance(text_value, str) and text_value.startswith("0x")
         value = get_int(constant, CONST_VALUE, {}, log)
         return Constant(name, value, const_type, unsigned, hex_num)
     elif const_type == CONST_BOOL:
@@ -1116,11 +1114,11 @@ def parse_constant(constant, log):
         log.error("Unknown constant type: {}".format(const_type))
 
 
-'''
-Parse a given JSON constant-config data structure containing
-a header and list of constants
-'''
 def parse_config_constant(const_config, log):
+    """
+    Parse a given JSON constant-config data structure containing
+    a header and list of constants
+    """
     header_file = get_string(const_config, HEADER, {}, log)
 
     const_list = get_list(const_config, CONSTANTS, log, optional=False,
@@ -1143,10 +1141,8 @@ def parse_config_constant(const_config, log):
     return ConfigConstants(constants, header_file)
 
 
-'''
-Collects ConfigConstant(s) from list of JSON config constants data
-'''
 def extract_config_constants(config_consts_list, log):
+    """Collects ConfigConstant(s) from list of JSON config constants data"""
     config_constants = []
 
     for config_const in config_consts_list:
@@ -1155,11 +1151,11 @@ def extract_config_constants(config_consts_list, log):
     return config_constants
 
 
-'''
-Parse JSON config constants and creates separate header files with constants
-for each JSON config
-'''
 def process_config_constants(const_config_files, header_dir, log):
+    """
+    Parse JSON config constants and creates separate header files with constants
+    for each JSON config
+    """
     if const_config_files is None:
         return []
 
@@ -1187,61 +1183,60 @@ def index_constants(config_constants, log):
     return constants
 
 
-'''
-START OF THE PROGRAM
-Handles the command line arguments
-Parses the given manifest input file and creates packed data
-Writes the packed data to binary output file.
-'''
 def main(argv):
+    """
+    Handles the command line arguments
+    Parses the given manifest input file and creates packed data
+    Writes the packed data to binary output file.
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument(
-            "-i", "--input",
-            dest="input_filename",
-            required=False,
-            type=str,
-            help="It should be trust app manifest config JSON file"
+        "-i", "--input",
+        dest="input_filename",
+        required=False,
+        type=str,
+        help="It should be trust app manifest config JSON file"
     )
     parser.add_argument(
-            "-o", "--output",
-            dest="output_filename",
-            required=False,
-            type=str,
-            help="It will be binary file with packed manifest data"
+        "-o", "--output",
+        dest="output_filename",
+        required=False,
+        type=str,
+        help="It will be binary file with packed manifest data"
     )
     parser.add_argument(
-            "-c", "--constants",
-            dest="constants",
-            required=False,
-            action="append",
-            help="JSON file with manifest config constants"
+        "-c", "--constants",
+        dest="constants",
+        required=False,
+        action="append",
+        help="JSON file with manifest config constants"
     )
     parser.add_argument(
-            "--header-dir",
-            dest="header_dir",
-            required=False,
-            type=str,
-            help="Directory path for generating headers"
+        "--header-dir",
+        dest="header_dir",
+        required=False,
+        type=str,
+        help="Directory path for generating headers"
     )
     parser.add_argument(
-            "--enable-shadow-call-stack",
-            dest="shadow_call_stack",
-            required=False,
-            action="store_true",  # implies default := False
-            help="Allow apps to opt into having a shadow call stack. "
-                "Without this flag, apps will not have shadow stacks "
-                "even if their manifests define \"min_shadow_stack\"."
+        "--enable-shadow-call-stack",
+        dest="shadow_call_stack",
+        required=False,
+        action="store_true",  # implies default := False
+        help="Allow apps to opt into having a shadow call stack. "
+             "Without this flag, apps will not have shadow stacks "
+             "even if their manifests define \"min_shadow_stack\"."
     )
     parser.add_argument(
-            "--default-shadow-call-stack-size",
-            dest="default_shadow_call_stack_size",
-            required=False,
-            default=4096,
-            type=int,
-            metavar="DEFAULT_SIZE",
-            help="Controls the size of the default shadow call stack."
-                "This option has no effect unless shadow call stacks "
-                "are enabled via the --enable-shadow-call-stack flag."
+        "--default-shadow-call-stack-size",
+        dest="default_shadow_call_stack_size",
+        required=False,
+        default=4096,
+        type=int,
+        metavar="DEFAULT_SIZE",
+        help="Controls the size of the default shadow call stack."
+             "This option has no effect unless shadow call stacks "
+             "are enabled via the --enable-shadow-call-stack flag."
     )
     # Parse the command line arguments
     args = parser.parse_args()
@@ -1256,7 +1251,7 @@ def main(argv):
 
     if args.default_shadow_call_stack_size <= 0:
         parser.error(
-                "--default-shadow-call-stack-size expects a positive integer")
+            "--default-shadow-call-stack-size expects a positive integer")
 
     log = Log()
 
@@ -1273,7 +1268,7 @@ def main(argv):
 
     if not os.path.exists(args.input_filename):
         log.error(
-                "Manifest config JSON file doesn't exist: {}"
+            "Manifest config JSON file doesn't exist: {}"
                 .format(args.input_filename))
         return 1
 
@@ -1307,7 +1302,7 @@ def main(argv):
     assert (args.shadow_call_stack and manifest.min_shadow_stack > 0) != \
            (manifest.min_shadow_stack == 0)
 
-    # Pack the data as per c structures
+    # Pack the data as per C structures
     packed_data = pack_manifest_data(manifest, log)
     if log.error_occurred():
         return 1
