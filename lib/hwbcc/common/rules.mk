@@ -23,7 +23,7 @@ MODULE_EXPORT_INCLUDES := \
 	$(LOCAL_DIR)/include \
 
 MODULE_LIBRARY_DEPS := \
-	external/boringssl \
+	external/open-dice \
 	trusty/user/base/interface/hwbcc \
 	trusty/user/base/lib/hwkey \
 	trusty/user/base/lib/rng \
