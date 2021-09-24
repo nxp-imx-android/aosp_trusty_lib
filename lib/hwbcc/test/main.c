@@ -99,9 +99,9 @@ TEST(hwbcc, protected_data_test_mode) {
     memset(bcc, 0, sizeof(bcc));
 
     rc = hwbcc_get_protected_data(true, HWBCC_ALGORITHM_ED25519, test_mac_key,
-                                  test_aad, sizeof(test_aad), bcc, sizeof(bcc),
-                                  &bcc_size, cose_sign1, sizeof(cose_sign1),
-                                  &cose_sign1_size);
+                                  test_aad, sizeof(test_aad), cose_sign1,
+                                  sizeof(cose_sign1), &cose_sign1_size, bcc,
+                                  sizeof(bcc), &bcc_size);
     ASSERT_EQ(rc, 0);
 
     ASSERT_GT(cose_sign1_size, 0);
@@ -122,9 +122,9 @@ TEST(hwbcc, protected_data) {
     memset(bcc, 0, sizeof(bcc));
 
     rc = hwbcc_get_protected_data(true, HWBCC_ALGORITHM_ED25519, test_mac_key,
-                                  test_aad, sizeof(test_aad), bcc, sizeof(bcc),
-                                  &bcc_size, cose_sign1, sizeof(cose_sign1),
-                                  &cose_sign1_size);
+                                  test_aad, sizeof(test_aad), cose_sign1,
+                                  sizeof(cose_sign1), &cose_sign1_size, bcc,
+                                  sizeof(bcc), &bcc_size);
     ASSERT_EQ(rc, 0);
 
     ASSERT_GT(cose_sign1_size, 0);
