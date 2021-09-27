@@ -19,12 +19,15 @@ MODULE := $(LOCAL_DIR)
 MANIFEST := $(LOCAL_DIR)/manifest.json
 
 MODULE_SRCS := \
-	$(LOCAL_DIR)/main.c
+	$(LOCAL_DIR)/main.cpp
 
 MODULE_LIBRARY_DEPS := \
+	external/boringssl \
+	external/libcppbor \
 	trusty/user/base/lib/hwbcc/client \
 	trusty/user/base/lib/hwbcc/common \
 	trusty/user/base/lib/libc-trusty \
+	trusty/user/base/lib/libstdc++-trusty \
 	trusty/user/base/lib/unittest \
 
 include make/trusted_app.mk
