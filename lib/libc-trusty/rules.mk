@@ -70,6 +70,7 @@ MODULE_CFLAGS += -Wno-strict-prototypes
 # https://wiki.musl-libc.org/mathematical-library.html
 MODULE_COMPILEFLAGS += \
 	-Wno-unknown-pragmas \
+	-Wno-ignored-pragmas \
 
 # Musl will do something like this:
 # weak_alias(a, b); weak_alias(b, c);
