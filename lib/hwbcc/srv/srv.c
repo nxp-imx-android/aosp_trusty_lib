@@ -70,7 +70,8 @@ static struct tipc_port_acl acl = {
 
 static struct tipc_port port = {
         .name = HWBCC_PORT,
-        .msg_max_size = sizeof(struct hwbcc_req),
+        .msg_max_size =
+                MAX(sizeof(struct hwbcc_req), sizeof(struct hwbcc_resp)),
         .msg_queue_len = 1,
         .acl = &acl,
 };
