@@ -79,37 +79,44 @@ class TestManifest(unittest.TestCase):
         self.assertTrue(log.error_occurred())
         self.assertIsNone(data)
 
-    def test_get_int_1(self):
-        """Test with empty string for get_int"""
-        constants = {}
-        log = manifest_compiler.Log()
-        config_data = {"data": ""}
-        data = manifest_compiler.get_int(config_data, "data", constants, log)
-        self.assertEqual(len(config_data), 0)
-        self.assertTrue(log.error_occurred())
-        self.assertIsNone(data)
+    def test_get_int_when_valid_values_given(self):
+        """Test get_int called with valid values"""
+        cases = [
+            ("string of integers", "4096", 4096),
+            ("integer value", 4096, 4096),
+            ("valid hex", "0X7f010000", 0X7f010000),
+        ]
 
-    def test_get_int_2(self):
-        """Test with string of integers"""
-        constants = {}
-        log = manifest_compiler.Log()
-        config_data = {"data": "4096"}
-        data = manifest_compiler.get_int(config_data, "data", constants, log)
-        self.assertEqual(len(config_data), 0)
-        self.assertFalse(log.error_occurred())
-        self.assertEqual(data, 4096)
+        for msg, int_value, expected_value in cases:
+            with self.subTest(msg, value=int_value, expected_value=expected_value):
+                constants = {}
+                log = manifest_compiler.Log()
+                config_data = {"data": int_value}
+                data = manifest_compiler.get_int(config_data, "data", constants, log)
+                self.assertEqual(len(config_data), 0)
+                self.assertFalse(log.error_occurred())
+                self.assertEqual(data, expected_value)
 
-    def test_get_int_3(self):
-        """Test with integer value"""
-        constants = {}
-        log = manifest_compiler.Log()
-        config_data = {"data": 4096}
-        data = manifest_compiler.get_int(config_data, "data", constants, log)
-        self.assertEqual(len(config_data), 0)
-        self.assertFalse(log.error_occurred())
-        self.assertEqual(data, 4096)
+    def test_get_int_when_invalid_values_given(self):
+        """Test get_int called with invalid values"""
+        cases = [
+            ("empty string", ""),
+            ("invalid hex", "0X7k010000"),
+            ("contain non-integer value", "123A7"),
+            ("boolean value", True),
+        ]
 
-    def test_get_int_4(self):
+        for msg, int_value in cases:
+            with self.subTest(msg, value=int_value):
+                constants = {}
+                log = manifest_compiler.Log()
+                config_data = {"data": int_value}
+                data = manifest_compiler.get_int(config_data, "data", constants, log)
+                self.assertEqual(len(config_data), 0)
+                self.assertTrue(log.error_occurred())
+                self.assertIsNone(data)
+
+    def test_get_int_missing_required_field(self):
         """Test with empty config data and non optional field"""
         constants = {}
         log = manifest_compiler.Log()
@@ -118,43 +125,7 @@ class TestManifest(unittest.TestCase):
         self.assertTrue(log.error_occurred())
         self.assertIsNone(data)
 
-    def test_get_int_5(self):
-        """Test with valid hex string"""
-        constants = {}
-        log = manifest_compiler.Log()
-        config_data = {"data": "0X7f010000"}
-        data = manifest_compiler.get_int(config_data, "data", constants, log)
-        self.assertFalse(log.error_occurred())
-        self.assertEqual(data, 0X7f010000)
-
-    def test_get_int_6(self):
-        """Test with invalid hex string"""
-        constants = {}
-        log = manifest_compiler.Log()
-        config_data = {"data": "0X7k010000"}
-        data = manifest_compiler.get_int(config_data, "data", constants, log)
-        self.assertTrue(log.error_occurred())
-        self.assertIsNone(data)
-
-    def test_get_int_7(self):
-        """Test with string containing non-integers"""
-        constants = {}
-        log = manifest_compiler.Log()
-        config_data = {"data": "123A7"}
-        data = manifest_compiler.get_int(config_data, "data", constants, log)
-        self.assertTrue(log.error_occurred())
-        self.assertIsNone(data)
-
-    def test_get_int_8(self):
-        """ Test with boolean value"""
-        constants = {}
-        log = manifest_compiler.Log()
-        config_data = {"data": True}
-        data = manifest_compiler.get_int(config_data, "data", constants, log)
-        self.assertTrue(log.error_occurred())
-        self.assertIsNone(data)
-
-    def test_get_int_9(self):
+    def test_get_int_missing_optional_field(self):
         """Test with non-existing attribute which is optional field"""
         constants = {}
         log = manifest_compiler.Log()
@@ -164,8 +135,11 @@ class TestManifest(unittest.TestCase):
         self.assertFalse(log.error_occurred())
         self.assertIsNone(data)
 
-    def test_get_int_10(self):
-        """Test with non-existing attribute which is optional field"""
+    def test_get_int_missing_optional_field_with_default(self):
+        """
+        Test with non-existing attribute,
+        which is optional field and default value given.
+        """
         constants = {}
         log = manifest_compiler.Log()
         config_data = {}
