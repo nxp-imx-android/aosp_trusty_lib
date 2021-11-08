@@ -152,17 +152,7 @@ $(TRUSTY_APP_BIN): $(TRUSTY_APP_ELF)
 	$(NOECHO)$(TRUSTY_APP_OBJCOPY) -O binary $< $@
 
 # Also generate listings
-all:: $(TRUSTY_APP_BIN) $(TRUSTY_APP_MANIFEST_BIN) $(TRUSTY_APP_ELF) $(TRUSTY_APP_ELF).lst $(TRUSTY_APP_ELF).debug.lst
-
-$(TRUSTY_APP_ELF).lst: TRUSTY_APP_OBJDUMP := $(TRUSTY_APP_OBJDUMP)
-$(TRUSTY_APP_ELF).lst: $(TRUSTY_APP_SYMS_ELF)
-	@echo generating listing: $@
-	$(NOECHO)$(TRUSTY_APP_OBJDUMP) -d $< | $(CPPFILT) > $@
-
-$(TRUSTY_APP_ELF).debug.lst: TRUSTY_APP_OBJDUMP := $(TRUSTY_APP_OBJDUMP)
-$(TRUSTY_APP_ELF).debug.lst: $(TRUSTY_APP_SYMS_ELF)
-	@echo generating listing: $@
-	$(NOECHO)$(TRUSTY_APP_OBJDUMP) -S $< | $(CPPFILT) > $@
+all:: $(TRUSTY_APP_BIN) $(TRUSTY_APP_MANIFEST_BIN) $(TRUSTY_APP_ELF)
 
 # Reset local variables
 TRUSTY_APP :=
