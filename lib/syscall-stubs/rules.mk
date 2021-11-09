@@ -26,14 +26,17 @@ SYSCALL_TABLE ?= trusty/kernel/lib/trusty/include/syscall_table.h
 # include common-inc.mk to set SYSCALL_SRCS and friends
 include $(LOCAL_DIR)/common-inc.mk
 
-$(SYSCALL_SRCS): ARCH:=$(ARCH)
-$(SYSCALL_SRCS): SYSCALL_H:=$(SYSCALL_H)
-$(SYSCALL_SRCS): SYSCALL_S:=$(SYSCALL_S)
-$(SYSCALL_SRCS): SYSCALL_RS:=$(SYSCALL_RS)
-$(SYSCALL_SRCS): $(SYSCALL_TABLE) $(SYSCALL_STUBGEN_TOOL)
+$(SYSCALL_S): ARCH:=$(ARCH)
+$(SYSCALL_S): SYSCALL_H:=$(SYSCALL_H)
+$(SYSCALL_S): SYSCALL_S:=$(SYSCALL_S)
+$(SYSCALL_S): SYSCALL_RS:=$(SYSCALL_RS)
+$(SYSCALL_S): $(SYSCALL_TABLE) $(SYSCALL_STUBGEN_TOOL)
 	@$(MKDIR)
 	@echo generating syscalls stubs $@
 	$(NOECHO)$(SYSCALL_STUBGEN_TOOL) --arch $(ARCH) -d $(SYSCALL_H) -s $(SYSCALL_S) -r $(SYSCALL_RS) $<
+
+$(SYSCALL_H): $(SYSCALL_S)
+$(SYSCALL_RS): $(SYSCALL_S)
 
 # Track them as generated
 GENERATED += $(SYSCALL_SRCS)
