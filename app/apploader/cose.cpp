@@ -38,10 +38,24 @@
 #include "cose.h"
 
 #ifdef __COSE_HOST__
-#define COSE_PRINT_ERROR(...) fprintf(stderr, __VA_ARGS__)
+#define COSE_PRINT_ERROR(...)         \
+    if (!gSilenceErrors) {            \
+        fprintf(stderr, __VA_ARGS__); \
+    }
 #else
-#define COSE_PRINT_ERROR(...) TLOGE(__VA_ARGS__)
+#define COSE_PRINT_ERROR(...) \
+    if (!gSilenceErrors) {    \
+        TLOGE(__VA_ARGS__);   \
+    }
 #endif
+
+static bool gSilenceErrors = false;
+
+bool coseSetSilenceErrors(bool value) {
+    bool old = gSilenceErrors;
+    gSilenceErrors = value;
+    return old;
+}
 
 using BIGNUM_Ptr = std::unique_ptr<BIGNUM, std::function<void(BIGNUM*)>>;
 using EC_KEY_Ptr = std::unique_ptr<EC_KEY, std::function<void(EC_KEY*)>>;
@@ -239,8 +253,8 @@ std::unique_ptr<cppbor::Item> coseSignEcDsa(const std::vector<uint8_t>& key,
     }
 }
 
-bool coseIsSigned(const std::vector<uint8_t>& data, size_t* signatureLength) {
-    auto [item, pos, err] = cppbor::parse(data);
+bool coseIsSigned(CoseByteView data, size_t* signatureLength) {
+    auto [item, pos, err] = cppbor::parse(data.data(), data.size());
     if (item) {
         for (size_t i = 0; i < item->semanticTagCount(); i++) {
             if (item->semanticTag(i) == COSE_TAG_SIGN1) {

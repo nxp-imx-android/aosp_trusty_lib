@@ -49,15 +49,24 @@ constexpr size_t kAesGcmIvSize = 12;
 constexpr size_t kAesGcmTagSize = 16;
 constexpr size_t kAes128GcmKeySize = 16;
 
+using CoseByteView = std::basic_string_view<uint8_t>;
+
 using GetKeyFn =
         std::function<std::tuple<std::unique_ptr<uint8_t[]>, size_t>(uint8_t)>;
-using DecryptFn = std::function<bool(
-        std::basic_string_view<uint8_t> key,
-        std::basic_string_view<uint8_t> nonce,
-        uint8_t* encryptedData,
-        size_t encryptedDataSize,
-        std::basic_string_view<uint8_t> additionalAuthenticatedData,
-        size_t* outPlaintextSize)>;
+using DecryptFn = std::function<bool(CoseByteView key,
+                                     CoseByteView nonce,
+                                     uint8_t* encryptedData,
+                                     size_t encryptedDataSize,
+                                     CoseByteView additionalAuthenticatedData,
+                                     size_t* outPlaintextSize)>;
+
+/**
+ * coseSetSilenceErrors() - Enable or disable the silencing of errors;
+ * @value: New value of the flag, %true if errors should be silenced.
+ *
+ * Return: the old value of the flag.
+ */
+bool coseSetSilenceErrors(bool value);
 
 /**
  * coseSignEcDsa() - Sign the given data using ECDSA and emit a COSE CBOR blob.
@@ -112,7 +121,7 @@ std::unique_ptr<cppbor::Item> coseSignEcDsa(const std::vector<uint8_t>& key,
  *
  * Return: %true if the signature structure is valid, %false otherwise.
  */
-bool coseIsSigned(const std::vector<uint8_t>& data, size_t* signatureLength);
+bool coseIsSigned(CoseByteView data, size_t* signatureLength);
 
 /**
  * coseCheckEcDsaSignature() - Check if a given COSE signature structure is
