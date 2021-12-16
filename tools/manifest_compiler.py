@@ -1003,14 +1003,14 @@ def read_json_config_file(input_file, log):
             manifest_dict = json.load(read_file)
         return manifest_dict
     except IOError as ex:
-        log.error(
-            "Unable to open input file: {}"
-            .format(input_file) + "\n" + str(ex))
+        log.error(f"{input_file}: unable to open input file: {ex}")
+        return None
+    except json.JSONDecodeError as jde:
+        location = f"{input_file}:{jde.lineno}:{jde.colno}"
+        log.error(f"{location}: Unable to parse config JSON: {jde.msg}")
         return None
     except ValueError as ex:
-        log.error(
-            "Unable to parse config JSON - {}"
-                .format(str(ex)))
+        log.error(f"{input_file}: Unexpected error: {ex}")
         return None
 
 
