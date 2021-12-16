@@ -999,16 +999,14 @@ def write_packed_data_to_bin_file(packed_data, output_file, log):
 
 def read_json_config_file(input_file, log):
     try:
-        read_file = open(input_file, "r")
+        with open(input_file, "r") as read_file:
+            manifest_dict = json.load(read_file)
+        return manifest_dict
     except IOError as ex:
         log.error(
             "Unable to open input file: {}"
             .format(input_file) + "\n" + str(ex))
         return None
-
-    try:
-        manifest_dict = json.load(read_file)
-        return manifest_dict
     except ValueError as ex:
         log.error(
             "Unable to parse config JSON - {}"
