@@ -34,6 +34,10 @@ MODULE_RUSTFLAGS += \
 	-C panic=abort \
 	-C overflow-checks=off \
 
+# src/float/pow.rs has a collision with a future std item: i32::abs_diff
+MODULE_RUSTFLAGS += \
+	-A unstable-name-collisions
+
 MODULE_ADD_IMPLICIT_DEPS := false
 
 include make/library.mk
