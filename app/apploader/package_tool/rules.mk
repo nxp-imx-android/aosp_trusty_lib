@@ -41,7 +41,17 @@ HOST_FLAGS += -D__COSE_HOST__
 
 HOST_LIBS := \
 	c++ \
-	crypto \
-	ssl \
+
+# Statically link this host tool against openssl, but dynamically against its
+# other dependencies (i.e. libc and libc++). We don't want to redistribute the
+# openssl shared library along with this tool since we don't build it in our
+# build system. Static linking against glibc is generally highly discouraged,
+# and we don't need to do so just to avoid the openssl dependency.
+HOST_LDFLAGS := \
+	-Wl,--push-state \
+	-Wl,-Bstatic \
+	-lcrypto \
+	-lssl \
+	-Wl,--pop-state \
 
 include make/host_tool.mk
