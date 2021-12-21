@@ -20,11 +20,15 @@
 #![allow(unused_unsafe)]
 
 use crate::util::{abort_internal, print_internal};
+use alloc::collections::TryReserveError;
 use core::cmp;
 use core::intrinsics;
 use core::ptr::{self, NonNull};
 
-pub use alloc::alloc::AllocError;
+#[doc(inline)]
+pub use alloc::alloc::*;
+
+#[doc(inline)]
 pub use alloc::vec::Vec;
 
 /// A value-to-value conversion that may fallibly allocate. The opposite of
@@ -84,8 +88,22 @@ impl TryAllocFrom<&[u8]> for Vec<u8> {
     }
 }
 
-#[doc(inline)]
-pub use alloc::alloc::*;
+/// Temporary trait to implement the future fallible API for [`Vec`].
+// This should be removed when https://github.com/rust-lang/rust/pull/91559 or a
+// similar change is available.
+pub trait FallibleVec<T> {
+    /// Tries to append `value` to the end of the vector, returning Err if it
+    /// cannot allocate space for the expanded vector.
+    fn try_push(&mut self, value: T) -> Result<(), TryReserveError>;
+}
+
+impl<T> FallibleVec<T> for Vec<T> {
+    fn try_push(&mut self, value: T) -> Result<(), TryReserveError> {
+        self.try_reserve(self.len() + 1)?;
+        self.push(value);
+        Ok(())
+    }
+}
 
 /*
  * We provide the implementation of std::alloc::System here so that we don't
