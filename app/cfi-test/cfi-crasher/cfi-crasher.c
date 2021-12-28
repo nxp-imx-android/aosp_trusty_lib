@@ -22,6 +22,7 @@
 #include <lk/err_ptr.h>
 #include <stdlib.h>
 #include <string.h>
+#include <trusty/time.h>
 #include <trusty_log.h>
 #include <uapi/err.h>
 
@@ -131,8 +132,10 @@ __NO_INLINE static int crasher_not_entry_func(int arg) {
      * test app sees the message before seeing the channel has closed,
      * preventing the test from incorrectly passing. With CFI enabled,
      * crasher_void should never run if a test attempts to enter
-     * crasher_not_entry_func partway.
+     * crasher_not_entry_func partway. We sleep for 100 ms so that test app sees
+     * the response message and channel closed event as separate events.
      */
+    trusty_nanosleep(0, 0, 100 * 1000 * 1000);
     return arg;
 }
 
