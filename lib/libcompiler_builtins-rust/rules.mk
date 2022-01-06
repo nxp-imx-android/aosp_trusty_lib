@@ -26,11 +26,12 @@ MODULE_CRATE_NAME := compiler_builtins
 MODULE_LIBRARY_DEPS += \
 	trusty/user/base/lib/libcore-rust \
 
+MODULE_RUST_EDITION := 2015
+
 MODULE_RUSTFLAGS += \
 	--cfg 'feature="compiler-builtins"' \
 	--cfg 'feature="core"' \
 	--cfg 'feature="default"' \
-	--edition 2015 \
 	-C panic=abort \
 	-C overflow-checks=off \
 

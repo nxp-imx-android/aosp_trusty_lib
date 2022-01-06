@@ -23,8 +23,9 @@ MODULE_SRCS := $(RUST_LIBC_DIR)/src/lib.rs
 
 MODULE_CRATE_NAME := libc
 
+MODULE_RUST_EDITION := 2015
+
 MODULE_RUSTFLAGS += \
-	--edition 2015 \
 	--cfg 'feature="freebsd11"' \
 	--cfg 'freebsd11' \
 	--cfg 'libc_priv_mod_use' \

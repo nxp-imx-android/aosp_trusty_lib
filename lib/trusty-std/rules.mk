@@ -21,9 +21,6 @@ MODULE_SRCS := $(LOCAL_DIR)/src/lib.rs
 
 MODULE_CRATE_NAME := trusty_std
 
-MODULE_RUSTFLAGS += \
-	--edition 2018 \
-
 MODULE_LIBRARY_DEPS += \
 	trusty/user/base/lib/liballoc-rust \
 	trusty/user/base/lib/libc-rust \

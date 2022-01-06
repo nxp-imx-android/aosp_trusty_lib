@@ -23,8 +23,9 @@ MODULE_SRCS := $(LIBCORE_DIR)/src/lib.rs
 
 MODULE_CRATE_NAME := core
 
+MODULE_RUST_EDITION := 2018
+
 MODULE_RUSTFLAGS += \
-	--edition 2018 \
 	-Z force-unstable-if-unmarked \
 
 MODULE_ADD_IMPLICIT_DEPS := false

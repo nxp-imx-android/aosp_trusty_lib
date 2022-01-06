@@ -42,6 +42,7 @@
 # MODULE_EXTRA_OBJECTS : extra .o files that should be linked with the module
 # MODULE_ARM_OVERRIDE_SRCS : list of source files, local path that should be
 # 		force compiled with ARM (if applicable)
+# MODULE_RUST_EDITION : Rust edition to compile this crate for (optional)
 # MANIFEST : App manifest JSON file, only applicable if this module is an app
 #
 # Exported flags:
@@ -233,10 +234,6 @@ endif
 
 ifeq ($(MODULE_CRATE_NAME),)
 $(error $(MODULE) is a Rust module but does not set MODULE_CRATE_NAME)
-endif
-
-ifeq ($(MODULE_RUST_EDITION),)
-MODULE_RUST_EDITION := 2018
 endif
 
 MODULE_RUSTFLAGS += --crate-name=$(MODULE_CRATE_NAME)
