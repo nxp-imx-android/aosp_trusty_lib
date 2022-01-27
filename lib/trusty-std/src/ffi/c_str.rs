@@ -551,44 +551,6 @@ impl fmt::Debug for CStr {
 }
 
 impl CStr {
-    /// Returns the contents of this `CString` as a slice of bytes.
-    ///
-    /// The returned slice does **not** contain the trailing nul
-    /// terminator, and it is guaranteed to not have any interior nul
-    /// bytes. If you need the nul terminator, use
-    /// [`CString::as_bytes_with_nul`] instead.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use std::ffi::CString;
-    ///
-    /// let c_string = CString::new("foo").expect("CString::new failed");
-    /// let bytes = c_string.as_bytes();
-    /// assert_eq!(bytes, &[b'f', b'o', b'o']);
-    /// ```
-    #[inline]
-    pub fn as_bytes(&self) -> &[u8] {
-        &self.inner[..self.inner.len() - 1]
-    }
-
-    /// Equivalent to [`CString::as_bytes()`] except that the
-    /// returned slice includes the trailing nul terminator.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use std::ffi::CString;
-    ///
-    /// let c_string = CString::new("foo").expect("CString::new failed");
-    /// let bytes = c_string.as_bytes_with_nul();
-    /// assert_eq!(bytes, &[b'f', b'o', b'o', b'\0']);
-    /// ```
-    #[inline]
-    pub fn as_bytes_with_nul(&self) -> &[u8] {
-        &self.inner
-    }
-
     /// Extracts a [`CStr`] slice containing the entire string.
     ///
     /// # Examples
