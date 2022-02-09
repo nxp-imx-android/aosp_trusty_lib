@@ -49,7 +49,8 @@ pub(crate) fn panic_output() -> Option<impl Write> {
 }
 
 fn _write(fd: u32, message: &[u8]) -> fmt::Result {
-    let mut iov = trusty_sys::iovec { iov_base: message.as_ptr().cast(), iov_len: message.len() };
+    let mut iov =
+        trusty_sys::iovec { iov_base: message.as_ptr() as *mut _, iov_len: message.len() };
     loop {
         // SAFETY: syscall, safe arguments.
         let ret = unsafe { trusty_sys::writev(fd, &iov, 1) };

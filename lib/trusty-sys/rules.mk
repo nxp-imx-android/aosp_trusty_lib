@@ -30,8 +30,22 @@ MODULE_LIBRARY_DEPS += \
 include trusty/user/base/lib/syscall-stubs/common-inc.mk
 
 # Ensure that we have the syscall rust file
-export SYSCALL_INC_FILE = $(SYSCALL_RS)
+MODULE_RUST_ENV += SYSCALL_INC_FILE=$(SYSCALL_RS)
 
 MODULE_SRCDEPS += $(SYSCALL_RS)
+
+MODULE_BINDGEN_ALLOW_TYPES := \
+	iovec \
+	dma_pmem \
+	uuid \
+	handle_t \
+	uevent \
+	ipc_msg \
+	ipc_msg_info \
+
+MODULE_BINDGEN_SRC_HEADER := $(LOCAL_DIR)/bindings.h
+
+# Derive eq and hash for uuid
+MODULE_BINDGEN_FLAGS += --with-derive-eq --with-derive-hash
 
 include make/library.mk

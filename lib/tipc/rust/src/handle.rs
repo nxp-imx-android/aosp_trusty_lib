@@ -94,7 +94,7 @@ impl Handle {
     pub fn recv<T: Deserialize>(&self, buffer: &mut [u8]) -> Result<T, T::Error> {
         let _ = self.wait(None)?;
         let mut handles: [Handle; MAX_MSG_HANDLES] = Default::default();
-        let (byte_count, handle_count) = self.recv_vectored(&[buffer], &mut handles)?;
+        let (byte_count, handle_count) = self.recv_vectored(&mut [buffer], &mut handles)?;
         T::deserialize(&buffer[..byte_count], &handles[..handle_count])
     }
 
@@ -105,7 +105,7 @@ impl Handle {
     /// [`MAX_MSG_HANDLES`].
     fn recv_vectored(
         &self,
-        buffers: &[&mut [u8]],
+        buffers: &mut [&mut [u8]],
         handles: &mut [Handle],
     ) -> crate::Result<(usize, usize)> {
         self.get_msg(|msg_info| {
@@ -115,14 +115,14 @@ impl Handle {
 
             let mut iovs = Vec::new();
             iovs.try_reserve_exact(buffers.len())?;
-            iovs.extend(buffers.iter().map(|buf| trusty_sys::iovec {
-                iov_base: buf.as_ptr().cast(),
+            iovs.extend(buffers.iter_mut().map(|buf| trusty_sys::iovec {
+                iov_base: buf.as_mut_ptr().cast(),
                 iov_len: buf.len(),
             }));
 
             let mut msg = trusty_sys::ipc_msg {
                 num_iov: iovs.len().try_into()?,
-                iov: iovs.as_ptr(),
+                iov: iovs.as_mut_ptr(),
 
                 num_handles: handles.len().try_into()?,
                 handles: handles.as_ptr() as *mut i32,
@@ -154,15 +154,16 @@ impl Handle {
         let mut iovs = Vec::new();
         iovs.try_reserve_exact(buffers.len())?;
         iovs.extend(
-            buffers
-                .iter()
-                .map(|buf| trusty_sys::iovec { iov_base: buf.as_ptr().cast(), iov_len: buf.len() }),
+            buffers.iter().map(|buf| trusty_sys::iovec {
+                iov_base: buf.as_ptr() as *mut _,
+                iov_len: buf.len(),
+            }),
         );
         let total_num_bytes = buffers.iter().map(|b| b.len()).sum();
 
         let mut msg = trusty_sys::ipc_msg {
             num_iov: iovs.len().try_into()?,
-            iov: iovs.as_ptr(),
+            iov: iovs.as_mut_ptr(),
 
             num_handles: handles.len().try_into()?,
             handles: handles.as_ptr() as *mut i32,
@@ -212,9 +213,9 @@ impl Handle {
     /// message id from `ipc_msg_info` to read the message bytes. A message is
     /// only valid for the lifetime of this callback and the message bytes
     /// should be copied into the return value, if needed.
-    fn get_msg<F, R>(&self, func: F) -> crate::Result<R>
+    fn get_msg<F, R>(&self, mut func: F) -> crate::Result<R>
     where
-        F: Fn(&trusty_sys::ipc_msg_info) -> crate::Result<R>,
+        F: FnMut(&trusty_sys::ipc_msg_info) -> crate::Result<R>,
     {
         let mut msg_info: MaybeUninit<trusty_sys::ipc_msg_info> = MaybeUninit::uninit();
 

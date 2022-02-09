@@ -1,7 +1,7 @@
 #![allow(unused)]
 
 mod inc {
-    use crate::structures::*;
+    use crate::sys::*;
     use crate::types::c_char as char;
     use crate::types::c_int as int;
     use crate::types::c_int16_t as int16_t;

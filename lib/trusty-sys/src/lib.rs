@@ -22,13 +22,19 @@
 #![no_std]
 #![allow(non_camel_case_types)]
 
-mod structures;
 mod syscalls;
 mod types;
 
-pub use structures::*;
+mod sys {
+    use crate as trusty_sys;
+
+    include!(env!("BINDGEN_INC_FILE"));
+}
+
 pub use syscalls::*;
 pub use types::*;
 
 pub const STDOUT_FILENO: u32 = 1;
 pub const STDERR_FILENO: u32 = 2;
+
+pub use sys::{dma_pmem, handle_t, iovec, ipc_msg, ipc_msg_info, uevent, uuid};
