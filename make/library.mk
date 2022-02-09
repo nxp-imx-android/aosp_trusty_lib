@@ -211,6 +211,11 @@ MODULE_INCLUDES := $(MODULE_EXPORT_INCLUDES) $(MODULE_INCLUDES)
 # Generate constant headers and manifest, if needed.
 include make/gen_manifest.mk
 
+# Generate Rust bindings with bindgen if requested
+ifneq ($(strip $(MODULE_BINDGEN_SRC_HEADER)),)
+include make/bindgen.mk
+endif
+
 ifneq ($(MODULE_SRCS)$(MODULE_SRCS_FIRST),)
 # Not a header-only library, so we need to build the source files
 
