@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-use crate::ipc_sys::{handle_t, INFINITE_TIME, IPC_CONNECT_WAIT_FOR_PORT};
 use crate::serialization::Serializer;
+use crate::sys::{handle_t, INFINITE_TIME, IPC_CONNECT_WAIT_FOR_PORT};
 use crate::{Deserialize, Serialize, TipcError};
 use core::convert::TryInto;
 use core::mem::MaybeUninit;

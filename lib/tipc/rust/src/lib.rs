@@ -27,11 +27,14 @@
 
 #![no_std]
 
-mod err;
-mod handle;
 #[allow(non_camel_case_types)]
 #[allow(unused)]
-mod ipc_sys;
+mod sys {
+    include!(env!("BINDGEN_INC_FILE"));
+}
+
+mod err;
+mod handle;
 mod serialization;
 
 pub use err::{Result, TipcError};

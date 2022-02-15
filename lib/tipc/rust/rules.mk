@@ -25,4 +25,13 @@ MODULE_LIBRARY_DEPS += \
 	trusty/user/base/lib/trusty-std \
 	trusty/user/base/lib/trusty-sys \
 
+MODULE_BINDGEN_ALLOW_TYPES := \
+	handle_t \
+
+MODULE_BINDGEN_ALLOW_VARS := \
+	IPC_.* \
+	INFINITE_TIME \
+
+MODULE_BINDGEN_SRC_HEADER := $(LOCAL_DIR)/bindings.h
+
 include make/library.mk
