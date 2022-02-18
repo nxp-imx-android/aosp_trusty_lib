@@ -15,12 +15,13 @@
  */
 
 use crate::serialization::Serializer;
-use crate::sys::{handle_t, INFINITE_TIME, IPC_CONNECT_WAIT_FOR_PORT};
+use crate::sys::*;
 use crate::{Deserialize, Serialize, TipcError};
 use core::convert::TryInto;
 use core::mem::MaybeUninit;
 use trusty_std::alloc::{FallibleVec, Vec};
 use trusty_std::ffi::CStr;
+use trusty_sys::c_long;
 
 /// An open IPC connection.
 ///
@@ -150,6 +151,9 @@ impl Handle {
     /// Sends a set of buffers and set of handles at once. `buf` must fit in the
     /// message queue and `handles` must contain no more than
     /// [`MAX_MSG_HANDLES`].
+    ///
+    /// If the message fails to fit in the server's message queue, the send will
+    /// block and retry when the kernel indicates that the queue is unblocked.
     fn send_vectored(&self, buffers: &[&[u8]], handles: &[Handle]) -> crate::Result<()> {
         let mut iovs = Vec::new();
         iovs.try_reserve_exact(buffers.len())?;
@@ -175,7 +179,17 @@ impl Handle {
         // `i32` pointer. Although the syscall requires a mutable handle
         // pointer, it does not mutate these handles, so we can safely cast the
         // immutable slice to mutable pointer.
-        let rc = unsafe { trusty_sys::send_msg(self.as_raw_fd(), &mut msg) };
+        let mut rc = unsafe { trusty_sys::send_msg(self.as_raw_fd(), &mut msg) };
+        if rc == trusty_sys::Error::NotEnoughBuffer as c_long {
+            let event = self.wait(None)?;
+            if event.event & IPC_HANDLE_POLL_SEND_UNBLOCKED as u32 != 0 {
+                rc = unsafe { trusty_sys::send_msg(self.as_raw_fd(), &mut msg) };
+            } else if event.event & IPC_HANDLE_POLL_MSG as u32 != 0 {
+                return Err(TipcError::Busy);
+            } else if event.event & IPC_HANDLE_POLL_HUP as u32 != 0 {
+                return Err(TipcError::ChannelClosed);
+            }
+        }
         if rc < 0 {
             Err(TipcError::from_uapi(rc))
         } else if rc as usize != total_num_bytes {

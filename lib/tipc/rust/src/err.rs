@@ -53,6 +53,12 @@ pub enum TipcError {
 
     /// Internal data was not valid
     InvalidData,
+
+    /// Message could not be sent because connection was busy.
+    Busy,
+
+    /// The channel was closed before the operation could be completed.
+    ChannelClosed,
 }
 
 impl TipcError {
