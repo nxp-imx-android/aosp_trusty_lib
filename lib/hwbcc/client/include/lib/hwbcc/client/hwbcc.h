@@ -46,7 +46,8 @@ __BEGIN_CDECLS
  */
 int hwbcc_get_protected_data(uint8_t test_mode,
                              int32_t cose_algorithm,
-                             const uint8_t* mac_key,
+                             const uint8_t* key,
+                             uint32_t key_size,
                              const uint8_t* aad,
                              size_t aad_size,
                              uint8_t* cose_sign1,

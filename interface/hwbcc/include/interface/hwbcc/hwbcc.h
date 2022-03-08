@@ -27,7 +27,7 @@ __BEGIN_CDECLS
  * enum hwbcc_cmd - BCC service commands.
  * @HWBCC_CMD_REQ_SHIFT: Bitshift of the command index.
  * @HWBCC_CMD_RESP_BIT:  Bit indicating that this is a response.
- * @HWBCC_CMD_SIGN_MAC:  Sign the provided MAC key.
+ * @HWBCC_CMD_SIGN_KEY:  Sign the provided key.
  * @HWBCC_CMD_GET_BCC:   Get BCC.
  * @HWBCC_CMD_GET_DICE_ARTIFACTS: Retrieves DICE artifacts for
  * a child node in the DICE chain/tree.
@@ -37,7 +37,7 @@ __BEGIN_CDECLS
 enum hwbcc_cmd {
     HWBCC_CMD_REQ_SHIFT = 1,
     HWBCC_CMD_RESP_BIT = 1,
-    HWBCC_CMD_SIGN_MAC = 1 << HWBCC_CMD_REQ_SHIFT,
+    HWBCC_CMD_SIGN_KEY = 1 << HWBCC_CMD_REQ_SHIFT,
     HWBCC_CMD_GET_BCC = 2 << HWBCC_CMD_REQ_SHIFT,
     HWBCC_CMD_GET_DICE_ARTIFACTS = 3 << HWBCC_CMD_REQ_SHIFT,
     HWBCC_CMD_NS_DEPRIVILEGE = 4 << HWBCC_CMD_REQ_SHIFT,
@@ -64,6 +64,8 @@ struct hwbcc_req_hdr {
 };
 STATIC_ASSERT(sizeof(struct hwbcc_req_hdr) == 16);
 
+#define HWBCC_MAX_AAD_SIZE 512
+#define HWBCC_MAX_ENCODED_KEY_SIZE 104
 #define HWBCC_MAC_KEY_SIZE 32
 
 /**
@@ -77,19 +79,19 @@ enum hwbcc_algorithm {
 };
 
 /**
- * struct hwbcc_req_sign_mac - Request to sign a MAC key.
- * @algorithm: Choice of signing algorithm, one of &enum hwbcc_algorithm.
- * @mac_key:   MAC key to be signed.
- * @aad_size:  Size of AAD buffer that follows this struct.
+ * struct hwbcc_req_sign_key - Request to sign a key. Followed by a buffer
+ * containing (key || aad)
+ * @algorithm:   Choice of signing algorithm, one of &enum hwbcc_algorithm.
+ * @key_size:    Length of key to be signed. Maximum size is bounded by
+ * HWBCC_MAX_ENCODED_KEY_SIZE.
+ * @aad_size:    Size of AAD portion of the buffer that follows this struct.
  */
-struct hwbcc_req_sign_mac {
-    int32_t algorithm;
-    uint8_t mac_key[HWBCC_MAC_KEY_SIZE];
+struct hwbcc_req_sign_key {
+    int16_t algorithm;
+    uint16_t key_size;
     uint32_t aad_size;
 };
-STATIC_ASSERT(sizeof(struct hwbcc_req_sign_mac) == 40);
-
-#define HWBCC_MAX_AAD_SIZE 512
+STATIC_ASSERT(sizeof(struct hwbcc_req_sign_key) == 8);
 
 /**
  * struct hwbcc_resp_hdr - Generic header for all hwbcc requests.

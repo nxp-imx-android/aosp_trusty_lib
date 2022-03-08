@@ -304,20 +304,11 @@ void swbcc_close(swbcc_session_t s) {
  */
 #define MAC_SIGN1_SIZE (106)
 
-/*
- * Format and (size) of a Sig_structure in this case is:
- * Array header (1) | Context (11) | Protected Params (4) | AAD Hdr (2) |
- * AAD (var) | MAC KEY Hdr (2) | MAC KEY (32)
- */
-#define PROTECTED_PARAMS_BUF_SIZE (4)
-#define SIG_STRUCTURE_BUF_SIZE                                         \
-    (1 + 11 + PROTECTED_PARAMS_BUF_SIZE + 2 + HWBCC_MAX_AAD_SIZE + 2 + \
-     HWBCC_MAC_KEY_SIZE)
-
-int swbcc_sign_mac(swbcc_session_t s,
+int swbcc_sign_key(swbcc_session_t s,
                    uint32_t test_mode,
                    int32_t cose_algorithm,
-                   const uint8_t* mac_key,
+                   const uint8_t* key,
+                   uint32_t key_size,
                    const uint8_t* aad,
                    size_t aad_size,
                    uint8_t* cose_sign1,
@@ -329,7 +320,7 @@ int swbcc_sign_mac(swbcc_session_t s,
     struct swbcc_session* session = s;
 
     assert(s);
-    assert(mac_key);
+    assert(key);
     assert(aad);
     assert(cose_sign1);
     assert(cose_sign1_size);
@@ -343,8 +334,8 @@ int swbcc_sign_mac(swbcc_session_t s,
     signing_key = test_mode ? session->test_priv_key : session->priv_key;
 
     result = DiceCoseSignAndEncodeSign1(
-            srv_state.dice_ctx, mac_key, HWBCC_MAC_KEY_SIZE, aad, aad_size,
-            signing_key, cose_sign1_buf_size, cose_sign1, cose_sign1_size);
+            srv_state.dice_ctx, key, key_size, aad, aad_size, signing_key,
+            cose_sign1_buf_size, cose_sign1, cose_sign1_size);
     rc = dice_result_to_err(result);
     if (rc != NO_ERROR) {
         TLOGE("Failed to generate COSE_Sign1: %d\n", rc);

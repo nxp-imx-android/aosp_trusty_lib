@@ -74,7 +74,7 @@ static int recv_resp(handle_t chan,
 }
 
 /**
- * sign_mac() - Signs a MAC key and returns a COSE_Sign1 message.
+ * sign_key() - Signs a MAC key and returns a COSE_Sign1 message.
  * @chan:                TIPC channel to HWBCC server
  * @test_mode:           Whether or not a to return test values.
  * @cose_algorithm:      COSE encoding of which signing algorithm to use.
@@ -90,26 +90,28 @@ static int recv_resp(handle_t chan,
  *
  * Return: 0 on success, or an error code < 0 on failure.
  */
-static int sign_mac(handle_t chan,
+static int sign_key(handle_t chan,
                     uint8_t test_mode,
                     int32_t cose_algorithm,
-                    const uint8_t* mac_key,
+                    const uint8_t* key,
+                    uint32_t key_size,
                     const uint8_t* aad,
                     size_t aad_size,
                     uint8_t* cose_sign1,
                     size_t cose_sign1_buf_size,
                     size_t* cose_sign1_size) {
     int rc;
-    struct hwbcc_sign_mac_hdr {
+    struct hwbcc_sign_key_hdr {
         struct hwbcc_req_hdr hdr;
-        struct hwbcc_req_sign_mac args;
+        struct hwbcc_req_sign_key args;
     } req;
-    STATIC_ASSERT(sizeof(struct hwbcc_sign_mac_hdr) ==
+    STATIC_ASSERT(sizeof(struct hwbcc_sign_key_hdr) ==
                   sizeof(struct hwbcc_req_hdr) +
-                          sizeof(struct hwbcc_req_sign_mac));
-
-    assert(mac_key);
-    assert(aad);
+                          sizeof(struct hwbcc_req_sign_key));
+    assert(key);
+    if (aad_size > 0) {
+        assert(aad);
+    }
     assert(cose_sign1);
     assert(cose_sign1_size);
 
@@ -118,19 +120,46 @@ static int sign_mac(handle_t chan,
         return ERR_BAD_LEN;
     }
 
-    req.hdr.cmd = HWBCC_CMD_SIGN_MAC;
+    req.hdr.cmd = HWBCC_CMD_SIGN_KEY;
     req.hdr.test_mode = test_mode;
     req.args.algorithm = cose_algorithm;
-    memcpy(req.args.mac_key, mac_key, HWBCC_MAC_KEY_SIZE);
+    req.args.key_size = key_size;
     req.args.aad_size = aad_size;
-    rc = tipc_send2(chan, &req, sizeof(req), aad, aad_size);
+
+    uint32_t iov_count = 2;
+    struct iovec iovs[3] = {
+            {
+                    .iov_base = (void*)&req,
+                    .iov_len = sizeof(req),
+            },
+            {
+                    .iov_base = (void*)key,
+                    .iov_len = key_size,
+            },
+            {
+                    .iov_base = NULL,
+                    .iov_len = aad_size,
+            },
+    };
+    if (aad) {
+        iov_count = 3;
+        iovs[2].iov_base = (void*)aad;
+    }
+    ipc_msg_t msg = {
+            .iov = iovs,
+            .num_iov = iov_count,
+            .handles = NULL,
+            .num_handles = 0,
+    };
+
+    rc = send_msg(chan, &msg);
     if (rc < 0) {
-        TLOGE("Unable to send sign_mac request: %d\n", rc);
+        TLOGE("Unable to send sign_key request: %d\n", rc);
         return rc;
     }
 
-    if ((size_t)rc != sizeof(req) + req.args.aad_size) {
-        TLOGE("Only sent %d bytes of the sign_mac request.\n", rc);
+    if ((size_t)rc != sizeof(req) + req.args.key_size + req.args.aad_size) {
+        TLOGE("Only sent %d bytes of the sign_key request.\n", rc);
         return rc;
     }
 
@@ -177,7 +206,8 @@ static int get_bcc(handle_t chan,
 
 int hwbcc_get_protected_data(uint8_t test_mode,
                              int32_t cose_algorithm,
-                             const uint8_t* mac_key,
+                             const uint8_t* key,
+                             uint32_t key_size,
                              const uint8_t* aad,
                              size_t aad_size,
                              uint8_t* cose_sign1,
@@ -195,10 +225,10 @@ int hwbcc_get_protected_data(uint8_t test_mode,
         return rc;
     }
 
-    rc = sign_mac(chan, test_mode, cose_algorithm, mac_key, aad, aad_size,
+    rc = sign_key(chan, test_mode, cose_algorithm, key, key_size, aad, aad_size,
                   cose_sign1, cose_sign1_buf_size, cose_sign1_size);
     if (rc != NO_ERROR) {
-        TLOGE("Failed sign_mac(): %d\n", rc);
+        TLOGE("Failed sign_key(): %d\n", rc);
         goto out;
     }
 

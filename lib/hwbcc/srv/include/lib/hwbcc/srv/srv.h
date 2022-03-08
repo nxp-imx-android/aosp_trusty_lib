@@ -36,7 +36,7 @@ typedef void* hwbcc_session_t;
  * struct hwbcc_ops - HWBCC callbacks
  * @init:     Initializes a new session.
  * @close:    Closes a session previously initialized by @init.
- * @sign_mac: Signs a MAC key and returns a COSE_Sign1 message.
+ * @sign_key: Signs a key and returns a COSE_Sign1 message.
  * @get_bcc:  Retrieves the Boot Certificate Chain for the device.
  * @get_dice_artifacts: Retrieves DICE artifacts for
  * a child node in the DICE chain/tree.
@@ -50,10 +50,11 @@ typedef void* hwbcc_session_t;
 struct hwbcc_ops {
     int (*init)(hwbcc_session_t* s, const struct uuid* client);
     void (*close)(hwbcc_session_t s);
-    int (*sign_mac)(hwbcc_session_t s,
+    int (*sign_key)(hwbcc_session_t s,
                     uint32_t test_mode,
                     int32_t algorithm,
-                    const uint8_t* mac_key,
+                    const uint8_t* key,
+                    uint32_t key_size,
                     const uint8_t* aad,
                     size_t aad_size,
                     uint8_t* cose_sign1,

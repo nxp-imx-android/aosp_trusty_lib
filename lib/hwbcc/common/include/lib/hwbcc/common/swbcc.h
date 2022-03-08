@@ -49,10 +49,11 @@ int swbcc_init(swbcc_session_t* s, const struct uuid* client);
 
 void swbcc_close(swbcc_session_t s);
 
-int swbcc_sign_mac(swbcc_session_t s,
+int swbcc_sign_key(swbcc_session_t s,
                    uint32_t test_mode,
                    int32_t cose_algorithm,
-                   const uint8_t* mac_key,
+                   const uint8_t* key,
+                   uint32_t key_size,
                    const uint8_t* aad,
                    size_t aad_size,
                    uint8_t* cose_sign1,

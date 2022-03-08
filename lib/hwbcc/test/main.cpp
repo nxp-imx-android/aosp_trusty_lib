@@ -286,9 +286,9 @@ TEST_F(swbcc, mac) {
 
     memset(cose_sign1, 0, sizeof(cose_sign1));
 
-    rc = swbcc_sign_mac(_state->s, true, HWBCC_ALGORITHM_ED25519, test_mac_key,
-                        test_aad, sizeof(test_aad), cose_sign1,
-                        sizeof(cose_sign1), &cose_sign1_size);
+    rc = swbcc_sign_key(_state->s, true, HWBCC_ALGORITHM_ED25519, test_mac_key,
+                        sizeof(test_mac_key), test_aad, sizeof(test_aad),
+                        cose_sign1, sizeof(cose_sign1), &cose_sign1_size);
     ASSERT_EQ(rc, 0);
 
     ASSERT_GT(cose_sign1_size, 0);
@@ -337,10 +337,10 @@ TEST(hwbcc, protected_data_test_mode) {
     memset(cose_sign1, 0, sizeof(cose_sign1));
     memset(bcc, 0, sizeof(bcc));
 
-    rc = hwbcc_get_protected_data(true, HWBCC_ALGORITHM_ED25519, test_mac_key,
-                                  test_aad, sizeof(test_aad), cose_sign1,
-                                  sizeof(cose_sign1), &cose_sign1_size, bcc,
-                                  sizeof(bcc), &bcc_size);
+    rc = hwbcc_get_protected_data(
+            true, HWBCC_ALGORITHM_ED25519, test_mac_key, sizeof(test_mac_key),
+            test_aad, sizeof(test_aad), cose_sign1, sizeof(cose_sign1),
+            &cose_sign1_size, bcc, sizeof(bcc), &bcc_size);
     ASSERT_EQ(rc, 0);
 
     ASSERT_GT(cose_sign1_size, 0);
@@ -352,10 +352,10 @@ TEST(hwbcc, protected_data_test_mode) {
     memset(cose_sign1, 0, sizeof(cose_sign1));
     memset(bcc, 0, sizeof(bcc));
 
-    rc = hwbcc_get_protected_data(true, HWBCC_ALGORITHM_ED25519, test_mac_key,
-                                  test_aad, sizeof(test_aad), cose_sign1,
-                                  sizeof(cose_sign1), &cose_sign1_size, bcc,
-                                  sizeof(bcc), &bcc_size);
+    rc = hwbcc_get_protected_data(
+            true, HWBCC_ALGORITHM_ED25519, test_mac_key, sizeof(test_mac_key),
+            test_aad, sizeof(test_aad), cose_sign1, sizeof(cose_sign1),
+            &cose_sign1_size, bcc, sizeof(bcc), &bcc_size);
     ASSERT_EQ(rc, 0);
 
     ASSERT_GT(cose_sign1_size, 0);
@@ -405,10 +405,10 @@ TEST(hwbcc, GENERIC_ARM64_PLATFORM_ONLY_TEST(protected_data)) {
     memset(cose_sign1, 0, sizeof(cose_sign1));
     memset(bcc, 0, sizeof(bcc));
 
-    rc = hwbcc_get_protected_data(false, HWBCC_ALGORITHM_ED25519, test_mac_key,
-                                  test_aad, sizeof(test_aad), cose_sign1,
-                                  sizeof(cose_sign1), &cose_sign1_size, bcc,
-                                  sizeof(bcc), &bcc_size);
+    rc = hwbcc_get_protected_data(
+            false, HWBCC_ALGORITHM_ED25519, test_mac_key, sizeof(test_mac_key),
+            test_aad, sizeof(test_aad), cose_sign1, sizeof(cose_sign1),
+            &cose_sign1_size, bcc, sizeof(bcc), &bcc_size);
     ASSERT_EQ(rc, 0);
 
     ASSERT_GT(cose_sign1_size, 0);

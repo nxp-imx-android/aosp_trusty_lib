@@ -28,12 +28,12 @@
 
 struct hwbcc_req {
     struct hwbcc_req_hdr hdr;
-    struct hwbcc_req_sign_mac args;
-    uint8_t aad[HWBCC_MAX_AAD_SIZE];
+    struct hwbcc_req_sign_key args;
+    uint8_t key_and_aad[HWBCC_MAX_ENCODED_KEY_SIZE + HWBCC_MAX_AAD_SIZE];
 };
 STATIC_ASSERT(sizeof(struct hwbcc_req) ==
-              sizeof(struct hwbcc_req_hdr) + sizeof(struct hwbcc_req_sign_mac) +
-                      HWBCC_MAX_AAD_SIZE);
+              sizeof(struct hwbcc_req_hdr) + sizeof(struct hwbcc_req_sign_key) +
+                      HWBCC_MAX_ENCODED_KEY_SIZE + HWBCC_MAX_AAD_SIZE);
 
 struct hwbcc_resp {
     struct hwbcc_resp_hdr hdr;
@@ -58,12 +58,21 @@ static const struct uuid hwbcc_test_uuid = {
         {0xbb, 0x47, 0xe1, 0xdd, 0x08, 0x91, 0x0e, 0x16},
 };
 
+/* UUID: {08d3ed40-bde2-448c-a91d75f1989c57ef} */
+static const struct uuid widevine_uuid = {
+        0x08d3ed40,
+        0xbde2,
+        0x448c,
+        {0xa9, 0x1d, 0x75, 0xf1, 0x98, 0x9c, 0x57, 0xef},
+};
+
 /* ZERO UUID to allow connections from non-secure world */
 static const struct uuid zero_uuid = UUID_INITIAL_VALUE(zero_uuid);
 
 static const struct uuid* allowed_uuids[] = {
         &km_uuid,
         &hwbcc_test_uuid,
+        &widevine_uuid,
         &zero_uuid,
 };
 
@@ -84,7 +93,7 @@ static struct tipc_port port = {
 static const struct hwbcc_ops* hwbcc_ops;
 
 static int hwbcc_check_ops(const struct hwbcc_ops* ops) {
-    if (!ops->init || !ops->close || !ops->sign_mac || !ops->get_bcc ||
+    if (!ops->init || !ops->close || !ops->sign_key || !ops->get_bcc ||
         !ops->get_dice_artifacts || !ops->ns_deprivilege) {
         TLOGE("NULL ops pointers\n");
         return ERR_INVALID_ARGS;
@@ -116,25 +125,26 @@ static void on_channel_cleanup(void* ctx) {
     hwbcc_ops->close(s);
 }
 
-static int handle_sign_mac(hwbcc_session_t s,
+static int handle_sign_key(hwbcc_session_t s,
                            handle_t chan,
                            uint32_t test_mode,
-                           struct hwbcc_req_sign_mac* args,
-                           const uint8_t* aad) {
+                           struct hwbcc_req_sign_key* args,
+                           const uint8_t* key_and_aad) {
     int rc;
     struct hwbcc_resp resp = {0};
     size_t payload_size = 0;
 
     assert(hwbcc_ops);
 
-    rc = hwbcc_ops->sign_mac(s, test_mode, args->algorithm, args->mac_key, aad,
+    rc = hwbcc_ops->sign_key(s, test_mode, args->algorithm, key_and_aad,
+                             args->key_size, key_and_aad + args->key_size,
                              args->aad_size, resp.payload, sizeof(resp.payload),
                              &payload_size);
     if (rc != NO_ERROR) {
-        TLOGE("HWBCC_CMD_SIGN_MAC failure: %d\n", rc);
+        TLOGE("HWBCC_CMD_SIGN_KEY failure: %d\n", rc);
     }
 
-    resp.hdr.cmd = HWBCC_CMD_SIGN_MAC | HWBCC_CMD_RESP_BIT;
+    resp.hdr.cmd = HWBCC_CMD_SIGN_KEY | HWBCC_CMD_RESP_BIT;
     resp.hdr.status = rc;
     resp.hdr.payload_size = payload_size;
     rc = tipc_send1(chan, &resp, sizeof(resp.hdr) + payload_size);
@@ -250,7 +260,7 @@ static int on_message(const struct tipc_port* port, handle_t chan, void* ctx) {
     }
 
     switch (req.hdr.cmd) {
-    case HWBCC_CMD_SIGN_MAC: {
+    case HWBCC_CMD_SIGN_KEY: {
         if ((size_t)rc < sizeof(req.hdr) + sizeof(req.args)) {
             return ERR_BAD_LEN;
         }
@@ -259,11 +269,17 @@ static int on_message(const struct tipc_port* port, handle_t chan, void* ctx) {
             return ERR_BAD_LEN;
         }
 
-        if (rc - sizeof(req.hdr) - sizeof(req.args) != req.args.aad_size) {
+        if (req.args.key_size > HWBCC_MAX_ENCODED_KEY_SIZE) {
             return ERR_BAD_LEN;
         }
 
-        return handle_sign_mac(s, chan, req.hdr.test_mode, &req.args, req.aad);
+        if (rc - sizeof(req.hdr) - sizeof(req.args) !=
+            req.args.key_size + req.args.aad_size) {
+            return ERR_BAD_LEN;
+        }
+
+        return handle_sign_key(s, chan, req.hdr.test_mode, &req.args,
+                               req.key_and_aad);
     }
 
     case HWBCC_CMD_GET_BCC:
