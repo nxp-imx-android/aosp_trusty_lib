@@ -63,7 +63,10 @@ test_abort:
 static uint64_t calculate_checksum(void* bytes, size_t len) {
     uint64_t checksum = 0;
     for (size_t i = 0; i < len; i += sizeof(checksum)) {
-        checksum += *(uint64_t*)((uint8_t*)bytes + i);
+        uint64_t tmp;
+        /* Copy word to satisfy alignment requirements */
+        memcpy(&tmp, bytes + i, sizeof(tmp));
+        checksum ^= tmp;
     }
     return checksum;
 }
@@ -93,7 +96,7 @@ TEST_F(keymaster, sign_and_auth_token) {
        possible hmacs. If this test fails due to collision maybe buy a
        lottery ticket. */
     checksum = calculate_checksum(token.hmac, sizeof(token.hmac));
-    ASSERT_NE(checksum, 0);
+    ASSERT_NE((uint64_t)checksum, (uint64_t)0);
 
     ret = keymaster_validate_auth_token(_state->km_handle, &token);
     ASSERT_EQ(ret, NO_ERROR);
