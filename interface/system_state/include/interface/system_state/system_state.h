@@ -21,12 +21,6 @@
 #define SYSTEM_STATE_PORT "com.android.trusty.system-state"
 #define SYSTEM_STATE_MAX_MESSAGE_SIZE 32
 
-#define HWKEY_GET_KEYSLOT_PROTOCOL_VERSION 0
-#define HWKEY_DERIVE_PROTOCOL_VERSION 0
-
-#define HWKEY_KDF_VERSION_BEST 0
-#define HWKEY_KDF_VERSION_1 1
-
 /**
  * enum system_state_cmd - command identifiers for system_state functions
  * @SYSTEM_STATE_CMD_RESP_BIT:  Message is a response.

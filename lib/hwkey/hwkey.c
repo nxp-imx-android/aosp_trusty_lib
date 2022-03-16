@@ -15,6 +15,7 @@
  */
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -22,6 +23,8 @@
 #include <uapi/err.h>
 
 #include <lib/hwkey/hwkey.h>
+#include <lib/tipc/tipc.h>
+#include "interface/hwkey/hwkey.h"
 
 #define LOG_TAG "libhwkey"
 #define TLOGE(fmt, ...) \
@@ -118,7 +121,7 @@ static long send_req(hwkey_session_t session,
         goto err_get_fail;
     }
 
-    uint32_t cmd_sent = msg->cmd;
+    uint32_t cmd_sent = msg->header.cmd;
 
     struct iovec rx_iov[2] = {
             {.iov_base = msg, .iov_len = sizeof(*msg)},
@@ -144,14 +147,14 @@ static long send_req(hwkey_session_t session,
         goto err_read_fail;
     }
 
-    if (msg->cmd != (cmd_sent | HWKEY_RESP_BIT)) {
+    if (msg->header.cmd != (cmd_sent | HWKEY_RESP_BIT)) {
         TLOGE("%s: invalid response id (0x%x) for cmd (0x%x)\n", __func__,
-              msg->cmd, cmd_sent);
+              msg->header.cmd, cmd_sent);
         return ERR_NOT_VALID;
     }
 
     *rsp_buf_len = read_len - sizeof(*msg);
-    return hwkey_err_to_tipc_err(msg->status);
+    return hwkey_err_to_tipc_err(msg->header.status);
 
 err_get_fail:
     put_msg(session, inf.id);
@@ -175,7 +178,7 @@ long hwkey_get_keyslot_data(hwkey_session_t session,
     }
 
     struct hwkey_msg msg = {
-            .cmd = HWKEY_GET_KEYSLOT,
+            .header.cmd = HWKEY_GET_KEYSLOT,
     };
 
     // TODO: remove const cast when const APIs are available
@@ -194,7 +197,7 @@ long hwkey_derive(hwkey_session_t session,
     }
 
     struct hwkey_msg msg = {
-            .cmd = HWKEY_DERIVE,
+            .header.cmd = HWKEY_DERIVE,
             .arg1 = *kdf_version,
     };
 
@@ -209,6 +212,102 @@ long hwkey_derive(hwkey_session_t session,
     *kdf_version = msg.arg1;
 
     return rc;
+}
+
+long hwkey_derive_versioned(hwkey_session_t session,
+                            struct hwkey_versioned_key_options* args) {
+    if (args == NULL) {
+        TLOGE("Args pointer is null\n");
+        return ERR_NOT_VALID;
+    }
+    if (args->context == NULL && args->context_len != 0) {
+        TLOGE("Context pointer is null with non-zero length\n");
+        return ERR_NOT_VALID;
+    }
+    if (args->context != NULL && args->context_len == 0) {
+        TLOGE("Context pointer is non-null with zero length\n");
+        return ERR_NOT_VALID;
+    }
+    if (args->key == NULL && args->key_len != 0) {
+        TLOGE("Key pointer is null with non-zero length\n");
+        return ERR_NOT_VALID;
+    }
+    if (args->key != NULL && args->key_len == 0) {
+        TLOGE("Key pointer is non-null with zero length\n");
+        return ERR_NOT_VALID;
+    }
+    if (args->os_rollback_version < 0 &&
+        args->os_rollback_version != HWKEY_ROLLBACK_VERSION_CURRENT) {
+        TLOGE("OS rollback version is invalid: %d\n",
+              args->os_rollback_version);
+        return ERR_NOT_VALID;
+    }
+
+    size_t max_payload_len =
+            HWKEY_MAX_MSG_SIZE - sizeof(struct hwkey_derive_versioned_msg);
+    if (args->context_len > max_payload_len ||
+        args->key_len > max_payload_len) {
+        return ERR_BAD_LEN;
+    }
+
+    uint32_t key_options = args->shared_key ? HWKEY_SHARED_KEY_TYPE
+                                            : HWKEY_DEVICE_UNIQUE_KEY_TYPE;
+
+    struct hwkey_derive_versioned_msg req_msg = {
+            .header.cmd = HWKEY_DERIVE_VERSIONED,
+            .kdf_version = args->kdf_version,
+            .rollback_version_source = args->rollback_version_source,
+            .rollback_versions[HWKEY_ROLLBACK_VERSION_OS_INDEX] =
+                    args->os_rollback_version,
+            .key_options = key_options,
+            .key_len = args->key_len,
+    };
+
+    int rc = tipc_send2(session, &req_msg, sizeof(req_msg), args->context,
+                        args->context_len);
+    if (rc < 0) {
+        return rc;
+    }
+
+    if (((size_t)rc) != sizeof(req_msg) + args->context_len) {
+        TLOGE("%s: failed to send entire message\n", __func__);
+        return ERR_IO;
+    }
+
+    uevent_t uevt;
+    rc = wait(session, &uevt, INFINITE_TIME);
+    if (rc != NO_ERROR) {
+        return rc;
+    }
+
+    struct hwkey_derive_versioned_msg resp_msg = {0};
+
+    rc = tipc_recv2(session, sizeof(struct hwkey_msg_header), &resp_msg,
+                    sizeof(resp_msg), args->key, args->key_len);
+    if (rc < 0) {
+        return rc;
+    }
+
+    if (resp_msg.header.cmd != (req_msg.header.cmd | HWKEY_RESP_BIT)) {
+        TLOGE("%s: invalid response id (0x%x) for cmd (0x%x)\n", __func__,
+              resp_msg.header.cmd, req_msg.header.cmd);
+        return ERR_NOT_VALID;
+    }
+
+    if (resp_msg.header.status == HWKEY_NO_ERROR &&
+        (size_t)rc != sizeof(resp_msg) + args->key_len) {
+        TLOGE("%s: unexpected response length (%zu != %zu)\n", __func__,
+              (size_t)rc, sizeof(resp_msg) + args->key_len);
+        return ERR_BAD_LEN;
+    }
+
+    if (resp_msg.header.status == HWKEY_NO_ERROR) {
+        args->kdf_version = resp_msg.kdf_version;
+        args->os_rollback_version =
+                resp_msg.rollback_versions[HWKEY_ROLLBACK_VERSION_OS_INDEX];
+    }
+
+    return hwkey_err_to_tipc_err(resp_msg.header.status);
 }
 
 void hwkey_close(hwkey_session_t session) {
