@@ -22,6 +22,7 @@
 #include <interface/apploader/apploader_package.h>
 #include <interface/hwkey/hwkey.h>
 #include <inttypes.h>
+#include <lib/apploader_policy_engine/apploader_policy_engine.h>
 #include <lib/hwaes/hwaes.h>
 #include <lib/hwkey/hwkey.h>
 #include <lk/compiler.h>
@@ -72,21 +73,35 @@ get_key(hwkey_session_t hwkey_session, std::string_view op, uint8_t key_id) {
     return {std::move(result), static_cast<size_t>(key_size)};
 }
 
+/*
+ * strictCheckEcDsaSignature requires a function pointer that returns a
+ * unique_ptr, so we wrap app_policy_engine_get_key().
+ * This will store the key into two places: in *publicKeyPtr, and as a
+ * unique_ptr (which wraps a second copy of the key). The caller must free
+ * *publicKeyPtr.
+ */
 static std::tuple<std::unique_ptr<uint8_t[]>, size_t> get_sign_key(
-        uint8_t key_id) {
-    long rc = hwkey_open();
+        uint8_t key_id,
+        const uint8_t** public_key_ptr,
+        unsigned int* public_key_size_ptr) {
+    int rc = apploader_policy_engine_get_key(key_id, public_key_ptr,
+                                             public_key_size_ptr);
     if (rc < 0) {
-        TLOGE("Failed to connect to hwkey (%ld)\n", rc);
+        TLOGE("Failed to get key %" PRIu8 " from policy engine (%d)\n", key_id,
+              rc);
         return {};
     }
 
-    hwkey_session_t hwkey_session = static_cast<hwkey_session_t>(rc);
+    std::unique_ptr<uint8_t[]> result(new (std::nothrow)
+                                              uint8_t[*public_key_size_ptr]());
+    if (!result) {
+        TLOGE("Failed to allocate memory for key\n");
+        return {};
+    }
 
-    auto key = get_key(hwkey_session, "sign", key_id);
+    memcpy(result.get(), *public_key_ptr, *public_key_size_ptr);
 
-    hwkey_close(hwkey_session);
-
-    return key;
+    return {std::move(result), static_cast<size_t>(*public_key_size_ptr)};
 }
 
 static std::optional<bool> get_cbor_bool(std::unique_ptr<cppbor::Item>& item) {
@@ -189,10 +204,20 @@ bool apploader_parse_package_metadata(
         uint8_t* package_start,
         size_t package_size,
         struct apploader_package_metadata* metadata) {
+    /*
+     * This lambda will store the signing key into metadata->publicKey, and
+     * also return a separate copy (wrapped in a unique_ptr) that is consumed
+     * by strictCheckEcDsaSignature.
+     */
+    auto local_get_sign_key = [metadata](int key_id) {
+        return get_sign_key(key_id, &(metadata->public_key),
+                            &(metadata->public_key_size));
+    };
+
     const uint8_t* unsigned_package_start;
     size_t unsigned_package_size;
-    if (!strictCheckEcDsaSignature(package_start, package_size, get_sign_key,
-                                   &unsigned_package_start,
+    if (!strictCheckEcDsaSignature(package_start, package_size,
+                                   local_get_sign_key, &unsigned_package_start,
                                    &unsigned_package_size)) {
         TLOGE("Package signature verification failed\n");
         return false;

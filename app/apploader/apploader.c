@@ -22,6 +22,7 @@
 #include <interface/apploader/apploader_secure.h>
 #include <inttypes.h>
 #include <lib/app_manifest/app_manifest.h>
+#include <lib/apploader_policy_engine/apploader_policy_engine.h>
 #include <lib/system_state/system_state.h>
 #include <lib/tipc/tipc.h>
 #include <lib/tipc/tipc_srv.h>
@@ -356,6 +357,46 @@ static bool apploader_relocate_package(
     return true;
 }
 
+static bool parse_manifest_for_policy(
+        struct apploader_package_metadata* pkg_meta,
+        struct manifest_extracts* manifest_extracts) {
+    struct app_manifest_iterator iter;
+    app_manifest_iterator_reset(&iter, (const char*)pkg_meta->manifest_start,
+                                pkg_meta->manifest_size);
+
+    manifest_extracts->non_critical_app = false;
+
+    struct app_manifest_config_entry entry;
+    int out_error;
+
+    bool uuid_found = false;
+    while (app_manifest_iterator_next(&iter, &entry, &out_error)) {
+        switch (entry.key) {
+        case APP_MANIFEST_CONFIG_KEY_UUID:
+            manifest_extracts->uuid = entry.value.uuid;
+            uuid_found = true;
+            break;
+        case APP_MANIFEST_CONFIG_KEY_MGMT_FLAGS:
+            if (entry.value.mgmt_flags &
+                APP_MANIFEST_MGMT_FLAGS_NON_CRITICAL_APP) {
+                manifest_extracts->non_critical_app = true;
+            }
+            break;
+        case APP_MANIFEST_CONFIG_KEY_VERSION:
+        case APP_MANIFEST_CONFIG_KEY_APP_NAME:
+        case APP_MANIFEST_CONFIG_KEY_MIN_STACK_SIZE:
+        case APP_MANIFEST_CONFIG_KEY_MIN_HEAP_SIZE:
+        case APP_MANIFEST_CONFIG_KEY_MAP_MEM:
+        case APP_MANIFEST_CONFIG_KEY_START_PORT:
+        case APP_MANIFEST_CONFIG_KEY_PINNED_CPU:
+        case APP_MANIFEST_CONFIG_KEY_MIN_SHADOW_STACK_SIZE:
+            break;
+        }
+    }
+
+    return (uuid_found);
+}
+
 static int apploader_handle_cmd_load_app(handle_t chan,
                                          struct apploader_load_app_req* req,
                                          handle_t req_handle) {
@@ -417,6 +458,21 @@ static int apploader_handle_cmd_load_app(handle_t chan,
         goto err_version_check;
     }
 
+    struct manifest_extracts manifest_extracts = {0};
+    if (!parse_manifest_for_policy(&pkg_meta, &manifest_extracts)) {
+        TLOGE("Unable to extract manifest fields\n");
+        resp_error = APPLOADER_ERR_POLICY_VIOLATION;
+        goto err_policy_disallowed_loading;
+    }
+
+    if (!apploader_policy_engine_validate(pkg_meta.public_key,
+                                          pkg_meta.public_key_size,
+                                          &manifest_extracts)) {
+        TLOGE("App loading denied by policy engine\n");
+        resp_error = APPLOADER_ERR_POLICY_VIOLATION;
+        goto err_policy_disallowed_loading;
+    }
+
     if (!apploader_relocate_package(package, &pkg_meta)) {
         TLOGE("Failed to relocate package contents in memory\n");
         resp_error = APPLOADER_ERR_VERIFICATION_FAILED;
@@ -442,10 +498,15 @@ static int apploader_handle_cmd_load_app(handle_t chan,
     }
 
 err_relocate_package:
+err_policy_disallowed_loading:
 err_version_check:
 err_elf_not_found:
 err_manifest_not_found:
 err_invalid_package:
+    if (pkg_meta.public_key) {
+        apploader_policy_engine_put_key(pkg_meta.public_key);
+    }
+
     if (package) {
         munmap(package, aligned_size);
     }

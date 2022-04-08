@@ -36,6 +36,9 @@ struct apploader_package_metadata {
 
     const uint8_t* manifest_start;
     uint64_t manifest_size;
+
+    const uint8_t* public_key;
+    unsigned int public_key_size;
 };
 
 bool apploader_parse_package_metadata(
