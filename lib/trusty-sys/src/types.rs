@@ -12,7 +12,11 @@ pub type c_char = u8;
 #[cfg(target_arch = "x86_64")]
 pub type c_char = i8;
 
+pub type c_schar = i8;
+
 pub type c_uchar = u8;
+
+pub type c_short = i16;
 
 pub type c_ushort = u16;
 
@@ -30,6 +34,8 @@ pub type c_uint = u64;
 pub type c_long = i32;
 #[cfg(target_pointer_width = "64")]
 pub type c_long = i64;
+
+pub type c_longlong = i64;
 
 #[cfg(target_pointer_width = "32")]
 pub type c_ulong = u32;
