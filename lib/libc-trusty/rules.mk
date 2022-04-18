@@ -59,6 +59,7 @@ MODULE_COMPILEFLAGS += \
 	-Wno-string-plus-int \
 	-Wno-missing-braces \
 	-Wno-implicit-fallthrough \
+	-Wno-unused-but-set-variable \
 
 # Musl is generally not strict about its function prototypes.
 # This could be fixed, except for "main". The prototype for main is deliberately
