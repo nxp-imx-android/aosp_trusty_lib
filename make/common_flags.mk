@@ -121,7 +121,7 @@ MODULE_LIBRARY_DEPS += trusty/user/base/lib/sancov
 # -fno-optimize-sibling-calls is necessary to get correct caller information in
 # the sancov instrumentation.
 MODULE_COMPILEFLAGS += \
-	-fsanitize-coverage-blocklist=trusty/user/base/lib/sancov/exemptlist \
+	-fsanitize-coverage-ignorelist=trusty/user/base/lib/sancov/exemptlist \
 	-fsanitize-coverage=trace-pc-guard \
 	-fno-optimize-sibling-calls
 
