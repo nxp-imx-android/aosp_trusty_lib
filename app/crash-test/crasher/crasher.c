@@ -27,6 +27,7 @@
 
 #include <crasher.h>
 #include <crasher_consts.h>
+#include <crasher_funcs.h>
 
 static struct tipc_port_acl crasher_port_acl = {
         .flags = IPC_PORT_ALLOW_TA_CONNECT,
@@ -41,14 +42,6 @@ static struct tipc_port crasher_port = {
         .msg_queue_len = 1,
         .acl = &crasher_port_acl,
         .priv = NULL,
-};
-
-__SECTION(".rodata") __NO_INLINE static void crasher_rodata_func(void) {
-    TLOG("function in rodata ran\n");
-};
-
-__SECTION(".data") __NO_INLINE static void crasher_data_func(void) {
-    TLOG("function in data ran\n");
 };
 
 static int __attribute__((no_sanitize("undefined")))

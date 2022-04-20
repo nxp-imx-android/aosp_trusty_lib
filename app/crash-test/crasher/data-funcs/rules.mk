@@ -1,4 +1,4 @@
-# Copyright (C) 2020 The Android Open Source Project
+# Copyright (C) 2022 The Android Open Source Project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,25 +17,17 @@ LOCAL_DIR := $(GET_LOCAL_DIR)
 
 MODULE := $(LOCAL_DIR)
 
-MANIFEST := $(LOCAL_DIR)/manifest.json
-
-CONSTANTS := $(LOCAL_DIR)/../include/crasher_consts.json
-
 MODULE_SRCS += \
-	$(LOCAL_DIR)/crasher.c \
+	$(LOCAL_DIR)/crasher_funcs.c \
 
-MODULE_LIBRARY_DEPS += \
-	trusty/user/base/lib/libc-trusty \
-	trusty/user/base/lib/tipc \
-	trusty/user/base/lib/unittest \
-	trusty/user/base/app/crash-test/crasher/data-funcs \
+MODULE_DISABLE_LTO := true
 
-MODULE_INCLUDES += \
-        $(LOCAL_DIR)/../include \
+MODULE_EXPORT_INCLUDES += \
+	$(LOCAL_DIR)/include \
 
-# Phony make target to ensure that we fix the section flags for the data
-# sections before linking
-MODULE_SRCDEPS += \
-	rewrite_crasher_archive
+include make/library.mk
 
-include make/trusted_app.mk
+.PHONY: rewrite_crasher_archive
+rewrite_crasher_archive: $(LIBRARY_ARCHIVE)
+	$(CLANG_BINDIR)/llvm-objcopy --set-section-flags=.data=alloc,data \
+	                             --set-section-flags=.rodata=alloc,readonly $<
