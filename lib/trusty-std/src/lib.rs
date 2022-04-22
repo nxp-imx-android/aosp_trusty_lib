@@ -57,6 +57,7 @@ pub mod io;
 mod macros;
 mod panicking;
 mod rt;
+pub mod sync;
 mod util;
 
 pub use clone_ext::TryClone;
