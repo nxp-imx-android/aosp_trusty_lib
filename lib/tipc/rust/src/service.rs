@@ -16,7 +16,7 @@
 
 use alloc::rc::{Rc, Weak};
 use core::fmt;
-use core::mem::MaybeUninit;
+use core::mem::{ManuallyDrop, MaybeUninit};
 use log::error;
 use trusty_std::alloc::{AllocError, Vec};
 use trusty_std::ffi::CString;
@@ -185,19 +185,18 @@ impl<D: Dispatcher> Channel<D> {
         }
     }
 
-    pub fn into_opaque_ptr(weak: Weak<Self>) -> *mut c_void {
-        weak.into_raw() as *mut c_void
-    }
-
     /// Reconstruct a reference to this type from an opaque pointer.
     ///
     /// SAFETY: The opaque pointer must have been constructed using
-    /// [`into_opaque_ptr`].
+    /// Weak::into_raw, which happens in HandleSet::do_set_ctrl to create a
+    /// connection cookie.
     unsafe fn from_opaque_ptr<'a>(ptr: *const c_void) -> Option<Rc<Self>> {
         if ptr.is_null() {
             None
         } else {
-            let weak = Weak::from_raw(ptr.cast());
+            // We must not drop the weak pointer here, because we are not
+            // actually taking ownership of it.
+            let weak = ManuallyDrop::new(Weak::from_raw(ptr.cast()));
             weak.upgrade()
         }
     }
@@ -435,8 +434,10 @@ impl<
     pub fn run_event_loop(mut self) -> Result<()> {
         loop {
             let event = self.handle_set.wait(None)?;
-            // SAFETY: This cookie was previously initialized by the handle set
-            // using Channel::into_opaque_ptr. Its lifetime is managed by Rc.
+            // SAFETY: This cookie was previously initialized by the handle set.
+            // Its lifetime is managed by the handle set, so we are sure that
+            // the cookie is still valid if the channel is still in this handle
+            // set.
             let channel: Rc<Channel<D>> = unsafe { Channel::from_opaque_ptr(event.cookie) }
                 .ok_or_else(|| {
                     // The opaque pointer associated with this handle could not

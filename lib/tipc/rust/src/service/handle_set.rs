@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-use alloc::rc::Rc;
+use alloc::rc::{Rc, Weak};
 use core::array;
+use core::ffi::c_void;
 use core::fmt;
-use core::ptr;
 use log::error;
 
 use super::{Channel, Dispatcher};
@@ -148,20 +148,41 @@ impl<D: Dispatcher, const PORT_COUNT: usize, const MAX_CONNECTION_COUNT: usize>
     }
 
     fn do_set_ctrl(&self, cmd: u32, event: u32, channel: &Rc<Channel<D>>) -> Result<()> {
+        let cookie = Rc::downgrade(&channel).into_raw();
+
         let mut uevt = trusty_sys::uevent {
             handle: channel.handle().as_raw_fd(),
             event,
-            cookie: if cmd == sys::HSET_DEL as u32 {
-                ptr::null_mut()
-            } else {
-                Channel::into_opaque_ptr(Rc::downgrade(channel))
-            },
+            cookie: cookie as *mut c_void,
         };
         // SAFETY: syscall. The uevent pointer points to a correctly initialized
         // structure that is borrowed and valid across the call. The handle for
         // the handle set is valid for the same lifetime as self, so will remain
         // valid at least as long as the channel being added/modified.
         let rc = unsafe { trusty_sys::handle_set_ctrl(self.handle.as_raw_fd(), cmd, &mut uevt) };
+
+        if cmd != sys::HSET_ADD as u32 || trusty_sys::Error::is_err(rc) {
+            // SAFETY: We are constructing the raw pointer to drop here using
+            // Weak::into_raw(), so we know that it is valid to turn back into a
+            // Weak pointer. We transfer ownership of the weak reference to the
+            // kernel when adding a handle to the handle set, so we want to drop
+            // that reference only when the handle is then removed from the set.
+            // We do this by dropping the weak reference twice on a successful
+            // HSET_DEL. This is safe because the weak reference cookie from the
+            // kernel will never be again provided by this handle set in a poll
+            // operation because we have removed the handle from the set, and we
+            // check that the connection has at least one weak reference
+            // outstanding to remove.
+            unsafe {
+                drop(Weak::from_raw(cookie));
+                if cmd == sys::HSET_DEL as u32
+                    && !trusty_sys::Error::is_err(rc)
+                    && Rc::weak_count(&channel) >= 1
+                {
+                    drop(Weak::from_raw(cookie));
+                }
+            }
+        }
         if rc < 0 {
             Err(TipcError::from_uapi(rc))
         } else {

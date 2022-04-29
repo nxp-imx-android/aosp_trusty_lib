@@ -74,6 +74,12 @@ pub enum Error {
     UserBase = ERR_USER_BASE,
 }
 
+impl Error {
+    pub fn is_err(rc: c_long) -> bool {
+        rc != NO_ERROR as c_long
+    }
+}
+
 impl From<c_long> for Error {
     fn from(rc: c_long) -> Self {
         use Error::*;
