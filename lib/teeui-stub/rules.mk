@@ -29,6 +29,7 @@ MODULE_SRCS += \
 	$(LIBTEEUI_ROOT)/src/label.cpp \
 	$(LIBTEEUI_ROOT)/src/msg_formatting.cpp \
 	$(LIBTEEUI_ROOT)/src/utils.cpp \
+	$(LIBTEEUI_ROOT)/src/bitmap.cpp \
 
 MODULE_EXPORT_INCLUDES += \
 	$(LIBTEEUI_ROOT)/include \
