@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 The Android Open Source Project
+ * Copyright (C) 2022 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,13 @@
 
 #pragma once
 
-#include <inttypes.h>
-
-#include "app_manifest_parser.h"
+#include <lib/apploader_policy_engine/apploader_policy_engine.h>
+#include <lk/compiler.h>
 #include "apploader_package.h"
 
 __BEGIN_CDECLS
 
-bool apploader_check_app_version(struct manifest_extracts* manifest_extracts);
+bool apploader_parse_manifest(struct apploader_package_metadata* pkg_meta,
+                              struct manifest_extracts* manifest_extracts);
 
 __END_CDECLS
