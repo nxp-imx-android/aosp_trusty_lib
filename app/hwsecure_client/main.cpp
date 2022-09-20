@@ -97,6 +97,15 @@ static int handle_msg(handle_t chan, hwsecure_client_req* req, struct chan_ctx* 
        case GET_G2D_SECURE_MODE:
            rc = get_widevine_g2d_secure_mode((int*)(&resp.mode.g2d_secure_mode));
            break;
+       case SECURE_IME_ENABLE_SECURE_POLICY:
+           rc = set_ime_secure_access(true);
+           break;
+       case SECURE_IME_DISABLE_SECURE_POLICY:
+           rc = set_ime_secure_access(false);
+           break;
+       case SECURE_IME_GET_SECURE_MODE:
+           rc = get_ime_secure_mode((int*)(&resp.mode.secureime_secure_mode));
+           break;
        default:
            TLOGE("no known command\n");
            rc = -1;
