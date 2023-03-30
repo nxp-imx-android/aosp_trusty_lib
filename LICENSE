@@ -1,7 +1,8 @@
 This module contains different components with different licenses.
 All lists as below:
-    ./NOTICE (BSD-2-clause, Apache-2.0, MIT)
-    ./lib/libc-trusty/ (BSD-2-clause)
+    ./NOTICE (BSD-2-clause, BSD-3-clause, MIT)
+    ./LICENSE_APACHE (Apache-2.0)
+    ./lib/libc-trusty/ (BSD-2-clause, BSD-3-clause)
     ./lib/storage/ (Apache-2.0)
     ./lib/unittest/ (Apache-2.0)
     ./lib/hwkey/ (Apache-2.0)
