@@ -16,15 +16,18 @@ LOCAL_DIR := $(GET_LOCAL_DIR)
 
 MODULE := $(LOCAL_DIR)
 
+MANIFEST := $(LOCAL_DIR)/manifest.json
+
 MODULE_SRCS := \
-	$(LOCAL_DIR)/shm.c \
+	$(LOCAL_DIR)/aggregator.c \
+	$(LOCAL_DIR)/client.c \
+	$(LOCAL_DIR)/disable_sancov.c \
+	$(LOCAL_DIR)/main.c \
 
-MODULE_EXPORT_INCLUDES := \
-	$(LOCAL_DIR)/include \
-
-MODULE_LIBRARY_DEPS := \
-	trusty/user/base/lib/tipc \
+MODULE_LIBRARY_DEPS += \
 	trusty/user/base/interface/line-coverage \
 	trusty/user/base/lib/coverage/common \
+	trusty/user/base/lib/libc-trusty \
+	trusty/user/base/lib/tipc \
 
-include make/library.mk
+include make/trusted_app.mk
